@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
+  apiKey: "AIzaSyDomk0IVSajukkJjKeIE_K4kTWqpCDYqb0",
   authDomain: "metkinetics-leachview.firebaseapp.com",
   projectId: "metkinetics-leachview",
   storageBucket: "metkinetics-leachview.firebasestorage.app",
