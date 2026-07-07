@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MetKinetics PlantView</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
+    <script type="module" src="js/app.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Estado general de planta</p>
+          <h1>MetKinetics PlantView</h1>
+          <p class="subtitle">Dashboard operacional para plantas de lixiviación</p>
+        </div>
+        <div class="plant-status">
+          <span id="plantStatusDot" class="status-dot normal"></span>
+          <div>
+            <span id="plantStatusLabel" class="status-label">Normal</span>
+            <span id="lastUpdated" class="last-update">Última actualización: --</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="kpi-grid" aria-label="Indicadores principales">
+          <article class="kpi-card accent-cyan">
+            <span class="kpi-label">pH PLS</span>
+            <strong id="kpiPh">--</strong>
+            <small id="kpiPhStatus">Sin datos</small>
+          </article>
+          <article class="kpi-card accent-blue">
+            <span class="kpi-label">Cu PLS</span>
+            <strong id="kpiCu">--</strong>
+            <small id="kpiCuStatus">Sin datos</small>
+          </article>
+          <article class="kpi-card accent-yellow">
+            <span class="kpi-label">Flujo de riego</span>
+            <strong id="kpiFlow">--</strong>
+            <small id="kpiFlowStatus">Sin datos</small>
+          </article>
+          <article class="kpi-card accent-orange">
+            <span class="kpi-label">Ácido libre</span>
+            <strong id="kpiAcid">--</strong>
+            <small id="kpiAcidStatus">Sin datos</small>
+          </article>
+          <article class="kpi-card accent-cyan">
+            <span class="kpi-label">Nivel piscina PLS</span>
+            <strong id="kpiPool">--</strong>
+            <small id="kpiPoolStatus">Sin datos</small>
+          </article>
+          <article class="kpi-card accent-red">
+            <span class="kpi-label">Alertas activas</span>
+            <strong id="kpiAlerts">--</strong>
+            <small id="kpiAlertsStatus">Sin datos</small>
+          </article>
+        </section>
+
+        <section class="process-section" aria-label="Mapa de proceso">
+          <div class="section-heading">
+            <h2>Mapa de proceso</h2>
+            <span id="dataSourceBadge" class="data-source">Inicializando</span>
+          </div>
+          <div id="processMap" class="process-map"></div>
+        </section>
+
+        <section class="charts-grid" aria-label="Gráficos operacionales">
+          <article class="panel">
+            <h2>Tendencia pH</h2>
+            <div class="chart-box"><canvas id="phTrendChart"></canvas></div>
+          </article>
+          <article class="panel">
+            <h2>Tendencia Cu PLS</h2>
+            <div class="chart-box"><canvas id="cuTrendChart"></canvas></div>
+          </article>
+          <article class="panel">
+            <h2>Flujo de riego por área</h2>
+            <div class="chart-box"><canvas id="flowByAreaChart"></canvas></div>
+          </article>
+          <article class="panel">
+            <h2>Alertas por área</h2>
+            <div class="chart-box"><canvas id="alertsByAreaChart"></canvas></div>
+          </article>
+        </section>
+
+        <section class="reports-section" aria-label="Últimos reportes">
+          <div class="section-heading">
+            <h2>Últimos reportes</h2>
+            <span id="recordCount" class="data-source">0 registros</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Turno</th>
+                  <th>Área</th>
+                  <th>Operador</th>
+                  <th>Estado</th>
+                  <th>Observación</th>
+                </tr>
+              </thead>
+              <tbody id="reportsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
