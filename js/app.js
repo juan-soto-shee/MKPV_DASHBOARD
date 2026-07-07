@@ -1,4 +1,4 @@
-import { listenToLeachRecords } from "./firestoreService.js";
+import { startRealtimeListener } from "./firestoreService.js";
 import { demoRecords } from "../data/demoData.js";
 import { updateCharts } from "./charts.js";
 import { getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js";
@@ -25,15 +25,11 @@ const elements = {
   kpiAlertsStatus: document.getElementById("kpiAlertsStatus")
 };
 
-listenToLeachRecords({
-  onData(records) {
-    const source = records.length ? "Firestore en tiempo real" : "Demo local: Firestore vacío";
-    renderDashboard(records.length ? records : demoRecords, source);
-  },
-  onError(error) {
-    console.warn("Usando datos demo:", error.message);
-    renderDashboard(demoRecords, "Demo local: configurar Firebase");
-  }
+startRealtimeListener((records) => {
+  const hasRecords = records.length > 0;
+  const source = hasRecords ? "Firestore en tiempo real" : "Demo local: Firestore vacío";
+
+  renderDashboard(hasRecords ? records : demoRecords, source);
 });
 
 function renderDashboard(records, sourceLabel) {
