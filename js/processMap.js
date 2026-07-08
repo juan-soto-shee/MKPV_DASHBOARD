@@ -52,7 +52,7 @@ export function buildPlantRecords(records) {
 
 export function renderProcessMap(container, records, selectedArea, onSelect) {
   const latestBySubarea = getLatestBySubarea(records);
-  const nodes = buildProcessNodes(records, latestBySubarea);
+  const nodes = buildProcessNodes(records, latestBySubarea, selectedArea);
 
   container.innerHTML = nodes.map((node) => {
     const stateClass = normalizeStateClass(node.state);
@@ -87,7 +87,7 @@ function severityValue(state) {
   return 1;
 }
 
-function buildProcessNodes(records, latestBySubarea) {
+function buildProcessNodes(records, latestBySubarea, selectedArea) {
   const plantRecords = buildPlantRecords(records);
   const latestPlant = plantRecords[plantRecords.length - 1];
   const fallbackPlant = demoProcess.find((node) => node.name === PLANT_AREA);
@@ -107,8 +107,9 @@ function buildProcessNodes(records, latestBySubarea) {
     }
 
     const liveRecord = latestBySubarea.get(name);
+    const metricRecord = getNodeMetricRecord(records, latestBySubarea, name, selectedArea);
     const fallback = demoProcess.find((node) => node.name === name);
-    const metric = getMetric(name, liveRecord);
+    const metric = getMetric(name, metricRecord);
 
     return {
       name,
@@ -117,6 +118,32 @@ function buildProcessNodes(records, latestBySubarea) {
       metricValue: metric.value || fallback?.metric || "Sin datos recientes"
     };
   });
+}
+
+function getNodeMetricRecord(records, latestBySubarea, nodeName, selectedArea) {
+  if (nodeName === "Piscina PLS") {
+    return getLevelRecord(records, selectedArea, "nivelPiscinaPLS") || latestBySubarea.get(nodeName);
+  }
+
+  if (nodeName === "Piscina Refino") {
+    return getLevelRecord(records, selectedArea, "nivelPiscinaRefino") || latestBySubarea.get(nodeName);
+  }
+
+  return latestBySubarea.get(nodeName);
+}
+
+function getLevelRecord(records, selectedArea, field) {
+  if (selectedArea === PLANT_AREA) {
+    const plantRecords = buildPlantRecords(records);
+    return findLatestRecordWithFiniteValue(plantRecords, field);
+  }
+
+  if (pileAreas.includes(selectedArea)) {
+    const pileRecords = records.filter((record) => record.subarea === selectedArea);
+    return findLatestRecordWithFiniteValue(pileRecords, field);
+  }
+
+  return null;
 }
 
 function getLatestBySubarea(records) {
@@ -129,6 +156,15 @@ function getLatestBySubarea(records) {
   });
 
   return latestBySubarea;
+}
+
+function findLatestRecordWithFiniteValue(records, field) {
+  return records.reduce((latest, record) => {
+    if (!Number.isFinite(record[field])) return latest;
+    if (!latest) return record;
+
+    return new Date(record.timestampCreacion) > new Date(latest.timestampCreacion) ? record : latest;
+  }, null);
 }
 
 function getMetric(area, record) {
