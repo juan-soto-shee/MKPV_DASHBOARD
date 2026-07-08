@@ -2,8 +2,8 @@ import { demoProcess } from "../data/demoData.js";
 
 export const PLANT_AREA = "PLANTA";
 
-const processAreas = [PLANT_AREA, "Pila 1", "Pila 2", "Pila 3", "Piscina PLS", "Piscina Refino"];
-const monitoredAreas = [...processAreas];
+const processAreas = [PLANT_AREA, "Pila 1", "Pila 2", "Pila 3"];
+const monitoredAreas = [...processAreas, "Piscina PLS", "Piscina Refino"];
 const pileAreas = ["Pila 1", "Pila 2", "Pila 3"];
 
 export function getWorstState(records) {
