@@ -42,24 +42,6 @@ const chartDefinitions = [
     unit: "g/L",
     decimals: 2,
     color: "#22c55e"
-  },
-  {
-    canvasId: "refinoLevelTrendChart",
-    analysisId: "refinoLevelTrendAnalysis",
-    field: "nivelPiscinaRefino",
-    label: "Nivel Piscina Refino",
-    unit: "%",
-    decimals: 0,
-    color: "#facc15"
-  },
-  {
-    canvasId: "plsLevelTrendChart",
-    analysisId: "plsLevelTrendAnalysis",
-    field: "nivelPiscinaPLS",
-    label: "Nivel Piscina PLS",
-    unit: "%",
-    decimals: 0,
-    color: "#247f9a"
   }
 ];
 
