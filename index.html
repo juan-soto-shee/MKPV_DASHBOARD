@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MetKinetics PlantView</title>
+    <title>MetKinetics PlantView | Centro de Monitoreo Operacional</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script type="module" src="js/app.js"></script>
@@ -11,99 +11,159 @@
   <body>
     <div class="shell">
       <header class="topbar">
-        <div>
-          <p class="eyebrow">Estado general de planta</p>
-          <h1>MetKinetics PlantView</h1>
-          <p class="subtitle">Dashboard operacional para plantas de lixiviación</p>
+        <div class="brand-block">
+          <p class="eyebrow">MetKinetics PlantView</p>
+          <h1>Centro de Monitoreo Operacional de Lixiviacion</h1>
         </div>
-        <div class="plant-status">
-          <span id="plantStatusDot" class="status-dot normal"></span>
-          <div>
-            <span id="plantStatusLabel" class="status-label">Normal</span>
-            <span id="lastUpdated" class="last-update">Última actualización: --</span>
+        <div class="operations-status">
+          <div class="plant-status">
+            <span id="plantStatusDot" class="status-dot normal"></span>
+            <div>
+              <span class="status-caption">Estado general de planta</span>
+              <strong id="plantStatusLabel" class="status-label">Normal</strong>
+            </div>
+          </div>
+          <div class="status-meta">
+            <span id="lastUpdated">Ultima actualizacion: --</span>
+            <span id="currentShift">Turno actual: --</span>
           </div>
         </div>
       </header>
 
       <main>
-        <section class="kpi-grid" aria-label="Indicadores principales">
-          <article class="kpi-card accent-cyan">
-            <span class="kpi-label">pH PLS</span>
-            <strong id="kpiPh">--</strong>
-            <small id="kpiPhStatus">Sin datos</small>
-          </article>
-          <article class="kpi-card accent-blue">
-            <span class="kpi-label">Cu PLS</span>
-            <strong id="kpiCu">--</strong>
-            <small id="kpiCuStatus">Sin datos</small>
-          </article>
-          <article class="kpi-card accent-yellow">
-            <span class="kpi-label">Flujo de riego</span>
-            <strong id="kpiFlow">--</strong>
-            <small id="kpiFlowStatus">Sin datos</small>
-          </article>
-          <article class="kpi-card accent-orange">
-            <span class="kpi-label">Ácido libre</span>
-            <strong id="kpiAcid">--</strong>
-            <small id="kpiAcidStatus">Sin datos</small>
-          </article>
-          <article class="kpi-card accent-cyan">
-            <span class="kpi-label">Nivel piscina PLS</span>
-            <strong id="kpiPool">--</strong>
-            <small id="kpiPoolStatus">Sin datos</small>
-          </article>
-          <article class="kpi-card accent-red">
-            <span class="kpi-label">Alertas activas</span>
-            <strong id="kpiAlerts">--</strong>
-            <small id="kpiAlertsStatus">Sin datos</small>
-          </article>
+        <section class="mobile-controls" aria-label="Filtros moviles">
+          <div class="segmented" id="mobileAreaFilter">
+            <button type="button" class="is-active" data-area="Todas">Todas</button>
+            <button type="button" data-area="Pila 1">Pila 1</button>
+            <button type="button" data-area="Pila 2">Pila 2</button>
+            <button type="button" data-area="Pila 3">Pila 3</button>
+          </div>
+          <div class="segmented" id="periodFilter">
+            <button type="button" class="is-active" data-period="24">24 h</button>
+            <button type="button" data-period="168">7 dias</button>
+            <button type="button" data-period="720">30 dias</button>
+          </div>
         </section>
 
-        <section class="process-section" aria-label="Mapa de proceso">
+        <section class="summary-strip" aria-label="Estado consolidado">
+          <div>
+            <span class="metric-label">Registros monitoreados</span>
+            <strong id="recordCount">0</strong>
+          </div>
+          <div>
+            <span class="metric-label">Fuente de datos</span>
+            <strong id="dataSourceBadge">Inicializando</strong>
+          </div>
+          <div>
+            <span class="metric-label">Filtro operacional</span>
+            <strong id="activeAreaLabel">Todas las subareas</strong>
+          </div>
+        </section>
+
+        <section class="process-section desktop-only" aria-label="Diagrama operacional de lixiviacion">
           <div class="section-heading">
-            <h2>Mapa de proceso</h2>
-            <span id="dataSourceBadge" class="data-source">Inicializando</span>
+            <div>
+              <p class="eyebrow">Proceso de lixiviacion</p>
+              <h2>Diagrama operacional</h2>
+            </div>
           </div>
           <div id="processMap" class="process-map"></div>
         </section>
 
-        <section class="charts-grid" aria-label="Gráficos operacionales">
-          <article class="panel">
-            <h2>Tendencia pH</h2>
-            <div class="chart-box"><canvas id="phTrendChart"></canvas></div>
-          </article>
-          <article class="panel">
-            <h2>Tendencia Cu PLS</h2>
-            <div class="chart-box"><canvas id="cuTrendChart"></canvas></div>
-          </article>
-          <article class="panel">
-            <h2>Flujo de riego por área</h2>
-            <div class="chart-box"><canvas id="flowByAreaChart"></canvas></div>
-          </article>
-          <article class="panel">
-            <h2>Alertas por área</h2>
-            <div class="chart-box"><canvas id="alertsByAreaChart"></canvas></div>
-          </article>
+        <section class="charts-section" aria-label="Tendencias operacionales">
+          <div class="section-heading desktop-heading">
+            <div>
+              <p class="eyebrow">Comportamiento temporal</p>
+              <h2>Tendencias operacionales</h2>
+            </div>
+          </div>
+          <div class="charts-grid">
+            <article class="panel">
+              <div class="chart-heading">
+                <h3>Flujo PLS</h3>
+                <span>m3/h</span>
+              </div>
+              <div class="chart-box"><canvas id="flowTrendChart"></canvas></div>
+              <p id="flowTrendAnalysis" class="trend-analysis">Sin datos</p>
+            </article>
+            <article class="panel">
+              <div class="chart-heading">
+                <h3>Acidez Refino</h3>
+                <span>g/L</span>
+              </div>
+              <div class="chart-box"><canvas id="acidTrendChart"></canvas></div>
+              <p id="acidTrendAnalysis" class="trend-analysis">Sin datos</p>
+            </article>
+            <article class="panel">
+              <div class="chart-heading">
+                <h3>Cu2+ PLS</h3>
+                <span>g/L</span>
+              </div>
+              <div class="chart-box"><canvas id="cuTrendChart"></canvas></div>
+              <p id="cuTrendAnalysis" class="trend-analysis">Sin datos</p>
+            </article>
+            <article class="panel">
+              <div class="chart-heading">
+                <h3>Nivel Piscina Refino</h3>
+                <span>%</span>
+              </div>
+              <div class="chart-box"><canvas id="refinoLevelTrendChart"></canvas></div>
+              <p id="refinoLevelTrendAnalysis" class="trend-analysis">Sin datos</p>
+            </article>
+            <article class="panel wide-panel">
+              <div class="chart-heading">
+                <h3>Nivel Piscina PLS</h3>
+                <span>%</span>
+              </div>
+              <div class="chart-box"><canvas id="plsLevelTrendChart"></canvas></div>
+              <p id="plsLevelTrendAnalysis" class="trend-analysis">Sin datos</p>
+            </article>
+          </div>
         </section>
 
-        <section class="reports-section" aria-label="Últimos reportes">
+        <section class="mobile-24h" aria-label="Resumen ultimas 24 horas">
           <div class="section-heading">
-            <h2>Últimos reportes</h2>
-            <span id="recordCount" class="data-source">0 registros</span>
+            <h2>Ultimas 24 horas</h2>
+          </div>
+          <div class="mobile-counts">
+            <span>Pila 1 <strong id="countPila1">0</strong></span>
+            <span>Pila 2 <strong id="countPila2">0</strong></span>
+            <span>Pila 3 <strong id="countPila3">0</strong></span>
+          </div>
+        </section>
+
+        <section class="alarms-section" aria-label="Alarmas activas">
+          <div class="section-heading">
+            <h2>Alarmas activas</h2>
+            <span id="alarmCount" class="data-source">0 eventos</span>
+          </div>
+          <div id="alarmsList" class="alarms-list"></div>
+        </section>
+
+        <section class="history-section desktop-only" aria-label="Historial operacional">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Ultimos registros</p>
+              <h2>Historial operacional</h2>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
+                  <th>Fecha</th>
                   <th>Hora</th>
                   <th>Turno</th>
-                  <th>Área</th>
-                  <th>Operador</th>
+                  <th>Subarea</th>
+                  <th>Flujo PLS</th>
+                  <th>Acidez Refino</th>
+                  <th>Cu2+ PLS</th>
+                  <th>Nivel Refino</th>
+                  <th>Nivel PLS</th>
                   <th>Estado</th>
-                  <th>Observación</th>
                 </tr>
               </thead>
-              <tbody id="reportsTableBody"></tbody>
+              <tbody id="historyTableBody"></tbody>
             </table>
           </div>
         </section>

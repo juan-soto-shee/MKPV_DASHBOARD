@@ -1,29 +1,55 @@
 let charts = {};
 
-const chartTextColor = "#cbeaf5";
-const gridColor = "rgba(141, 178, 194, 0.13)";
+const chartTextColor = "#d9f7ff";
+const gridColor = "rgba(127, 208, 226, 0.12)";
 
-function commonOptions() {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        labels: { color: chartTextColor, boxWidth: 10 }
-      }
-    },
-    scales: {
-      x: {
-        ticks: { color: chartTextColor, maxRotation: 0 },
-        grid: { color: gridColor }
-      },
-      y: {
-        ticks: { color: chartTextColor },
-        grid: { color: gridColor }
-      }
-    }
-  };
-}
+const chartDefinitions = [
+  {
+    canvasId: "flowTrendChart",
+    analysisId: "flowTrendAnalysis",
+    field: "flujoPLS",
+    label: "Flujo PLS",
+    unit: "m3/h",
+    decimals: 0,
+    color: "#22d3ee"
+  },
+  {
+    canvasId: "acidTrendChart",
+    analysisId: "acidTrendAnalysis",
+    field: "acidezRefino",
+    label: "Acidez Refino",
+    unit: "g/L",
+    decimals: 2,
+    color: "#8ee7f5"
+  },
+  {
+    canvasId: "cuTrendChart",
+    analysisId: "cuTrendAnalysis",
+    field: "cuPls",
+    label: "Cu2+ PLS",
+    unit: "g/L",
+    decimals: 2,
+    color: "#22c55e"
+  },
+  {
+    canvasId: "refinoLevelTrendChart",
+    analysisId: "refinoLevelTrendAnalysis",
+    field: "nivelPiscinaRefino",
+    label: "Nivel Piscina Refino",
+    unit: "%",
+    decimals: 0,
+    color: "#facc15"
+  },
+  {
+    canvasId: "plsLevelTrendChart",
+    analysisId: "plsLevelTrendAnalysis",
+    field: "nivelPiscinaPLS",
+    label: "Nivel Piscina PLS",
+    unit: "%",
+    decimals: 0,
+    color: "#38bdf8"
+  }
+];
 
 export function updateCharts(records) {
   if (!window.Chart) {
@@ -32,85 +58,98 @@ export function updateCharts(records) {
   }
 
   const chronological = [...records].reverse();
-  const labels = chronological.map((record) => formatTime(record.timestampCreacion));
 
-  upsertChart("phTrendChart", {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "pH PLS",
-        data: chronological.map((record) => record.phPLS),
-        borderColor: "#22d3ee",
-        backgroundColor: "rgba(34, 211, 238, 0.16)",
-        fill: true,
-        tension: 0.38,
-        pointRadius: 3
-      }]
-    },
-    options: commonOptions()
+  chartDefinitions.forEach((definition) => {
+    const series = chronological
+      .filter((record) => Number.isFinite(record[definition.field]))
+      .map((record) => ({
+        label: formatLabel(record.timestampCreacion),
+        value: record[definition.field]
+      }));
+
+    upsertLineChart(definition, series);
+    renderTrendAnalysis(definition, series);
   });
+}
 
-  upsertChart("cuTrendChart", {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "Cu PLS g/L",
-        data: chronological.map((record) => record.cuPLS),
-        borderColor: "#3b82f6",
-        backgroundColor: "rgba(59, 130, 246, 0.15)",
-        fill: true,
-        tension: 0.38,
-        pointRadius: 3
-      }]
-    },
-    options: commonOptions()
-  });
+function upsertLineChart(definition, series) {
+  const data = {
+    labels: series.map((point) => point.label),
+    datasets: [{
+      label: `${definition.label} (${definition.unit})`,
+      data: series.map((point) => point.value),
+      borderColor: definition.color,
+      backgroundColor: transparentize(definition.color),
+      fill: true,
+      tension: 0.32,
+      borderWidth: 2,
+      pointRadius: 2.5,
+      pointHoverRadius: 5
+    }]
+  };
 
-  const flowByArea = aggregate(records, "flujoRiego", "avg");
-  upsertChart("flowByAreaChart", {
-    type: "bar",
-    data: {
-      labels: Object.keys(flowByArea),
-      datasets: [{
-        label: "m3/h",
-        data: Object.values(flowByArea),
-        backgroundColor: ["#22d3ee", "#3b82f6", "#facc15", "#fb923c", "#ef4444", "#38bdf8", "#a3e635"],
-        borderWidth: 0
-      }]
-    },
-    options: commonOptions()
-  });
+  const options = commonOptions(definition.unit);
+  upsertChart(definition.canvasId, { type: "line", data, options });
+}
 
-  const alertsByArea = aggregateAlerts(records);
-  upsertChart("alertsByAreaChart", {
-    type: "doughnut",
-    data: {
-      labels: Object.keys(alertsByArea),
-      datasets: [{
-        label: "Alertas",
-        data: Object.values(alertsByArea),
-        backgroundColor: ["#ef4444", "#fb923c", "#facc15", "#3b82f6", "#22d3ee", "#22c55e", "#a855f7"],
-        borderColor: "#0b2230",
-        borderWidth: 2
-      }]
+function commonOptions(unit) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: "index",
+      intersect: false
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: "right",
-          labels: { color: chartTextColor, boxWidth: 10 }
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => `${context.parsed.y} ${unit}`
         }
       }
+    },
+    scales: {
+      x: {
+        ticks: { color: chartTextColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 },
+        grid: { color: gridColor, drawBorder: false }
+      },
+      y: {
+        ticks: { color: chartTextColor },
+        grid: { color: gridColor, drawBorder: false }
+      }
     }
-  });
+  };
+}
+
+function renderTrendAnalysis(definition, series) {
+  const element = document.getElementById(definition.analysisId);
+
+  if (!element || series.length < 2) {
+    if (element) element.textContent = "Sin datos suficientes";
+    return;
+  }
+
+  const previous = series[series.length - 2].value;
+  const current = series[series.length - 1].value;
+  const difference = current - previous;
+  const tolerance = Math.max(Math.abs(previous) * 0.01, definition.decimals === 0 ? 1 : 0.01);
+
+  if (Math.abs(difference) <= tolerance) {
+    element.textContent = "Estable";
+    element.className = "trend-analysis stable";
+    return;
+  }
+
+  const direction = difference > 0 ? "Subiendo" : "Bajando";
+  const sign = difference > 0 ? "+" : "";
+
+  element.textContent = `${direction} ${sign}${formatNumber(difference, definition.decimals)} ${definition.unit}`;
+  element.className = `trend-analysis ${difference > 0 ? "up" : "down"}`;
 }
 
 function upsertChart(canvasId, config) {
   const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
 
   if (charts[canvasId]) {
     charts[canvasId].data = config.data;
@@ -122,39 +161,29 @@ function upsertChart(canvasId, config) {
   charts[canvasId] = new Chart(canvas, config);
 }
 
-function aggregate(records, field, mode) {
-  const grouped = {};
+function formatLabel(value) {
+  const date = new Date(value);
 
-  records.forEach((record) => {
-    grouped[record.area] = grouped[record.area] || { total: 0, count: 0 };
-    grouped[record.area].total += Number(record[field] || 0);
-    grouped[record.area].count += 1;
+  return date.toLocaleString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
   });
-
-  return Object.fromEntries(Object.entries(grouped).map(([area, value]) => {
-    const result = mode === "avg" ? value.total / value.count : value.total;
-    return [area, Math.round(result)];
-  }));
 }
 
-function aggregateAlerts(records) {
-  const grouped = {};
-
-  records.forEach((record) => {
-    const isAlert = record.estado === "Alerta" || record.estado === "Crítico";
-    if (!isAlert) return;
-    grouped[record.area] = (grouped[record.area] || 0) + 1;
+function formatNumber(value, decimals) {
+  return Number(value).toLocaleString("es-CL", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
   });
-
-  return Object.keys(grouped).length ? grouped : { "Sin alertas": 0 };
 }
 
-function formatTime(value) {
-  const date = toDate(value);
-  return date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-}
+function transparentize(hex) {
+  const value = hex.replace("#", "");
+  const red = parseInt(value.slice(0, 2), 16);
+  const green = parseInt(value.slice(2, 4), 16);
+  const blue = parseInt(value.slice(4, 6), 16);
 
-function toDate(value) {
-  if (value?.toDate) return value.toDate();
-  return new Date(value);
+  return `rgba(${red}, ${green}, ${blue}, 0.14)`;
 }

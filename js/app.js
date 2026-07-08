@@ -3,102 +3,249 @@ import { demoRecords } from "../data/demoData.js";
 import { updateCharts } from "./charts.js";
 import { getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js";
 
+const FILTER_ALL = "Todas";
+
+const state = {
+  records: [],
+  sourceLabel: "Inicializando",
+  selectedArea: FILTER_ALL,
+  selectedPeriodHours: 24
+};
+
 const elements = {
   plantStatusDot: document.getElementById("plantStatusDot"),
   plantStatusLabel: document.getElementById("plantStatusLabel"),
   lastUpdated: document.getElementById("lastUpdated"),
+  currentShift: document.getElementById("currentShift"),
   dataSourceBadge: document.getElementById("dataSourceBadge"),
   recordCount: document.getElementById("recordCount"),
+  activeAreaLabel: document.getElementById("activeAreaLabel"),
   processMap: document.getElementById("processMap"),
-  reportsTableBody: document.getElementById("reportsTableBody"),
-  kpiPh: document.getElementById("kpiPh"),
-  kpiCu: document.getElementById("kpiCu"),
-  kpiFlow: document.getElementById("kpiFlow"),
-  kpiAcid: document.getElementById("kpiAcid"),
-  kpiPool: document.getElementById("kpiPool"),
-  kpiAlerts: document.getElementById("kpiAlerts"),
-  kpiPhStatus: document.getElementById("kpiPhStatus"),
-  kpiCuStatus: document.getElementById("kpiCuStatus"),
-  kpiFlowStatus: document.getElementById("kpiFlowStatus"),
-  kpiAcidStatus: document.getElementById("kpiAcidStatus"),
-  kpiPoolStatus: document.getElementById("kpiPoolStatus"),
-  kpiAlertsStatus: document.getElementById("kpiAlertsStatus")
+  historyTableBody: document.getElementById("historyTableBody"),
+  alarmsList: document.getElementById("alarmsList"),
+  alarmCount: document.getElementById("alarmCount"),
+  mobileAreaFilter: document.getElementById("mobileAreaFilter"),
+  periodFilter: document.getElementById("periodFilter"),
+  countPila1: document.getElementById("countPila1"),
+  countPila2: document.getElementById("countPila2"),
+  countPila3: document.getElementById("countPila3")
 };
+
+bindControls();
 
 startRealtimeListener((records) => {
   const hasRecords = records.length > 0;
-  const source = hasRecords ? "Firestore en tiempo real" : "Demo local: Firestore vacío";
 
-  renderDashboard(hasRecords ? records : demoRecords, source);
+  state.records = normalizeRecords(hasRecords ? records : demoRecords);
+  state.sourceLabel = hasRecords ? "Firestore en tiempo real" : "Demo local: Firestore vacio";
+
+  render();
 });
 
-function renderDashboard(records, sourceLabel) {
-  const normalizedRecords = normalizeRecords(records);
-  const latest = normalizedRecords[0];
-  const plantState = getWorstState(normalizedRecords);
+function bindControls() {
+  elements.mobileAreaFilter.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-area]");
+    if (!button) return;
 
-  elements.dataSourceBadge.textContent = sourceLabel;
-  elements.recordCount.textContent = `${normalizedRecords.length} registros`;
+    state.selectedArea = button.dataset.area;
+    setActiveButton(elements.mobileAreaFilter, button);
+    render();
+  });
+
+  elements.periodFilter.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-period]");
+    if (!button) return;
+
+    state.selectedPeriodHours = Number(button.dataset.period);
+    setActiveButton(elements.periodFilter, button);
+    render();
+  });
+}
+
+function setActiveButton(group, activeButton) {
+  group.querySelectorAll("button").forEach((button) => {
+    button.classList.toggle("is-active", button === activeButton);
+  });
+}
+
+function render() {
+  const latest = state.records[0];
+  const recentRecords = filterByPeriod(state.records, state.selectedPeriodHours);
+  const filteredRecords = filterByArea(recentRecords, state.selectedArea);
+  const plantState = getWorstState(recentRecords);
+
+  elements.dataSourceBadge.textContent = state.sourceLabel;
+  elements.recordCount.textContent = String(state.records.length);
+  elements.activeAreaLabel.textContent = state.selectedArea === FILTER_ALL ? "Todas las subareas" : state.selectedArea;
   elements.plantStatusLabel.textContent = plantState;
   elements.plantStatusDot.className = `status-dot ${normalizeStateClass(plantState)}`;
-  elements.lastUpdated.textContent = `Última actualización: ${formatDateTime(latest.timestampCreacion)}`;
+  elements.lastUpdated.textContent = `Ultima actualizacion: ${latest ? formatDateTime(latest.timestampCreacion) : "--"}`;
+  elements.currentShift.textContent = `Turno actual: ${latest?.turno || "--"}`;
 
-  renderKpis(latest);
-  renderProcessMap(elements.processMap, normalizedRecords);
-  renderReportsTable(normalizedRecords.slice(0, 10));
-  updateCharts(normalizedRecords);
+  renderProcessMap(elements.processMap, state.records, state.selectedArea, handleProcessSelection);
+  renderAlarms(recentRecords);
+  renderHistoryTable(state.records.slice(0, 30));
+  renderMobileSummary(state.records);
+  updateCharts(filteredRecords);
 }
 
-function renderKpis(record) {
-  setKpi("kpiPh", "kpiPhStatus", number(record.phPLS, 2), getRangeStatus(record.phPLS, 1.6, 1.85), "");
-  setKpi("kpiCu", "kpiCuStatus", number(record.cuPLS, 1), getRangeStatus(record.cuPLS, 4.8, 5.8), "g/L");
-  setKpi("kpiFlow", "kpiFlowStatus", number(record.flujoRiego, 0), getRangeStatus(record.flujoRiego, 1180, 1360), "m3/h");
-  setKpi("kpiAcid", "kpiAcidStatus", number(record.acidoLibre, 1), getRangeStatus(record.acidoLibre, 7, 9), "g/L");
-  setKpi("kpiPool", "kpiPoolStatus", number(record.nivelPiscinaPLS, 0), getRangeStatus(record.nivelPiscinaPLS, 60, 82), "%");
-  setKpi("kpiAlerts", "kpiAlertsStatus", number(record.alertasActivas, 0), record.alertasActivas > 3 ? "Crítico" : record.alertasActivas > 0 ? "Alerta" : "Normal", "");
+function handleProcessSelection(area) {
+  state.selectedArea = area;
+  const matchingButton = elements.mobileAreaFilter.querySelector(`[data-area="${area}"]`);
+  if (matchingButton) setActiveButton(elements.mobileAreaFilter, matchingButton);
+  render();
 }
 
-function setKpi(valueId, statusId, value, status, unit) {
-  elements[valueId].textContent = unit ? `${value} ${unit}` : value;
-  elements[statusId].textContent = status;
-  elements[statusId].className = normalizeStateClass(status);
-}
+function renderAlarms(records) {
+  const alarms = records
+    .filter((record) => ["alerta", "critico"].includes(normalizeStateClass(record.estado)))
+    .slice(0, window.matchMedia("(max-width: 820px)").matches ? 5 : 8);
 
-function renderReportsTable(records) {
-  elements.reportsTableBody.innerHTML = records.map((record) => {
+  elements.alarmCount.textContent = `${alarms.length} eventos`;
+
+  if (!alarms.length) {
+    elements.alarmsList.innerHTML = `<p class="empty-state">Sin alarmas activas recientes.</p>`;
+    return;
+  }
+
+  elements.alarmsList.innerHTML = alarms.map((record) => {
+    const variable = getDominantVariable(record);
     const stateClass = normalizeStateClass(record.estado);
+
+    return `
+      <article class="alarm-row">
+        <time>${formatTime(record.timestampCreacion)}</time>
+        <strong>${escapeHtml(record.subarea || "--")}</strong>
+        <span>${escapeHtml(variable)}</span>
+        <span class="state-pill ${stateClass}">${escapeHtml(record.estado)}</span>
+        <p>${escapeHtml(record.observacion || "Sin observacion")}</p>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderHistoryTable(records) {
+  elements.historyTableBody.innerHTML = records.map((record) => {
+    const stateClass = normalizeStateClass(record.estado);
+
     return `
       <tr>
-        <td>${formatTime(record.timestampCreacion)}</td>
+        <td>${escapeHtml(record.fecha || formatDate(record.timestampCreacion))}</td>
+        <td>${escapeHtml(record.hora || formatTime(record.timestampCreacion))}</td>
         <td>${escapeHtml(record.turno || "--")}</td>
-        <td>${escapeHtml(record.area || "--")}</td>
-        <td>${escapeHtml(record.operador || "--")}</td>
-        <td><span class="state-pill ${stateClass}">${escapeHtml(record.estado || "Normal")}</span></td>
-        <td>${escapeHtml(record.observacion || "Sin observación")}</td>
+        <td>${escapeHtml(record.subarea || "--")}</td>
+        <td>${formatNumber(record.flujoPLS, 0)} m3/h</td>
+        <td>${formatNumber(record.acidezRefino, 2)} g/L</td>
+        <td>${formatNumber(record.cuPls, 2)} g/L</td>
+        <td>${formatNumber(record.nivelPiscinaRefino, 0)}%</td>
+        <td>${formatNumber(record.nivelPiscinaPLS, 0)}%</td>
+        <td><span class="state-pill ${stateClass}">${escapeHtml(record.estado)}</span></td>
       </tr>
     `;
   }).join("");
 }
 
+function renderMobileSummary(records) {
+  const last24 = filterByPeriod(records, 24);
+
+  elements.countPila1.textContent = countBySubarea(last24, "Pila 1");
+  elements.countPila2.textContent = countBySubarea(last24, "Pila 2");
+  elements.countPila3.textContent = countBySubarea(last24, "Pila 3");
+}
+
+function countBySubarea(records, subarea) {
+  return records.filter((record) => record.subarea === subarea).length;
+}
+
+function filterByArea(records, area) {
+  if (area === FILTER_ALL) return records;
+  return records.filter((record) => record.subarea === area);
+}
+
+function filterByPeriod(records, hours) {
+  const cutoff = Date.now() - hours * 60 * 60 * 1000;
+  return records.filter((record) => new Date(record.timestampCreacion).getTime() >= cutoff);
+}
+
 function normalizeRecords(records) {
   return records
-    .map((record) => ({
-      ...record,
-      timestampCreacion: normalizeTimestamp(record.timestampCreacion),
-      estado: record.estado || "Normal"
-    }))
+    .map((record) => {
+      const timestampCreacion = normalizeTimestamp(record.timestampCreacion, record.fecha, record.hora);
+      const subarea = normalizeSubarea(record.subarea || record.area);
+
+      return {
+        ...record,
+        timestampCreacion,
+        fecha: record.fecha || formatDate(timestampCreacion),
+        hora: record.hora || formatTime(timestampCreacion),
+        area: record.area || "Lixiviacion",
+        subarea,
+        operador: record.operador || "--",
+        turno: record.turno || "--",
+        estado: normalizeStateLabel(record.estado),
+        flujoPLS: numeric(record.flujoPLS ?? record.flujoRiego),
+        acidezRefino: numeric(record.acidezRefino ?? record.acidoLibre),
+        cuPls: numeric(record.cuPls ?? record.cuPLS),
+        nivelPiscinaRefino: numeric(record.nivelPiscinaRefino),
+        nivelPiscinaPLS: numeric(record.nivelPiscinaPLS),
+        observacion: record.observacion || ""
+      };
+    })
     .sort((a, b) => new Date(b.timestampCreacion) - new Date(a.timestampCreacion));
 }
 
-function normalizeTimestamp(value) {
+function normalizeTimestamp(value, fecha, hora) {
   if (value?.toDate) return value.toDate().toISOString();
-  return value || new Date().toISOString();
+  if (value) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  if (fecha && hora) {
+    const parsed = new Date(`${fecha}T${hora}`);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return new Date().toISOString();
 }
 
-function getRangeStatus(value, min, max) {
-  if (value < min * 0.94 || value > max * 1.06) return "Crítico";
-  if (value < min || value > max) return "Alerta";
+function normalizeSubarea(value) {
+  const text = String(value || "").trim();
+  const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  if (normalized.includes("pila 1")) return "Pila 1";
+  if (normalized.includes("pila 2")) return "Pila 2";
+  if (normalized.includes("pila 3")) return "Pila 3";
+  if (normalized.includes("refino")) return "Piscina Refino";
+  if (normalized.includes("pls")) return "Piscina PLS";
+  if (normalized.includes("riego") || normalized.includes("apilamiento")) return "Pila 1";
+
+  return text || "Sin subarea";
+}
+
+function normalizeStateLabel(value) {
+  const stateClass = normalizeStateClass(value);
+  if (stateClass === "critico") return "Crítico";
+  if (stateClass === "alerta") return "Alerta";
   return "Normal";
+}
+
+function getDominantVariable(record) {
+  const values = [
+    ["Flujo PLS", record.flujoPLS, "m3/h"],
+    ["Acidez Refino", record.acidezRefino, "g/L"],
+    ["Cu2+ PLS", record.cuPls, "g/L"],
+    ["Nivel Refino", record.nivelPiscinaRefino, "%"],
+    ["Nivel PLS", record.nivelPiscinaPLS, "%"]
+  ].filter(([, value]) => Number.isFinite(value));
+
+  if (!values.length) return "Comentario operacional";
+
+  const [label, value, unit] = values[0];
+  return `${label}: ${formatNumber(value, unit === "%" || unit === "m3/h" ? 0 : 2)} ${unit}`;
+}
+
+function numeric(value) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 function formatDateTime(value) {
@@ -108,6 +255,10 @@ function formatDateTime(value) {
   });
 }
 
+function formatDate(value) {
+  return new Date(value).toLocaleDateString("es-CL");
+}
+
 function formatTime(value) {
   return new Date(value).toLocaleTimeString("es-CL", {
     hour: "2-digit",
@@ -115,8 +266,10 @@ function formatTime(value) {
   });
 }
 
-function number(value, decimals) {
-  return Number(value || 0).toLocaleString("es-CL", {
+function formatNumber(value, decimals) {
+  if (!Number.isFinite(value)) return "--";
+
+  return Number(value).toLocaleString("es-CL", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
   });
