@@ -130,6 +130,7 @@ export const demoRecords = [
 ];
 
 export const demoProcess = [
+  { name: "PLANTA", state: "Crítico", metric: "3.323 m3/h" },
   { name: "Pila 1", state: "Crítico", metric: "980 m3/h" },
   { name: "Pila 2", state: "Normal", metric: "1.198 m3/h" },
   { name: "Pila 3", state: "Alerta", metric: "1.145 m3/h" },

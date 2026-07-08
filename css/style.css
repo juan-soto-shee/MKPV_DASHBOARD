@@ -216,12 +216,13 @@ h3 {
 
 .process-map {
   display: grid;
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-columns: repeat(6, minmax(145px, 1fr));
   gap: 12px;
 }
 
 .process-node {
   position: relative;
+  z-index: 0;
   min-height: 154px;
   padding: 17px;
   border: 1px solid rgba(147, 185, 197, 0.18);
@@ -229,6 +230,7 @@ h3 {
   background: linear-gradient(180deg, rgba(12, 47, 61, 0.94), rgba(5, 18, 26, 0.94));
   text-align: left;
   cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, outline-color 200ms ease;
 }
 
 .process-node::after {
@@ -258,8 +260,11 @@ h3 {
 }
 
 .process-node.is-selected {
+  z-index: 1;
   outline: 2px solid var(--cyan);
   outline-offset: 2px;
+  transform: scale(1.04);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34), 0 0 24px rgba(34, 211, 238, 0.14);
 }
 
 .process-name {
@@ -563,12 +568,8 @@ td {
 
   .segmented {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .segmented:last-child {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .segmented button {
@@ -592,6 +593,31 @@ td {
     grid-template-columns: 1fr;
     margin: 12px 0;
     padding: 12px;
+  }
+
+  .process-section {
+    padding: 14px;
+  }
+
+  .process-section .section-heading {
+    margin-bottom: 12px;
+  }
+
+  .process-map {
+    display: flex;
+    gap: 10px;
+    margin: 0 -14px;
+    padding: 2px 14px 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .process-node {
+    min-width: 152px;
+    min-height: 142px;
+    scroll-snap-align: start;
   }
 
   .summary-strip div:nth-child(2) {

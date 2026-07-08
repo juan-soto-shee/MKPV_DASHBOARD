@@ -1,14 +1,12 @@
 import { startRealtimeListener } from "./firestoreService.js";
 import { demoRecords } from "../data/demoData.js";
 import { updateCharts } from "./charts.js";
-import { getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js";
-
-const FILTER_ALL = "Todas";
+import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js";
 
 const state = {
   records: [],
   sourceLabel: "Inicializando",
-  selectedArea: FILTER_ALL,
+  selectedArea: PLANT_AREA,
   selectedPeriodHours: 24
 };
 
@@ -24,7 +22,6 @@ const elements = {
   historyTableBody: document.getElementById("historyTableBody"),
   alarmsList: document.getElementById("alarmsList"),
   alarmCount: document.getElementById("alarmCount"),
-  mobileAreaFilter: document.getElementById("mobileAreaFilter"),
   periodFilter: document.getElementById("periodFilter"),
   countPila1: document.getElementById("countPila1"),
   countPila2: document.getElementById("countPila2"),
@@ -43,15 +40,6 @@ startRealtimeListener((records) => {
 });
 
 function bindControls() {
-  elements.mobileAreaFilter.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-area]");
-    if (!button) return;
-
-    state.selectedArea = button.dataset.area;
-    setActiveButton(elements.mobileAreaFilter, button);
-    render();
-  });
-
   elements.periodFilter.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-period]");
     if (!button) return;
@@ -76,7 +64,7 @@ function render() {
 
   elements.dataSourceBadge.textContent = state.sourceLabel;
   elements.recordCount.textContent = String(state.records.length);
-  elements.activeAreaLabel.textContent = state.selectedArea === FILTER_ALL ? "Todas las subareas" : state.selectedArea;
+  elements.activeAreaLabel.textContent = state.selectedArea;
   elements.plantStatusLabel.textContent = plantState;
   elements.plantStatusDot.className = `status-dot ${normalizeStateClass(plantState)}`;
   elements.lastUpdated.textContent = `Ultima actualizacion: ${latest ? formatDateTime(latest.timestampCreacion) : "--"}`;
@@ -91,8 +79,6 @@ function render() {
 
 function handleProcessSelection(area) {
   state.selectedArea = area;
-  const matchingButton = elements.mobileAreaFilter.querySelector(`[data-area="${area}"]`);
-  if (matchingButton) setActiveButton(elements.mobileAreaFilter, matchingButton);
   render();
 }
 
@@ -158,7 +144,7 @@ function countBySubarea(records, subarea) {
 }
 
 function filterByArea(records, area) {
-  if (area === FILTER_ALL) return records;
+  if (area === PLANT_AREA) return buildPlantRecords(records);
   return records.filter((record) => record.subarea === area);
 }
 
