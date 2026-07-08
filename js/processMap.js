@@ -16,14 +16,20 @@ export function getWorstState(records) {
 export function buildPlantRecords(records) {
   const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
   const latestByPile = new Map();
+  const latestByAsset = new Map();
   const plantRecords = [];
 
   chronological.forEach((record) => {
+    if (processAreas.includes(record.subarea) && record.subarea !== PLANT_AREA) {
+      latestByAsset.set(record.subarea, record);
+    }
+
     if (!pileAreas.includes(record.subarea)) return;
 
     latestByPile.set(record.subarea, record);
 
     const pileRecords = [...latestByPile.values()];
+    const assetRecords = [...latestByAsset.values()];
     const totalFlow = sum(pileRecords, "flujoPLS");
 
     plantRecords.push({
@@ -31,7 +37,7 @@ export function buildPlantRecords(records) {
       id: `plant-${record.id || record.timestampCreacion}`,
       area: "Lixiviacion",
       subarea: PLANT_AREA,
-      estado: getWorstState(pileRecords),
+      estado: getWorstState(assetRecords),
       flujoPLS: totalFlow,
       acidezRefino: weightedAverage(pileRecords, "acidezRefino", "flujoPLS"),
       cuPls: weightedAverage(pileRecords, "cuPls", "flujoPLS"),
