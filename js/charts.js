@@ -74,7 +74,7 @@ export function updateCharts(records, context = {}) {
   chartDefinitions.forEach((definition) => {
     if (definition.field === "acidezRefino" && context.selectedArea === PLANT_AREA) {
       const plantAcidSeries = buildSplitSeries(context.sourceRecords || [], definition.field);
-      upsertMultiLineChart(definition, plantAcidSeries);
+      upsertMultiLineChart(definition, plantAcidSeries, context.alarmConfig?.[definition.field]);
       renderSplitTrendAnalysis(definition, plantAcidSeries);
       return;
     }
@@ -83,10 +83,11 @@ export function updateCharts(records, context = {}) {
       .filter((record) => Number.isFinite(record[definition.field]))
       .map((record) => ({
         label: formatLabel(record.timestampCreacion),
-        value: record[definition.field]
+        value: record[definition.field],
+        record
       }));
 
-    upsertLineChart(definition, series);
+    upsertLineChart(definition, series, context.alarmConfig?.[definition.field]);
     renderTrendAnalysis(definition, series);
   });
 }
@@ -101,12 +102,14 @@ function buildSplitSeries(records, field) {
       .filter((record) => record.subarea === area && Number.isFinite(record[field]))
       .map((record) => ({
         label: formatLabel(record.timestampCreacion),
-        value: record[field]
+        value: record[field],
+        record
       }))
   }));
 }
 
-function upsertLineChart(definition, series) {
+function upsertLineChart(definition, series, alarmConfig) {
+  const thresholdDatasets = buildThresholdDatasets(series.length, alarmConfig);
   const data = {
     labels: series.map((point) => point.label),
     datasets: [{
@@ -118,15 +121,17 @@ function upsertLineChart(definition, series) {
       tension: 0.32,
       borderWidth: 2,
       pointRadius: 2.5,
-      pointHoverRadius: 5
-    }]
+      pointHoverRadius: 5,
+      pointBackgroundColor: series.map((point) => alarmPointColor(point.value, alarmConfig)),
+      pointData: series
+    }, ...thresholdDatasets]
   };
 
-  const options = commonOptions(definition.unit);
+  const options = commonOptions(definition.unit, false, definition, alarmConfig);
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
-function upsertMultiLineChart(definition, seriesGroups) {
+function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
   const labels = uniqueLabels(seriesGroups.flatMap((group) => group.points.map((point) => point.label)));
   const data = {
     labels,
@@ -144,17 +149,19 @@ function upsertMultiLineChart(definition, seriesGroups) {
           tension: 0.32,
           borderWidth: 2,
           pointRadius: 2.5,
+          pointBackgroundColor: labels.map((label) => alarmPointColor(valuesByLabel.get(label), alarmConfig)),
           pointHoverRadius: 5,
-          spanGaps: true
+          spanGaps: true,
+          pointData: labels.map((label) => group.points.find((point) => point.label === label))
         };
-      })
+      }).concat(buildThresholdDatasets(labels.length, alarmConfig))
   };
 
-  const options = commonOptions(definition.unit, true);
+  const options = commonOptions(definition.unit, true, definition, alarmConfig);
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
-function commonOptions(unit, showLegend = false) {
+function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null) {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -168,15 +175,23 @@ function commonOptions(unit, showLegend = false) {
         labels: {
           color: chartTextColor,
           boxWidth: 10,
-          boxHeight: 10
+          boxHeight: 10,
+          filter: (item, data) => !data.datasets[item.datasetIndex]?.isThreshold
         }
       },
       tooltip: {
         callbacks: {
           label: (context) => {
             if (context.parsed.y === null) return null;
+            if (context.dataset.isThreshold) return `${context.dataset.label}: ${context.parsed.y} ${unit}`;
             const prefix = context.dataset.label ? `${context.dataset.label}: ` : "";
             return `${prefix}${context.parsed.y} ${unit}`;
+          },
+          afterLabel: (context) => {
+            const point = context.dataset.pointData?.[context.dataIndex];
+            if (!point?.record) return "";
+            const exceeded = describeExceeded(point.value, alarmConfig);
+            return [`Hora: ${point.record.hora || formatLabel(point.record.timestampCreacion)}`, `Subarea: ${point.record.subarea || "--"}`, `Estado: ${point.record.estado || "Normal"}`, exceeded].filter(Boolean);
           }
         }
       }
@@ -192,6 +207,41 @@ function commonOptions(unit, showLegend = false) {
       }
     }
   };
+}
+
+function buildThresholdDatasets(length, config) {
+  if (!config) return [];
+  return [
+    ["Bajo critico", "bajoCritico", "#ef4444"],
+    ["Bajo alerta", "bajoAlerta", "#f59e0b"],
+    ["Alto alerta", "altoAlerta", "#f59e0b"],
+    ["Alto critico", "altoCritico", "#ef4444"]
+  ].filter(([, key]) => Number.isFinite(Number(config[key]))).map(([label, key, color]) => ({
+    label,
+    data: Array(length).fill(Number(config[key])),
+    borderColor: color,
+    borderWidth: 1,
+    borderDash: [4, 5],
+    pointRadius: 0,
+    fill: false,
+    isThreshold: true
+  }));
+}
+
+function alarmPointColor(value, config) {
+  if (!config) return "#d9f7ff";
+  if (value <= config.bajoCritico || value >= config.altoCritico) return "#ef4444";
+  if (value <= config.bajoAlerta || value >= config.altoAlerta) return "#f59e0b";
+  return "#d9f7ff";
+}
+
+function describeExceeded(value, config) {
+  if (!config) return "";
+  if (value <= config.bajoCritico) return `Limite superado: bajo critico (${config.bajoCritico})`;
+  if (value <= config.bajoAlerta) return `Limite superado: bajo alerta (${config.bajoAlerta})`;
+  if (value >= config.altoCritico) return `Limite superado: alto critico (${config.altoCritico})`;
+  if (value >= config.altoAlerta) return `Limite superado: alto alerta (${config.altoAlerta})`;
+  return "";
 }
 
 function uniqueLabels(labels) {

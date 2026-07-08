@@ -1,12 +1,16 @@
 import {
+  doc,
   collection,
+  getDocs,
+  limit,
   onSnapshot,
   orderBy,
-  query
+  query,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
 
-export function startRealtimeListener(callback) {
+export function startRealtimeListener(callback, onConnectionChange = () => {}) {
   const recordsQuery = query(
     collection(db, "leach_records"),
     orderBy("timestampCreacion", "desc")
@@ -19,8 +23,28 @@ export function startRealtimeListener(callback) {
     }));
 
     callback(records);
+    onConnectionChange(true);
   }, (error) => {
     console.warn("Firestore no disponible:", error.message);
+    onConnectionChange(false);
     callback([]);
   });
+}
+
+// Borra exclusivamente documentos de leach_records, en lotes bajo el limite de Firestore.
+export async function deleteAllLeachRecords(onProgress = () => {}) {
+  let deleted = 0;
+
+  while (true) {
+    const snapshot = await getDocs(query(collection(db, "leach_records"), limit(450)));
+    if (snapshot.empty) break;
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach((record) => batch.delete(doc(db, "leach_records", record.id)));
+    await batch.commit();
+    deleted += snapshot.size;
+    onProgress(deleted);
+  }
+
+  return deleted;
 }

@@ -2,13 +2,14 @@ import { startRealtimeListener } from "./firestoreService.js";
 import { demoRecords } from "../data/demoData.js";
 import { updateCharts } from "./charts.js";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js";
-import { initAlarmAdmin } from "./alarmAdmin.js";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js";
 
 const state = {
   records: [],
   sourceLabel: "Inicializando",
   selectedArea: PLANT_AREA,
-  selectedPeriodHours: 24
+  selectedPeriodHours: 24,
+  connected: false
 };
 
 const elements = {
@@ -28,14 +29,23 @@ const elements = {
 
 bindControls();
 initAlarmAdmin();
+onAlarmConfigChange(() => render());
 
 startRealtimeListener((records) => {
   const hasRecords = records.length > 0;
 
   state.records = normalizeRecords(hasRecords ? records : demoRecords);
   state.sourceLabel = hasRecords ? "Firestore en tiempo real" : "Demo local: Firestore vacio";
+  updateAdminStats({
+    count: records.length,
+    lastRecord: records[0]?.timestampCreacion?.toDate?.()?.toISOString?.() || records[0]?.timestampCreacion || null,
+    connected: state.connected
+  });
 
   render();
+}, (connected) => {
+  state.connected = connected;
+  updateAdminStats({ connected });
 });
 
 function bindControls() {
@@ -72,7 +82,8 @@ function render() {
   renderMobileSummary(state.records);
   updateCharts(filteredRecords, {
     selectedArea: state.selectedArea,
-    sourceRecords: recentRecords
+    sourceRecords: recentRecords,
+    alarmConfig: getAlarmConfig()
   });
 }
 
@@ -82,8 +93,7 @@ function handleProcessSelection(area) {
 }
 
 function renderAlarms(records) {
-  const alarms = records
-    .filter((record) => ["alerta", "critico"].includes(normalizeStateClass(record.estado)))
+  const alarms = records.flatMap(expandRecordAlarms)
     .slice(0, window.matchMedia("(max-width: 820px)").matches ? 5 : 8);
 
   elements.alarmCount.textContent = `${alarms.length} eventos`;
@@ -93,20 +103,50 @@ function renderAlarms(records) {
     return;
   }
 
-  elements.alarmsList.innerHTML = alarms.map((record) => {
-    const variable = getDominantVariable(record);
-    const stateClass = normalizeStateClass(record.estado);
+  elements.alarmsList.innerHTML = alarms.map((alarm) => {
+    const stateClass = normalizeStateClass(alarm.severidad);
 
     return `
       <article class="alarm-row">
-        <time>${formatTime(record.timestampCreacion)}</time>
-        <strong>${escapeHtml(record.subarea || "--")}</strong>
-        <span>${escapeHtml(variable)}</span>
-        <span class="state-pill ${stateClass}">${escapeHtml(record.estado)}</span>
-        <p>${escapeHtml(record.observacion || "Sin observacion")}</p>
+        <time>${escapeHtml(alarm.hora)}</time>
+        <strong>${escapeHtml(alarm.activo)}</strong>
+        <span>${escapeHtml(alarm.variable)}${alarm.valor !== "" ? `: ${escapeHtml(alarm.valor)} ${escapeHtml(alarm.unidad)}` : ""}<br>${escapeHtml(alarm.limite)}</span>
+        <span class="state-pill ${stateClass}">${escapeHtml(alarm.severidad)}</span>
+        <p>${escapeHtml(alarm.observacion || "Sin observacion")}</p>
       </article>
     `;
   }).join("");
+}
+
+function expandRecordAlarms(record) {
+  if (Array.isArray(record.alarmasActivas) && record.alarmasActivas.length) {
+    return record.alarmasActivas.map((alarm) => ({
+      hora: record.hora || formatTime(record.timestampCreacion),
+      activo: alarm.activo || alarm.subarea || record.subarea || "--",
+      variable: alarm.variable || alarm.nombre || "Variable",
+      valor: alarm.valor ?? "",
+      unidad: alarm.unidad || "",
+      limite: alarm.limiteSuperado || alarm.limite || "",
+      severidad: normalizeStateLabel(alarm.severidad || alarm.estado || record.estado),
+      observacion: alarm.observacion || record.observacion || ""
+    })).sort((a, b) => severityRank(b.severidad) - severityRank(a.severidad));
+  }
+  if (!["alerta", "critico"].includes(normalizeStateClass(record.estado))) return [];
+  return [{
+    hora: record.hora || formatTime(record.timestampCreacion),
+    activo: record.subarea || "--",
+    variable: getDominantVariable(record),
+    valor: "",
+    unidad: "",
+    limite: "",
+    severidad: record.estado,
+    observacion: record.observacion
+  }];
+}
+
+function severityRank(value) {
+  const stateClass = normalizeStateClass(value);
+  return stateClass === "critico" ? 3 : stateClass === "alerta" ? 2 : 1;
 }
 
 function renderHistoryTable(records) {
@@ -175,7 +215,8 @@ function normalizeRecords(records) {
         cuPls: numeric(record.cuPls ?? record.cuPLS),
         nivelPiscinaRefino: numeric(record.nivelPiscinaRefino),
         nivelPiscinaPLS: numeric(record.nivelPiscinaPLS),
-        observacion: record.observacion || ""
+        observacion: record.observacion || "",
+        alarmasActivas: Array.isArray(record.alarmasActivas) ? record.alarmasActivas : []
       };
     })
     .sort((a, b) => new Date(b.timestampCreacion) - new Date(a.timestampCreacion));

@@ -33,17 +33,17 @@
       </header>
 
       <main>
-        <section id="alarmAdminSection" class="alarm-admin-section is-hidden" aria-label="Configuracion de alarmas">
+        <section id="alarmAdminSection" class="alarm-admin-section is-hidden" aria-label="Administracion del sistema">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Administracion operacional</p>
-              <h2>CONFIGURACI&Oacute;N DE ALARMAS</h2>
+              <h2>ADMINISTRACI&Oacute;N DEL SISTEMA</h2>
             </div>
             <button id="closeAlarmAdminButton" class="secondary-action" type="button">Volver al monitoreo</button>
           </div>
-          <p class="admin-note">
-            La aplicacion Android leera esta coleccion al iniciar para calcular automaticamente las alarmas. Esta lectura queda preparada para una etapa futura.
-          </p>
+          <div class="admin-subsection">
+          <h3>CONFIGURACI&Oacute;N DE ALARMAS</h3>
+          <p class="admin-note">La aplicaci&oacute;n Android leer&aacute; <strong>configuration/lixiviacion</strong> para calcular autom&aacute;ticamente las alarmas.</p>
           <div class="alarm-config-table-wrap">
             <table class="alarm-config-table">
               <thead>
@@ -64,6 +64,39 @@
             <span id="alarmAdminMessage" class="admin-message" role="status"></span>
             <button id="saveAlarmConfigButton" class="primary-action" type="button">Guardar Configuracion</button>
           </div>
+          </div>
+
+          <div class="admin-grid">
+            <section class="admin-subsection">
+              <h3>ADMINISTRACI&Oacute;N DE DATOS</h3>
+              <dl class="system-facts">
+                <div><dt>Registros en leach_records</dt><dd id="adminRecordCount">0</dd></div>
+                <div><dt>&Uacute;ltimo registro recibido</dt><dd id="adminLastRecord">--</dd></div>
+                <div><dt>Estado Firebase</dt><dd id="adminFirebaseStatus">--</dd></div>
+              </dl>
+              <button id="resetOperationDataButton" class="danger-action" type="button">REINICIAR DATOS DE OPERACI&Oacute;N</button>
+              <p id="resetDataMessage" class="admin-message" role="status"></p>
+            </section>
+            <section class="admin-subsection">
+              <h3>INFORMACI&Oacute;N DEL SISTEMA</h3>
+              <dl class="system-facts">
+                <div><dt>Versi&oacute;n</dt><dd>PlantView v0.2</dd></div>
+                <div><dt>Proyecto Firebase</dt><dd>metkinetics-leachview</dd></div>
+                <div><dt>Estado Firebase</dt><dd id="systemFirebaseStatus">--</dd></div>
+                <div><dt>Cantidad de registros</dt><dd id="systemRecordCount">0</dd></div>
+                <div><dt>&Uacute;ltimo registro</dt><dd id="systemLastRecord">--</dd></div>
+              </dl>
+            </section>
+          </div>
+          <section class="admin-subsection">
+            <h3>OPCIONES FUTURAS</h3>
+            <div class="future-options">
+              <button type="button" disabled>Usuarios <span>Pr&oacute;ximamente</span></button>
+              <button type="button" disabled>Exportar CSV <span>Pr&oacute;ximamente</span></button>
+              <button type="button" disabled>Configuraci&oacute;n Planta <span>Pr&oacute;ximamente</span></button>
+              <button type="button" disabled>Respaldo hist&oacute;rico <span>Pr&oacute;ximamente</span></button>
+            </div>
+          </section>
         </section>
 
         <section class="mobile-controls" aria-label="Filtros moviles">
@@ -216,6 +249,22 @@
             <button id="confirmAdminAccessButton" class="primary-action" type="submit">Ingresar</button>
           </div>
         </form>
+      </section>
+    </div>
+    <div id="resetDataOverlay" class="admin-overlay is-hidden" aria-hidden="true">
+      <section class="admin-password-panel" role="dialog" aria-modal="true" aria-labelledby="resetDataTitle">
+        <h2 id="resetDataTitle">&iquest;Desea eliminar todos los registros operacionales?</h2>
+        <p>Se eliminar&aacute;n &uacute;nicamente los documentos de <strong>leach_records</strong>. No se eliminar&aacute;n configuration, configuraci&oacute;n de alarmas, usuarios ni otros datos del sistema.</p>
+        <p>Esta acci&oacute;n no puede deshacerse.</p>
+        <label id="resetPasswordField" class="admin-password-field is-hidden">
+          <span>Confirme nuevamente la contrase&ntilde;a</span>
+          <input id="resetPasswordInput" type="password" autocomplete="current-password">
+        </label>
+        <p id="resetDialogMessage" class="admin-message" role="alert"></p>
+        <div class="dialog-actions">
+          <button id="cancelResetButton" class="secondary-action" type="button">Cancelar</button>
+          <button id="continueResetButton" class="danger-action" type="button">Continuar</button>
+        </div>
       </section>
     </div>
   </body>

@@ -2,15 +2,16 @@ import { demoProcess } from "../data/demoData.js";
 
 export const PLANT_AREA = "PLANTA";
 
-const processAreas = [PLANT_AREA, "Pila 1", "Pila 2", "Pila 3"];
-const monitoredAreas = [...processAreas, "Piscina PLS", "Piscina Refino"];
+const processAreas = [PLANT_AREA, "Pila 1", "Pila 2", "Pila 3", "Piscina PLS", "Piscina Refino"];
+const monitoredAreas = [...processAreas];
 const pileAreas = ["Pila 1", "Pila 2", "Pila 3"];
 
 export function getWorstState(records) {
   return records.reduce((worst, record) => {
-    const currentRank = severityValue(record.estado);
+    const currentState = getRecordState(record);
+    const currentRank = severityValue(currentState);
     const worstRank = severityValue(worst);
-    return currentRank > worstRank ? record.estado : worst;
+    return currentRank > worstRank ? currentState : worst;
   }, "Normal");
 }
 
@@ -75,6 +76,7 @@ export function renderProcessMap(container, records, selectedArea, onSelect) {
         <span class="process-state ${stateClass}">${escapeHtml(node.state)}</span>
         <span class="process-meta">${escapeHtml(node.metricLabel)}</span>
         <span class="process-value">${escapeHtml(node.metricValue)}</span>
+        <span class="process-alarm-summary">${escapeHtml(node.alarmSummary || "")}</span>
       </button>
     `;
   }).join("");
@@ -113,7 +115,8 @@ function buildProcessNodes(records, latestBySubarea, selectedArea) {
         metricLabel: "Produccion Total",
         metricValue: Number.isFinite(latestPlant?.flujoPLS)
           ? valueWithUnit(latestPlant.flujoPLS, "m3/h", 0)
-          : fallbackPlant?.metric || "Sin datos recientes"
+          : fallbackPlant?.metric || "Sin datos recientes",
+        alarmSummary: summarizeAlarms([...latestBySubarea.values()].flatMap((record) => record.alarmasActivas || []))
       };
     }
 
@@ -124,11 +127,28 @@ function buildProcessNodes(records, latestBySubarea, selectedArea) {
 
     return {
       name,
-      state: liveRecord?.estado || fallback?.state || "Normal",
+      state: liveRecord ? getRecordState(liveRecord) : fallback?.state || "Normal",
       metricLabel: metric.label,
-      metricValue: metric.value || fallback?.metric || "Sin datos recientes"
+      metricValue: metric.value || fallback?.metric || "Sin datos recientes",
+      alarmSummary: summarizeAlarms(liveRecord?.alarmasActivas || [])
     };
   });
+}
+
+function getRecordState(record) {
+  return (record?.alarmasActivas || []).reduce((worst, alarm) => {
+    const state = alarm.severidad || alarm.estado || "Normal";
+    return severityValue(state) > severityValue(worst) ? state : worst;
+  }, record?.estado || "Normal");
+}
+
+function summarizeAlarms(alarms) {
+  if (!alarms.length) return "";
+  const sorted = [...alarms].sort((a, b) => severityValue(b.severidad || b.estado) - severityValue(a.severidad || a.estado));
+  const principal = sorted[0];
+  const cause = principal.causa || principal.limiteSuperado
+    || `${principal.variable || principal.nombre || "Variable"} ${principal.direccion || ""}`.trim();
+  return alarms.length > 1 ? `${alarms.length} alarmas activas · Principal: ${cause}` : cause;
 }
 
 function getNodeMetricRecord(records, latestBySubarea, nodeName, selectedArea) {
