@@ -2,6 +2,7 @@ import { startRealtimeListener } from "./firestoreService.js";
 import { demoRecords } from "../data/demoData.js";
 import { updateCharts } from "./charts.js";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js";
+import { initAlarmAdmin } from "./alarmAdmin.js";
 
 const state = {
   records: [],
@@ -26,6 +27,7 @@ const elements = {
 };
 
 bindControls();
+initAlarmAdmin();
 
 startRealtimeListener((records) => {
   const hasRecords = records.length > 0;

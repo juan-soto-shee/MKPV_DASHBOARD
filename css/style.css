@@ -46,6 +46,12 @@ table {
 
 button {
   color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .shell {
@@ -124,6 +130,7 @@ h3 {
 .process-section,
 .alarms-section,
 .history-section,
+.alarm-admin-section,
 .panel,
 .mobile-24h {
   border: 1px solid var(--line);
@@ -177,6 +184,51 @@ h3 {
   font-size: 0.86rem;
 }
 
+.admin-access-button,
+.primary-action,
+.secondary-action,
+.icon-close-button {
+  min-height: 38px;
+  border: 1px solid rgba(147, 185, 197, 0.22);
+  border-radius: 8px;
+  background: rgba(20, 53, 67, 0.72);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 850;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.admin-access-button {
+  justify-self: end;
+  padding: 0 13px;
+  color: var(--muted);
+}
+
+.admin-access-button:hover,
+.secondary-action:hover,
+.icon-close-button:hover {
+  border-color: rgba(50, 213, 232, 0.5);
+  color: var(--text);
+}
+
+.primary-action {
+  padding: 0 16px;
+  border-color: rgba(50, 213, 232, 0.5);
+  background: linear-gradient(180deg, rgba(50, 213, 232, 0.24), rgba(20, 53, 67, 0.88));
+  color: #d9f7ff;
+}
+
+.secondary-action {
+  padding: 0 14px;
+  color: var(--muted);
+}
+
+.icon-close-button {
+  width: 38px;
+  padding: 0;
+  color: var(--muted);
+}
+
 .mobile-controls {
   display: none;
 }
@@ -192,9 +244,145 @@ h3 {
 .process-section,
 .alarms-section,
 .history-section,
+.alarm-admin-section,
 .mobile-24h {
   padding: 18px;
   margin-bottom: 18px;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.alarm-admin-section {
+  background: linear-gradient(180deg, rgba(16, 42, 54, 0.96), rgba(4, 16, 23, 0.94));
+}
+
+.admin-note {
+  max-width: 920px;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.alarm-config-table-wrap {
+  overflow-x: auto;
+}
+
+.alarm-config-table {
+  min-width: 980px;
+}
+
+.alarm-config-table td:first-child {
+  min-width: 190px;
+}
+
+.limit-input {
+  width: 112px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid rgba(147, 185, 197, 0.18);
+  border-radius: 8px;
+  background: rgba(3, 13, 18, 0.44);
+  color: var(--text);
+  outline: none;
+}
+
+.limit-input:focus {
+  border-color: rgba(50, 213, 232, 0.68);
+  box-shadow: 0 0 0 2px rgba(50, 213, 232, 0.12);
+}
+
+.alarm-config-table tr.has-error td {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.alarm-config-table tr.has-error .limit-input {
+  border-color: rgba(239, 68, 68, 0.72);
+}
+
+.normal-range {
+  display: inline-flex;
+  min-width: 104px;
+  padding: 8px 10px;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 8px;
+  color: var(--green);
+  background: rgba(34, 197, 94, 0.08);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.alarm-admin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.admin-message {
+  min-height: 20px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.admin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(4, 16, 23, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.admin-password-panel {
+  width: min(430px, 100%);
+  padding: 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(16, 42, 54, 0.98), rgba(4, 16, 23, 0.98));
+  box-shadow: var(--shadow);
+}
+
+.admin-password-field {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.admin-password-field input {
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid rgba(147, 185, 197, 0.22);
+  border-radius: 8px;
+  background: rgba(3, 13, 18, 0.44);
+  color: var(--text);
+  outline: none;
+}
+
+.admin-password-field input:focus {
+  border-color: rgba(50, 213, 232, 0.68);
+  box-shadow: 0 0 0 2px rgba(50, 213, 232, 0.12);
 }
 
 .process-map {
@@ -514,8 +702,8 @@ td {
   }
 
   .shell {
-    width: min(100% - 12px, 1520px);
-    padding-top: 4px;
+    width: min(100% - 24px, 1520px);
+    padding-top: 8px;
     padding-bottom: 14px;
   }
 
@@ -536,6 +724,12 @@ td {
 
   .operations-status {
     gap: 6px;
+  }
+
+  .admin-access-button {
+    justify-self: stretch;
+    min-height: 34px;
+    font-size: 0.72rem;
   }
 
   .plant-status {
@@ -600,7 +794,34 @@ td {
   }
 
   .process-section {
+    padding: 14px 12px;
+  }
+
+  .alarm-admin-section {
     padding: 14px;
+  }
+
+  .alarm-admin-section .section-heading,
+  .admin-password-panel .section-heading {
+    align-items: flex-start;
+  }
+
+  .alarm-admin-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primary-action,
+  .secondary-action {
+    width: 100%;
+  }
+
+  .admin-note {
+    font-size: 0.82rem;
+  }
+
+  .limit-input {
+    width: 96px;
   }
 
   .process-section .section-heading {
@@ -610,16 +831,17 @@ td {
   .process-map {
     display: flex;
     gap: 10px;
-    margin: 0 -14px;
-    padding: 2px 14px 8px;
+    margin: 0;
+    padding: 6px 8px 14px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x proximity;
+    scroll-padding-inline: 8px;
     -webkit-overflow-scrolling: touch;
   }
 
   .process-node {
-    min-width: 152px;
+    min-width: 148px;
     min-height: 142px;
     scroll-snap-align: start;
   }

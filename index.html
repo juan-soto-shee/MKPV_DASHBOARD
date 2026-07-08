@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MetKinetics PlantView | Centro de Monitoreo Operacional</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script type="module" src="js/app.js"></script>
@@ -16,6 +17,7 @@
           <h1>Centro de Monitoreo Operacional de Lixiviacion</h1>
         </div>
         <div class="operations-status">
+          <button id="adminAccessButton" class="admin-access-button" type="button">Administracion</button>
           <div class="plant-status">
             <span id="plantStatusDot" class="status-dot normal"></span>
             <div>
@@ -31,6 +33,39 @@
       </header>
 
       <main>
+        <section id="alarmAdminSection" class="alarm-admin-section is-hidden" aria-label="Configuracion de alarmas">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Administracion operacional</p>
+              <h2>CONFIGURACI&Oacute;N DE ALARMAS</h2>
+            </div>
+            <button id="closeAlarmAdminButton" class="secondary-action" type="button">Volver al monitoreo</button>
+          </div>
+          <p class="admin-note">
+            La aplicacion Android leera esta coleccion al iniciar para calcular automaticamente las alarmas. Esta lectura queda preparada para una etapa futura.
+          </p>
+          <div class="alarm-config-table-wrap">
+            <table class="alarm-config-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Unidad</th>
+                  <th>Bajo Critico</th>
+                  <th>Bajo Alerta</th>
+                  <th>Normal</th>
+                  <th>Alto Alerta</th>
+                  <th>Alto Critico</th>
+                </tr>
+              </thead>
+              <tbody id="alarmConfigTableBody"></tbody>
+            </table>
+          </div>
+          <div class="alarm-admin-actions">
+            <span id="alarmAdminMessage" class="admin-message" role="status"></span>
+            <button id="saveAlarmConfigButton" class="primary-action" type="button">Guardar Configuracion</button>
+          </div>
+        </section>
+
         <section class="mobile-controls" aria-label="Filtros moviles">
           <div class="segmented" id="periodFilter">
             <button type="button" class="is-active" data-period="24">24 h</button>
@@ -159,6 +194,29 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <div id="adminPasswordOverlay" class="admin-overlay is-hidden" aria-hidden="true">
+      <section class="admin-password-panel" role="dialog" aria-modal="true" aria-labelledby="adminPasswordTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Acceso restringido</p>
+            <h2 id="adminPasswordTitle">Administracion</h2>
+          </div>
+          <button id="cancelAdminAccessButton" class="icon-close-button" type="button" aria-label="Cerrar">X</button>
+        </div>
+        <form id="adminPasswordForm" class="admin-password-form">
+          <input class="sr-only" type="text" name="username" autocomplete="username" value="admin" aria-hidden="true" tabindex="-1">
+          <label class="admin-password-field">
+            <span>Contrasena de administrador</span>
+            <input id="adminPasswordInput" type="password" autocomplete="current-password">
+          </label>
+          <p id="adminPasswordMessage" class="admin-message" role="alert"></p>
+          <div class="alarm-admin-actions">
+            <button id="confirmAdminAccessButton" class="primary-action" type="submit">Ingresar</button>
+          </div>
+        </form>
+      </section>
     </div>
   </body>
 </html>
