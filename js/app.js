@@ -69,21 +69,22 @@ function render() {
   const latest = state.records[0];
   const recentRecords = filterByPeriod(state.records, state.selectedPeriodHours);
   const filteredRecords = filterByArea(recentRecords, state.selectedArea);
-  const plantState = getWorstState(recentRecords);
+  const alarmConfig = getAlarmConfig();
+  const plantState = getWorstState(recentRecords, alarmConfig);
 
   elements.plantStatusLabel.textContent = plantState;
   elements.plantStatusDot.className = `status-dot ${normalizeStateClass(plantState)}`;
   elements.lastUpdated.textContent = `Ultima actualizacion: ${latest ? formatDateTime(latest.timestampCreacion) : "--"}`;
   elements.currentShift.textContent = `Turno actual: ${latest?.turno || "--"}`;
 
-  renderProcessMap(elements.processMap, state.records, state.selectedArea, handleProcessSelection);
+  renderProcessMap(elements.processMap, state.records, state.selectedArea, handleProcessSelection, alarmConfig);
   renderAlarms(recentRecords);
   renderHistoryTable(state.records.slice(0, 30));
   renderMobileSummary(state.records);
   updateCharts(filteredRecords, {
     selectedArea: state.selectedArea,
     sourceRecords: recentRecords,
-    alarmConfig: getAlarmConfig()
+    alarmConfig
   });
 }
 

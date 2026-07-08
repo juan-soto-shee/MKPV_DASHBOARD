@@ -1,4 +1,5 @@
 import { demoProcess } from "../data/demoData.js";
+import { evaluateAlarmState } from "./alarmAdmin.js";
 
 export const PLANT_AREA = "PLANTA";
 
@@ -6,9 +7,9 @@ const processAreas = [PLANT_AREA, "Pila 1", "Pila 2", "Pila 3"];
 const monitoredAreas = [...processAreas, "Piscina PLS", "Piscina Refino"];
 const pileAreas = ["Pila 1", "Pila 2", "Pila 3"];
 
-export function getWorstState(records) {
+export function getWorstState(records, alarmConfig = null) {
   return records.reduce((worst, record) => {
-    const currentState = getRecordState(record);
+    const currentState = getRecordState(record, alarmConfig);
     const currentRank = severityValue(currentState);
     const worstRank = severityValue(worst);
     return currentRank > worstRank ? currentState : worst;
@@ -62,9 +63,9 @@ export function buildPlantRecords(records) {
   return plantRecords;
 }
 
-export function renderProcessMap(container, records, selectedArea, onSelect) {
+export function renderProcessMap(container, records, selectedArea, onSelect, alarmConfig = null) {
   const latestBySubarea = getLatestBySubarea(records);
-  const nodes = buildProcessNodes(records, latestBySubarea, selectedArea);
+  const nodes = buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig);
 
   container.innerHTML = nodes.map((node) => {
     const stateClass = normalizeStateClass(node.state);
@@ -100,14 +101,14 @@ function severityValue(state) {
   return 1;
 }
 
-function buildProcessNodes(records, latestBySubarea, selectedArea) {
+function buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig) {
   const plantRecords = buildPlantRecords(records);
   const latestPlant = plantRecords[plantRecords.length - 1];
   const fallbackPlant = demoProcess.find((node) => node.name === PLANT_AREA);
 
   return processAreas.map((name) => {
     if (name === PLANT_AREA) {
-      const plantState = getWorstState([...latestBySubarea.values()]);
+      const plantState = getWorstState([...latestBySubarea.values()], alarmConfig);
 
       return {
         name,
@@ -127,7 +128,7 @@ function buildProcessNodes(records, latestBySubarea, selectedArea) {
 
     return {
       name,
-      state: liveRecord ? getRecordState(liveRecord) : fallback?.state || "Normal",
+      state: liveRecord ? getNodeState(name, liveRecord, alarmConfig) : fallback?.state || "Normal",
       metricLabel: metric.label,
       metricValue: metric.value || fallback?.metric || "Sin datos recientes",
       alarmSummary: summarizeAlarms(liveRecord?.alarmasActivas || [])
@@ -135,11 +136,26 @@ function buildProcessNodes(records, latestBySubarea, selectedArea) {
   });
 }
 
-function getRecordState(record) {
+function getRecordState(record, alarmConfig = null) {
+  if (alarmConfig) {
+    return Object.keys(alarmConfig).reduce((worst, variableKey) => {
+      const current = evaluateAlarmState(variableKey, record?.[variableKey], alarmConfig);
+      return severityValue(current) > severityValue(worst) ? current : worst;
+    }, "Normal");
+  }
+
   return (record?.alarmasActivas || []).reduce((worst, alarm) => {
     const state = alarm.severidad || alarm.estado || "Normal";
     return severityValue(state) > severityValue(worst) ? state : worst;
   }, record?.estado || "Normal");
+}
+
+function getNodeState(nodeName, record, alarmConfig) {
+  if (nodeName.startsWith("Pila") && alarmConfig) {
+    return evaluateAlarmState("flujoPLS", record?.flujoPLS, alarmConfig);
+  }
+
+  return getRecordState(record, alarmConfig);
 }
 
 function summarizeAlarms(alarms) {

@@ -81,10 +81,21 @@ export function initAlarmAdmin() {
   configState = buildDefaultConfig();
   renderAlarmRows(elements);
   bindAlarmAdminControls(elements);
+  loadAlarmConfig(elements);
 }
 
 export function getAlarmConfig() {
   return configState;
+}
+
+export function evaluateAlarmState(variableKey, value, config = configState) {
+  const limits = config?.[variableKey];
+  const numericValue = Number(value);
+
+  if (!limits || !Number.isFinite(numericValue)) return "Normal";
+  if (numericValue <= Number(limits.bajoCritico) || numericValue >= Number(limits.altoCritico)) return "Crítico";
+  if (numericValue < Number(limits.bajoAlerta) || numericValue > Number(limits.altoAlerta)) return "Alerta";
+  return "Normal";
 }
 
 export function onAlarmConfigChange(listener) {

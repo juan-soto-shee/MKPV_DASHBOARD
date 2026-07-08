@@ -220,16 +220,16 @@ function buildThresholdDatasets(length, config) {
 function alarmPointColor(value, config) {
   if (!config) return "#d9f7ff";
   if (value <= config.bajoCritico || value >= config.altoCritico) return "#ef4444";
-  if (value <= config.bajoAlerta || value >= config.altoAlerta) return "#f59e0b";
+  if (value < config.bajoAlerta || value > config.altoAlerta) return "#f59e0b";
   return "#d9f7ff";
 }
 
 function describeExceeded(value, config) {
   if (!config) return "";
   if (value <= config.bajoCritico) return `Limite superado: bajo critico (${config.bajoCritico})`;
-  if (value <= config.bajoAlerta) return `Limite superado: bajo alerta (${config.bajoAlerta})`;
+  if (value < config.bajoAlerta) return `Limite superado: bajo alerta (${config.bajoAlerta})`;
   if (value >= config.altoCritico) return `Limite superado: alto critico (${config.altoCritico})`;
-  if (value >= config.altoAlerta) return `Limite superado: alto alerta (${config.altoAlerta})`;
+  if (value > config.altoAlerta) return `Limite superado: alto alerta (${config.altoAlerta})`;
   return "";
 }
 
