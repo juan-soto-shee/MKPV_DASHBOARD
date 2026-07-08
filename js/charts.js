@@ -88,6 +88,7 @@ function buildSplitSeries(records, field) {
     points: chronological
       .filter((record) => record.subarea === area && Number.isFinite(record[field]))
       .map((record) => ({
+        timestamp: new Date(record.timestampCreacion).getTime(),
         label: formatLabel(record.timestampCreacion),
         value: record[field],
         record
@@ -119,36 +120,35 @@ function upsertLineChart(definition, series, alarmConfig) {
 }
 
 function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
-  const labels = uniqueLabels(seriesGroups.flatMap((group) => group.points.map((point) => point.label)));
+  const allPoints = seriesGroups.flatMap((group) => group.points);
+  const timestamps = allPoints.map((point) => point.timestamp).filter(Number.isFinite);
+  const timeRange = timestamps.length
+    ? { min: Math.min(...timestamps), max: Math.max(...timestamps) }
+    : null;
   const data = {
-    labels,
     datasets: seriesGroups
       .filter((group) => group.points.length)
-      .map((group) => {
-        const valuesByLabel = new Map(group.points.map((point) => [point.label, point.value]));
-
-        return {
+      .map((group) => ({
           label: group.label,
-          data: labels.map((label) => valuesByLabel.get(label) ?? null),
+          data: group.points.map((point) => ({ x: point.timestamp, y: point.value })),
           borderColor: group.color,
           backgroundColor: transparentize(group.color),
           fill: false,
           tension: 0.32,
           borderWidth: 2,
           pointRadius: 2.5,
-          pointBackgroundColor: labels.map((label) => alarmPointColor(valuesByLabel.get(label), alarmConfig)),
+          pointBackgroundColor: group.points.map((point) => alarmPointColor(point.value, alarmConfig)),
           pointHoverRadius: 5,
-          spanGaps: true,
-          pointData: labels.map((label) => group.points.find((point) => point.label === label))
-        };
-      }).concat(buildThresholdDatasets(labels.length, alarmConfig))
+          pointData: group.points
+        }))
+      .concat(buildTimeThresholdDatasets(timeRange, alarmConfig))
   };
 
-  const options = commonOptions(definition.unit, true, definition, alarmConfig);
+  const options = commonOptions(definition.unit, true, definition, alarmConfig, true);
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
-function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null) {
+function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null, useTimeScale = false) {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -185,7 +185,14 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
     },
     scales: {
       x: {
-        ticks: { color: chartTextColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 },
+        type: useTimeScale ? "linear" : "category",
+        ticks: {
+          color: chartTextColor,
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 6,
+          callback: useTimeScale ? (value) => formatLabel(Number(value)) : undefined
+        },
         grid: { color: gridColor, drawBorder: false }
       },
       y: {
@@ -222,6 +229,29 @@ function buildThresholdDatasets(length, config) {
   }));
 }
 
+function buildTimeThresholdDatasets(timeRange, config) {
+  if (!timeRange || !config) return [];
+
+  return [
+    ["Bajo critico", "bajoCritico", "#ef4444"],
+    ["Bajo alerta", "bajoAlerta", "#f59e0b"],
+    ["Alto alerta", "altoAlerta", "#f59e0b"],
+    ["Alto critico", "altoCritico", "#ef4444"]
+  ].filter(([, key]) => Number.isFinite(Number(config[key]))).map(([label, key, color]) => ({
+    label,
+    data: [
+      { x: timeRange.min, y: Number(config[key]) },
+      { x: timeRange.max, y: Number(config[key]) }
+    ],
+    borderColor: color,
+    borderWidth: 1,
+    borderDash: [4, 5],
+    pointRadius: 0,
+    fill: false,
+    isThreshold: true
+  }));
+}
+
 function alarmPointColor(value, config) {
   if (!config) return "#d9f7ff";
   if (value <= config.bajoCritico || value >= config.altoCritico) return "#ef4444";
@@ -236,10 +266,6 @@ function describeExceeded(value, config) {
   if (value >= config.altoCritico) return `Limite superado: alto critico (${config.altoCritico})`;
   if (value > config.altoAlerta) return `Limite superado: alto alerta (${config.altoAlerta})`;
   return "";
-}
-
-function uniqueLabels(labels) {
-  return [...new Set(labels)];
 }
 
 function renderTrendAnalysis(definition, series) {
