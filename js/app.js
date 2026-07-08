@@ -68,7 +68,10 @@ function render() {
   renderAlarms(recentRecords);
   renderHistoryTable(state.records.slice(0, 30));
   renderMobileSummary(state.records);
-  updateCharts(filteredRecords);
+  updateCharts(filteredRecords, {
+    selectedArea: state.selectedArea,
+    sourceRecords: recentRecords
+  });
 }
 
 function handleProcessSelection(area) {
@@ -115,6 +118,7 @@ function renderHistoryTable(records) {
         <td>${escapeHtml(record.turno || "--")}</td>
         <td>${escapeHtml(record.subarea || "--")}</td>
         <td>${formatNumber(record.flujoPLS, 0)} m3/h</td>
+        <td>${formatNumber(record.flujoRefino, 0)} m3/h</td>
         <td>${formatNumber(record.acidezRefino, 2)} g/L</td>
         <td>${formatNumber(record.cuPls, 2)} g/L</td>
         <td>${formatNumber(record.nivelPiscinaRefino, 0)}%</td>
@@ -164,6 +168,7 @@ function normalizeRecords(records) {
         turno: record.turno || "--",
         estado: normalizeStateLabel(record.estado),
         flujoPLS: numeric(record.flujoPLS ?? record.flujoRiego),
+        flujoRefino: numeric(record.flujoRefino),
         acidezRefino: numeric(record.acidezRefino ?? record.acidoLibre),
         cuPls: numeric(record.cuPls ?? record.cuPLS),
         nivelPiscinaRefino: numeric(record.nivelPiscinaRefino),
@@ -211,6 +216,7 @@ function normalizeStateLabel(value) {
 function getDominantVariable(record) {
   const values = [
     ["Flujo PLS", record.flujoPLS, "m3/h"],
+    ["Flujo Refino", record.flujoRefino, "m3/h"],
     ["Acidez Refino", record.acidezRefino, "g/L"],
     ["Cu2+ PLS", record.cuPls, "g/L"],
     ["Nivel Refino", record.nivelPiscinaRefino, "%"],

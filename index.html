@@ -57,6 +57,7 @@
             </div>
           </div>
           <div class="charts-grid">
+            <div class="trend-group-title">PLS</div>
             <article class="panel">
               <div class="chart-heading">
                 <h3>Flujo PLS</h3>
@@ -67,20 +68,30 @@
             </article>
             <article class="panel">
               <div class="chart-heading">
-                <h3>Acidez Refino</h3>
-                <span>g/L</span>
-              </div>
-              <div class="chart-box"><canvas id="acidTrendChart"></canvas></div>
-              <p id="acidTrendAnalysis" class="trend-analysis">Sin datos</p>
-            </article>
-            <article class="panel">
-              <div class="chart-heading">
                 <h3>Cu2+ PLS</h3>
                 <span>g/L</span>
               </div>
               <div class="chart-box"><canvas id="cuTrendChart"></canvas></div>
               <p id="cuTrendAnalysis" class="trend-analysis">Sin datos</p>
             </article>
+            <div class="trend-group-title">REFINO</div>
+            <article class="panel">
+              <div class="chart-heading">
+                <h3>Flujo Refino</h3>
+                <span>m3/h</span>
+              </div>
+              <div class="chart-box"><canvas id="refinoFlowTrendChart"></canvas></div>
+              <p id="refinoFlowTrendAnalysis" class="trend-analysis">Sin datos</p>
+            </article>
+            <article class="panel">
+              <div class="chart-heading">
+                <h3>Acidez Refino</h3>
+                <span>g/L</span>
+              </div>
+              <div class="chart-box"><canvas id="acidTrendChart"></canvas></div>
+              <p id="acidTrendAnalysis" class="trend-analysis">Sin datos</p>
+            </article>
+            <div class="trend-group-title">INVENTARIOS</div>
             <article class="panel">
               <div class="chart-heading">
                 <h3>Nivel Piscina Refino</h3>
@@ -89,7 +100,7 @@
               <div class="chart-box"><canvas id="refinoLevelTrendChart"></canvas></div>
               <p id="refinoLevelTrendAnalysis" class="trend-analysis">Sin datos</p>
             </article>
-            <article class="panel wide-panel">
+            <article class="panel">
               <div class="chart-heading">
                 <h3>Nivel Piscina PLS</h3>
                 <span>%</span>
@@ -135,6 +146,7 @@
                   <th>Turno</th>
                   <th>Subarea</th>
                   <th>Flujo PLS</th>
+                  <th>Flujo Refino</th>
                   <th>Acidez Refino</th>
                   <th>Cu2+ PLS</th>
                   <th>Nivel Refino</th>

@@ -2,6 +2,9 @@ let charts = {};
 
 const chartTextColor = "#d9f7ff";
 const gridColor = "rgba(127, 208, 226, 0.12)";
+const PLANT_AREA = "PLANTA";
+const pileAreas = ["Pila 1", "Pila 2", "Pila 3"];
+const pileColors = ["#4e9aaa", "#f59e0b", "#22c55e"];
 
 const chartDefinitions = [
   {
@@ -12,6 +15,15 @@ const chartDefinitions = [
     unit: "m3/h",
     decimals: 0,
     color: "#168aa0"
+  },
+  {
+    canvasId: "refinoFlowTrendChart",
+    analysisId: "refinoFlowTrendAnalysis",
+    field: "flujoRefino",
+    label: "Flujo Refino",
+    unit: "m3/h",
+    decimals: 0,
+    color: "#38bdf8"
   },
   {
     canvasId: "acidTrendChart",
@@ -51,15 +63,22 @@ const chartDefinitions = [
   }
 ];
 
-export function updateCharts(records) {
+export function updateCharts(records, context = {}) {
   if (!window.Chart) {
-    window.setTimeout(() => updateCharts(records), 120);
+    window.setTimeout(() => updateCharts(records, context), 120);
     return;
   }
 
   const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
 
   chartDefinitions.forEach((definition) => {
+    if (definition.field === "acidezRefino" && context.selectedArea === PLANT_AREA) {
+      const plantAcidSeries = buildSplitSeries(context.sourceRecords || [], definition.field);
+      upsertMultiLineChart(definition, plantAcidSeries);
+      renderSplitTrendAnalysis(definition, plantAcidSeries);
+      return;
+    }
+
     const series = chronological
       .filter((record) => Number.isFinite(record[definition.field]))
       .map((record) => ({
@@ -70,6 +89,21 @@ export function updateCharts(records) {
     upsertLineChart(definition, series);
     renderTrendAnalysis(definition, series);
   });
+}
+
+function buildSplitSeries(records, field) {
+  const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
+
+  return pileAreas.map((area, index) => ({
+    label: area,
+    color: pileColors[index],
+    points: chronological
+      .filter((record) => record.subarea === area && Number.isFinite(record[field]))
+      .map((record) => ({
+        label: formatLabel(record.timestampCreacion),
+        value: record[field]
+      }))
+  }));
 }
 
 function upsertLineChart(definition, series) {
@@ -92,7 +126,35 @@ function upsertLineChart(definition, series) {
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
-function commonOptions(unit) {
+function upsertMultiLineChart(definition, seriesGroups) {
+  const labels = uniqueLabels(seriesGroups.flatMap((group) => group.points.map((point) => point.label)));
+  const data = {
+    labels,
+    datasets: seriesGroups
+      .filter((group) => group.points.length)
+      .map((group) => {
+        const valuesByLabel = new Map(group.points.map((point) => [point.label, point.value]));
+
+        return {
+          label: group.label,
+          data: labels.map((label) => valuesByLabel.get(label) ?? null),
+          borderColor: group.color,
+          backgroundColor: transparentize(group.color),
+          fill: false,
+          tension: 0.32,
+          borderWidth: 2,
+          pointRadius: 2.5,
+          pointHoverRadius: 5,
+          spanGaps: true
+        };
+      })
+  };
+
+  const options = commonOptions(definition.unit, true);
+  upsertChart(definition.canvasId, { type: "line", data, options });
+}
+
+function commonOptions(unit, showLegend = false) {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -101,10 +163,21 @@ function commonOptions(unit) {
       intersect: false
     },
     plugins: {
-      legend: { display: false },
+      legend: {
+        display: showLegend,
+        labels: {
+          color: chartTextColor,
+          boxWidth: 10,
+          boxHeight: 10
+        }
+      },
       tooltip: {
         callbacks: {
-          label: (context) => `${context.parsed.y} ${unit}`
+          label: (context) => {
+            if (context.parsed.y === null) return null;
+            const prefix = context.dataset.label ? `${context.dataset.label}: ` : "";
+            return `${prefix}${context.parsed.y} ${unit}`;
+          }
         }
       }
     },
@@ -119,6 +192,10 @@ function commonOptions(unit) {
       }
     }
   };
+}
+
+function uniqueLabels(labels) {
+  return [...new Set(labels)];
 }
 
 function renderTrendAnalysis(definition, series) {
@@ -145,6 +222,33 @@ function renderTrendAnalysis(definition, series) {
 
   element.textContent = `${direction} ${sign}${formatNumber(difference, definition.decimals)} ${definition.unit}`;
   element.className = `trend-analysis ${difference > 0 ? "up" : "down"}`;
+}
+
+function renderSplitTrendAnalysis(definition, seriesGroups) {
+  const element = document.getElementById(definition.analysisId);
+  if (!element) return;
+
+  const latestValues = seriesGroups
+    .map((group) => {
+      const latest = group.points[group.points.length - 1];
+      return latest ? { label: group.label, value: latest.value } : null;
+    })
+    .filter(Boolean);
+
+  if (latestValues.length < 2) {
+    element.textContent = "Sin datos suficientes por pila";
+    element.className = "trend-analysis";
+    return;
+  }
+
+  const values = latestValues.map((point) => point.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const spread = max - min;
+  const highest = latestValues.find((point) => point.value === max);
+
+  element.textContent = `Comparacion por pila: rango ${formatNumber(spread, definition.decimals)} ${definition.unit}; mayor ${highest.label}`;
+  element.className = spread <= 0.2 ? "trend-analysis stable" : "trend-analysis up";
 }
 
 function upsertChart(canvasId, config) {
