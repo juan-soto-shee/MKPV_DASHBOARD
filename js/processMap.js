@@ -17,6 +17,7 @@ export function getWorstState(records) {
 export function buildPlantRecords(records) {
   const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
   const groups = groupRecordsByComparableTime(chronological);
+  const latestPileRecords = new Map();
   const latestLevels = {
     nivelPiscinaRefino: null,
     nivelPiscinaPLS: null
@@ -29,9 +30,17 @@ export function buildPlantRecords(records) {
     const refinoLevel = latestFiniteValue(groupRecords, "nivelPiscinaRefino");
     const plsLevel = latestFiniteValue(groupRecords, "nivelPiscinaPLS");
 
+    pileRecords.forEach((record) => {
+      latestPileRecords.set(record.subarea, record);
+    });
+
     if (Number.isFinite(refinoLevel)) latestLevels.nivelPiscinaRefino = refinoLevel;
     if (Number.isFinite(plsLevel)) latestLevels.nivelPiscinaPLS = plsLevel;
-    if (!pileRecords.length) return;
+    if (!latestPileRecords.size) return;
+
+    const activePileRecords = pileAreas
+      .map((area) => latestPileRecords.get(area))
+      .filter(Boolean);
 
     plantRecords.push({
       ...representative,
@@ -39,9 +48,9 @@ export function buildPlantRecords(records) {
       area: "Lixiviacion",
       subarea: PLANT_AREA,
       estado: getWorstState(groupRecords),
-      flujoPLS: sum(pileRecords, "flujoPLS"),
-      acidezRefino: weightedAverage(pileRecords, "acidezRefino", "flujoPLS"),
-      cuPls: weightedAverage(pileRecords, "cuPls", "flujoPLS"),
+      flujoPLS: sum(activePileRecords, "flujoPLS"),
+      acidezRefino: weightedAverage(activePileRecords, "acidezRefino", "flujoPLS"),
+      cuPls: weightedAverage(activePileRecords, "cuPls", "flujoPLS"),
       nivelPiscinaRefino: latestLevels.nivelPiscinaRefino,
       nivelPiscinaPLS: latestLevels.nivelPiscinaPLS,
       observacion: "Estado consolidado de planta"

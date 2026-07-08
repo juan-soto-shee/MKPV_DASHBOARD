@@ -15,9 +15,6 @@ const elements = {
   plantStatusLabel: document.getElementById("plantStatusLabel"),
   lastUpdated: document.getElementById("lastUpdated"),
   currentShift: document.getElementById("currentShift"),
-  dataSourceBadge: document.getElementById("dataSourceBadge"),
-  recordCount: document.getElementById("recordCount"),
-  activeAreaLabel: document.getElementById("activeAreaLabel"),
   processMap: document.getElementById("processMap"),
   historyTableBody: document.getElementById("historyTableBody"),
   alarmsList: document.getElementById("alarmsList"),
@@ -62,9 +59,6 @@ function render() {
   const filteredRecords = filterByArea(recentRecords, state.selectedArea);
   const plantState = getWorstState(recentRecords);
 
-  elements.dataSourceBadge.textContent = state.sourceLabel;
-  elements.recordCount.textContent = String(state.records.length);
-  elements.activeAreaLabel.textContent = state.selectedArea;
   elements.plantStatusLabel.textContent = plantState;
   elements.plantStatusDot.className = `status-dot ${normalizeStateClass(plantState)}`;
   elements.lastUpdated.textContent = `Ultima actualizacion: ${latest ? formatDateTime(latest.timestampCreacion) : "--"}`;
