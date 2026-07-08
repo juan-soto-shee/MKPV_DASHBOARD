@@ -162,12 +162,12 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
         }
       },
       tooltip: {
+        filter: (context) => !context.dataset.isThreshold,
         callbacks: {
           label: (context) => {
             if (context.parsed.y === null) return null;
-            if (context.dataset.isThreshold) return `${context.dataset.label}: ${context.parsed.y} ${unit}`;
             const prefix = context.dataset.label ? `${context.dataset.label}: ` : "";
-            return `${prefix}${context.parsed.y} ${unit}`;
+            return `${prefix}${formatTooltipNumber(context.parsed.y)} ${unit}`;
           },
           afterLabel: (context) => {
             const point = context.dataset.pointData?.[context.dataIndex];
@@ -189,6 +189,13 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
       }
     }
   };
+}
+
+function formatTooltipNumber(value) {
+  return Number(value).toLocaleString("es-CL", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
 }
 
 function buildThresholdDatasets(length, config) {
