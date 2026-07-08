@@ -57,7 +57,7 @@ export function updateCharts(records) {
     return;
   }
 
-  const chronological = [...records].reverse();
+  const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
 
   chartDefinitions.forEach((definition) => {
     const series = chronological

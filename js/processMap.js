@@ -15,34 +15,34 @@ export function getWorstState(records) {
 
 export function buildPlantRecords(records) {
   const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
-  const latestByPile = new Map();
-  const latestByAsset = new Map();
+  const groups = groupRecordsByComparableTime(chronological);
+  const latestLevels = {
+    nivelPiscinaRefino: null,
+    nivelPiscinaPLS: null
+  };
   const plantRecords = [];
 
-  chronological.forEach((record) => {
-    if (processAreas.includes(record.subarea) && record.subarea !== PLANT_AREA) {
-      latestByAsset.set(record.subarea, record);
-    }
+  groups.forEach((groupRecords) => {
+    const representative = groupRecords[groupRecords.length - 1];
+    const pileRecords = groupRecords.filter((record) => pileAreas.includes(record.subarea));
+    const refinoLevel = latestFiniteValue(groupRecords, "nivelPiscinaRefino");
+    const plsLevel = latestFiniteValue(groupRecords, "nivelPiscinaPLS");
 
-    if (!pileAreas.includes(record.subarea)) return;
-
-    latestByPile.set(record.subarea, record);
-
-    const pileRecords = [...latestByPile.values()];
-    const assetRecords = [...latestByAsset.values()];
-    const totalFlow = sum(pileRecords, "flujoPLS");
+    if (Number.isFinite(refinoLevel)) latestLevels.nivelPiscinaRefino = refinoLevel;
+    if (Number.isFinite(plsLevel)) latestLevels.nivelPiscinaPLS = plsLevel;
+    if (!pileRecords.length) return;
 
     plantRecords.push({
-      ...record,
-      id: `plant-${record.id || record.timestampCreacion}`,
+      ...representative,
+      id: `plant-${getTimeGroupKey(representative)}`,
       area: "Lixiviacion",
       subarea: PLANT_AREA,
-      estado: getWorstState(assetRecords),
-      flujoPLS: totalFlow,
+      estado: getWorstState(groupRecords),
+      flujoPLS: sum(pileRecords, "flujoPLS"),
       acidezRefino: weightedAverage(pileRecords, "acidezRefino", "flujoPLS"),
       cuPls: weightedAverage(pileRecords, "cuPls", "flujoPLS"),
-      nivelPiscinaRefino: average(recordsForSubarea(records, "Piscina Refino"), "nivelPiscinaRefino"),
-      nivelPiscinaPLS: average(recordsForSubarea(records, "Piscina PLS"), "nivelPiscinaPLS"),
+      nivelPiscinaRefino: latestLevels.nivelPiscinaRefino,
+      nivelPiscinaPLS: latestLevels.nivelPiscinaPLS,
       observacion: "Estado consolidado de planta"
     });
   });
@@ -159,18 +159,36 @@ function getMetric(area, record) {
   };
 }
 
-function recordsForSubarea(records, subarea) {
-  return records.filter((record) => record.subarea === subarea);
+function groupRecordsByComparableTime(records) {
+  const groups = new Map();
+
+  records.forEach((record) => {
+    const key = getTimeGroupKey(record);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(record);
+  });
+
+  return [...groups.values()];
+}
+
+function getTimeGroupKey(record) {
+  const date = new Date(record.timestampCreacion);
+  if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 16);
+
+  return `${record.fecha || ""} ${record.hora || ""}`.trim();
 }
 
 function sum(records, field) {
   return records.reduce((total, record) => total + (Number.isFinite(record[field]) ? record[field] : 0), 0);
 }
 
-function average(records, field) {
-  const values = records.map((record) => record[field]).filter(Number.isFinite);
-  if (!values.length) return null;
-  return values.reduce((total, value) => total + value, 0) / values.length;
+function latestFiniteValue(records, field) {
+  for (let index = records.length - 1; index >= 0; index -= 1) {
+    const value = records[index][field];
+    if (Number.isFinite(value)) return value;
+  }
+
+  return null;
 }
 
 function weightedAverage(records, valueField, weightField) {
