@@ -54,9 +54,14 @@ export function updateCharts(records, context = {}) {
   const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
 
   chartDefinitions.forEach((definition) => {
+    const configKey = definition.field === "flujoPLS" && context.selectedArea !== PLANT_AREA
+      ? `flujoPLS${String(context.selectedArea || "").replace(/\s/g, "")}`
+      : definition.field;
+    const variableConfig = context.alarmConfig?.[configKey];
+
     if (definition.field === "acidezRefino" && context.selectedArea === PLANT_AREA) {
       const plantAcidSeries = buildSplitSeries(context.sourceRecords || [], definition.field);
-      upsertMultiLineChart(definition, plantAcidSeries, context.alarmConfig?.[definition.field]);
+      upsertMultiLineChart(definition, plantAcidSeries, variableConfig);
       renderSplitTrendAnalysis(definition, plantAcidSeries);
       return;
     }
@@ -69,7 +74,7 @@ export function updateCharts(records, context = {}) {
         record
       }));
 
-    upsertLineChart(definition, series, context.alarmConfig?.[definition.field]);
+    upsertLineChart(definition, series, variableConfig);
     renderTrendAnalysis(definition, series);
   });
 }

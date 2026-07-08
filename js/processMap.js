@@ -1,5 +1,5 @@
-import { demoProcess } from "../data/demoData.js";
-import { evaluateAlarmState } from "./alarmAdmin.js";
+import { demoProcess } from "../data/demoData.js?v=20260708-4";
+import { evaluateAlarmState } from "./alarmAdmin.js?v=20260708-4";
 
 export const PLANT_AREA = "PLANTA";
 
@@ -108,7 +108,9 @@ function buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig) 
 
   return processAreas.map((name) => {
     if (name === PLANT_AREA) {
-      const plantState = getWorstState([...latestBySubarea.values()], alarmConfig);
+      const plantState = alarmConfig && latestPlant
+        ? evaluateAlarmState("flujoPLS", latestPlant.flujoPLS, alarmConfig)
+        : getWorstState([...latestBySubarea.values()], alarmConfig);
 
       return {
         name,
@@ -139,7 +141,13 @@ function buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig) 
 function getRecordState(record, alarmConfig = null) {
   if (alarmConfig) {
     return Object.keys(alarmConfig).reduce((worst, variableKey) => {
-      const current = evaluateAlarmState(variableKey, record?.[variableKey], alarmConfig);
+      if (variableKey === "flujoPLS") return worst;
+      if (variableKey.startsWith("flujoPLSPila")) {
+        const recordPileKey = `flujoPLS${String(record?.subarea || "").replace(/\s/g, "")}`;
+        if (variableKey !== recordPileKey) return worst;
+      }
+      const recordField = variableKey.startsWith("flujoPLSPila") ? "flujoPLS" : variableKey;
+      const current = evaluateAlarmState(variableKey, record?.[recordField], alarmConfig);
       return severityValue(current) > severityValue(worst) ? current : worst;
     }, "Normal");
   }
@@ -152,7 +160,8 @@ function getRecordState(record, alarmConfig = null) {
 
 function getNodeState(nodeName, record, alarmConfig) {
   if (nodeName.startsWith("Pila") && alarmConfig) {
-    return evaluateAlarmState("flujoPLS", record?.flujoPLS, alarmConfig);
+    const configKey = `flujoPLS${nodeName.replace(/\s/g, "")}`;
+    return evaluateAlarmState(configKey, record?.flujoPLS, alarmConfig);
   }
 
   return getRecordState(record, alarmConfig);

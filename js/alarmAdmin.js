@@ -13,13 +13,40 @@ const DOCUMENT_ID = "lixiviacion";
 
 const alarmVariables = [
   {
-    key: "flujoPLS",
-    nombre: "Flujo PLS",
+    key: "flujoPLSPila1",
+    nombre: "Flujo PLS Pila 1",
     unidad: "m3/h",
     bajoCritico: 550,
     bajoAlerta: 650,
     altoAlerta: 950,
     altoCritico: 1050
+  },
+  {
+    key: "flujoPLSPila2",
+    nombre: "Flujo PLS Pila 2",
+    unidad: "m3/h",
+    bajoCritico: 550,
+    bajoAlerta: 650,
+    altoAlerta: 950,
+    altoCritico: 1050
+  },
+  {
+    key: "flujoPLSPila3",
+    nombre: "Flujo PLS Pila 3",
+    unidad: "m3/h",
+    bajoCritico: 550,
+    bajoAlerta: 650,
+    altoAlerta: 950,
+    altoCritico: 1050
+  },
+  {
+    key: "flujoPLS",
+    nombre: "Flujo PLS Total",
+    unidad: "m3/h",
+    bajoCritico: 550,
+    bajoAlerta: 650,
+    altoAlerta: 6000,
+    altoCritico: 6500
   },
   {
     key: "flujoRefino",
@@ -411,8 +438,13 @@ function mergeStoredConfig(storedConfig) {
   const defaults = buildDefaultConfig();
 
   alarmVariables.forEach((variable) => {
+    const legacyPileConfig = variable.key.startsWith("flujoPLSPila")
+      ? storedConfig?.flujoPLSPila
+      : null;
+
     defaults[variable.key] = {
       ...defaults[variable.key],
+      ...(legacyPileConfig || {}),
       ...(storedConfig?.[variable.key] || {}),
       unidad: variable.unidad
     };
