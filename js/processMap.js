@@ -2,7 +2,8 @@ import { demoProcess } from "../data/demoData.js";
 
 export const PLANT_AREA = "PLANTA";
 
-const processAreas = [PLANT_AREA, "Pila 1", "Pila 2", "Pila 3", "Piscina PLS", "Piscina Refino"];
+const processAreas = [PLANT_AREA, "Pila 1", "Pila 2", "Pila 3"];
+const monitoredAreas = [...processAreas, "Piscina PLS", "Piscina Refino"];
 const pileAreas = ["Pila 1", "Pila 2", "Pila 3"];
 
 export function getWorstState(records) {
@@ -150,7 +151,7 @@ function getLatestBySubarea(records) {
   const latestBySubarea = new Map();
 
   records.forEach((record) => {
-    if (processAreas.includes(record.subarea) && !latestBySubarea.has(record.subarea)) {
+    if (monitoredAreas.includes(record.subarea) && !latestBySubarea.has(record.subarea)) {
       latestBySubarea.set(record.subarea, record);
     }
   });

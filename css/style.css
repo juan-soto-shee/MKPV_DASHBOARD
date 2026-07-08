@@ -3,11 +3,11 @@
   --surface: #092432;
   --surface-2: #0c2c3a;
   --surface-3: #051118;
-  --line: rgba(131, 226, 245, 0.18);
-  --line-strong: rgba(131, 226, 245, 0.34);
+  --line: rgba(78, 154, 170, 0.18);
+  --line-strong: rgba(78, 154, 170, 0.34);
   --text: #f4fbff;
   --muted: #93b9c5;
-  --cyan: #22d3ee;
+  --cyan: #168aa0;
   --green: #22c55e;
   --amber: #f59e0b;
   --red: #ef4444;
@@ -32,8 +32,8 @@ body::before {
   z-index: -1;
   content: "";
   background-image:
-    linear-gradient(rgba(131, 226, 245, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(131, 226, 245, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(78, 154, 170, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(78, 154, 170, 0.03) 1px, transparent 1px);
   background-size: 52px 52px;
   mask-image: linear-gradient(to bottom, black, transparent 88%);
 }
@@ -216,7 +216,7 @@ h3 {
 
 .process-map {
   display: grid;
-  grid-template-columns: repeat(6, minmax(145px, 1fr));
+  grid-template-columns: repeat(4, minmax(145px, 1fr));
   gap: 12px;
 }
 
@@ -240,7 +240,7 @@ h3 {
   width: 13px;
   height: 2px;
   content: "";
-  background: rgba(34, 211, 238, 0.45);
+  background: rgba(22, 138, 160, 0.45);
 }
 
 .process-node:last-child::after {
@@ -264,7 +264,7 @@ h3 {
   outline: 2px solid var(--cyan);
   outline-offset: 2px;
   transform: scale(1.04);
-  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34), 0 0 24px rgba(34, 211, 238, 0.14);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34), 0 0 24px rgba(22, 138, 160, 0.14);
 }
 
 .process-name {
@@ -586,7 +586,7 @@ td {
   .segmented button.is-active {
     border-color: var(--cyan);
     color: var(--text);
-    background: rgba(34, 211, 238, 0.12);
+    background: rgba(22, 138, 160, 0.12);
   }
 
   .summary-strip {

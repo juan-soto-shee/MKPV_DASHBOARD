@@ -11,7 +11,7 @@ const chartDefinitions = [
     label: "Flujo PLS",
     unit: "m3/h",
     decimals: 0,
-    color: "#22d3ee"
+    color: "#168aa0"
   },
   {
     canvasId: "acidTrendChart",
@@ -20,7 +20,7 @@ const chartDefinitions = [
     label: "Acidez Refino",
     unit: "g/L",
     decimals: 2,
-    color: "#8ee7f5"
+    color: "#4e9aaa"
   },
   {
     canvasId: "cuTrendChart",
@@ -47,7 +47,7 @@ const chartDefinitions = [
     label: "Nivel Piscina PLS",
     unit: "%",
     decimals: 0,
-    color: "#38bdf8"
+    color: "#247f9a"
   }
 ];
 
