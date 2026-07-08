@@ -42,6 +42,24 @@ const chartDefinitions = [
     unit: "g/L",
     decimals: 2,
     color: "#22c55e"
+  },
+  {
+    canvasId: "plsLevelTrendChart",
+    analysisId: "plsLevelTrendAnalysis",
+    field: "nivelPiscinaPLS",
+    label: "Nivel Piscina PLS",
+    unit: "%",
+    decimals: 0,
+    color: "#06b6d4"
+  },
+  {
+    canvasId: "refinoLevelTrendChart",
+    analysisId: "refinoLevelTrendAnalysis",
+    field: "nivelPiscinaRefino",
+    label: "Nivel Piscina Refino",
+    unit: "%",
+    decimals: 0,
+    color: "#a78bfa"
   }
 ];
 
@@ -144,11 +162,13 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
       .concat(buildTimeThresholdDatasets(timeRange, alarmConfig))
   };
 
-  const options = commonOptions(definition.unit, true, definition, alarmConfig, true);
+  const options = commonOptions(definition.unit, true, definition, alarmConfig, "time");
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
-function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null, useTimeScale = false) {
+function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null, xScaleMode = "category") {
+  const useLinearScale = xScaleMode !== "category";
+
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -185,13 +205,20 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
     },
     scales: {
       x: {
-        type: useTimeScale ? "linear" : "category",
+        type: useLinearScale ? "linear" : "category",
+        title: {
+          display: false,
+          text: "",
+          color: chartTextColor
+        },
         ticks: {
           color: chartTextColor,
           maxRotation: 0,
           autoSkip: true,
           maxTicksLimit: 6,
-          callback: useTimeScale ? (value) => formatLabel(Number(value)) : undefined
+          callback: xScaleMode === "time"
+            ? (value) => formatLabel(Number(value))
+            : undefined
         },
         grid: { color: gridColor, drawBorder: false }
       },
@@ -298,27 +325,29 @@ function renderSplitTrendAnalysis(definition, seriesGroups) {
   const element = document.getElementById(definition.analysisId);
   if (!element) return;
 
-  const latestValues = seriesGroups
-    .map((group) => {
-      const latest = group.points[group.points.length - 1];
-      return latest ? { label: group.label, value: latest.value } : null;
-    })
-    .filter(Boolean);
+  const trends = seriesGroups.map((group) => {
+    if (group.points.length < 2) return `${group.label}: sin datos suficientes`;
 
-  if (latestValues.length < 2) {
-    element.textContent = "Sin datos suficientes por pila";
+    const previous = group.points[group.points.length - 2].value;
+    const current = group.points[group.points.length - 1].value;
+    const difference = current - previous;
+    const tolerance = Math.max(Math.abs(previous) * 0.01, definition.decimals === 0 ? 1 : 0.01);
+
+    if (Math.abs(difference) <= tolerance) return `${group.label}: estable`;
+
+    const direction = difference > 0 ? "subio" : "bajo";
+    const sign = difference > 0 ? "+" : "";
+    return `${group.label}: ${direction} ${sign}${formatNumber(difference, definition.decimals)} ${definition.unit}`;
+  });
+
+  if (!trends.length) {
+    element.textContent = "Sin datos suficientes";
     element.className = "trend-analysis";
     return;
   }
 
-  const values = latestValues.map((point) => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const spread = max - min;
-  const highest = latestValues.find((point) => point.value === max);
-
-  element.textContent = `Comparacion por pila: rango ${formatNumber(spread, definition.decimals)} ${definition.unit}; mayor ${highest.label}`;
-  element.className = spread <= 0.2 ? "trend-analysis stable" : "trend-analysis up";
+  element.textContent = trends.join(" | ");
+  element.className = "trend-analysis";
 }
 
 function upsertChart(canvasId, config) {
