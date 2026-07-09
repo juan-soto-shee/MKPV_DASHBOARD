@@ -6,6 +6,15 @@ async function fetchJson(path) {
   return response.json();
 }
 
+async function fetchOptionalJson(path) {
+  try {
+    return await fetchJson(path);
+  } catch (error) {
+    if (String(error.message).includes("(404)")) return null;
+    throw error;
+  }
+}
+
 async function loadClientConfig() {
   const active = await fetchJson("activeClient.json");
   const activeClient = active.activeClient || active.client;
@@ -24,6 +33,11 @@ async function loadClientConfig() {
     fetchJson(`${base}/layoutVisible.json`)
   ]);
   const clientProfileResult = await loadClientProfile(base, activeClient, identity);
+  const [profileAlarms, profileLayout, profileProcess] = await Promise.all([
+    fetchOptionalJson(`${base}/alarms.json`),
+    fetchOptionalJson(`${base}/layout.json`),
+    fetchOptionalJson(`${base}/process.json`)
+  ]);
 
   const variableMap = Object.fromEntries(variables.variables.map((variable) => [variable.key, variable]));
   const equipmentMap = Object.fromEntries(equipment.equipos.map((item) => [item.nombre, item]));
@@ -38,7 +52,12 @@ async function loadClientConfig() {
     alarmVariables: alarms.variables,
     equipment: equipment.equipos,
     equipmentMap,
-    layout
+    layout,
+    profileDocuments: Object.freeze({
+      alarms: profileAlarms,
+      layout: profileLayout,
+      process: profileProcess
+    })
   });
 }
 

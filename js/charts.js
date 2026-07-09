@@ -452,9 +452,7 @@ function buildTrendDescription(series, definition) {
 function formatTrendVariation(difference, definition) {
   const absoluteDifference = Math.abs(difference);
   const decimals = definition.unit === "%" ? Math.max(definition.decimals, 1) : definition.decimals;
-  const unit = definition.unit === "%"
-    ? (absoluteDifference === 1 ? "punto porcentual" : "puntos porcentuales")
-    : definition.unit;
+  const unit = definition.unit;
 
   return `${formatNumber(absoluteDifference, decimals)} ${unit}`;
 }
