@@ -438,10 +438,13 @@ function isMobileChartView() {
 
 function renderAlarmPresentation(definition, series, alarmConfig) {
   const groups = new Map();
+  const groupSeries = new Map();
   series.forEach((point) => {
     const groupName = definition.field === "acidezRefino"
       ? point.record?.subarea || "Área"
       : definition.label;
+    if (!groupSeries.has(groupName)) groupSeries.set(groupName, []);
+    groupSeries.get(groupName).push(point);
     const current = groups.get(groupName);
     if (!current || new Date(point.record?.timestampCreacion) > new Date(current.record?.timestampCreacion)) {
       groups.set(groupName, point);
@@ -450,11 +453,12 @@ function renderAlarmPresentation(definition, series, alarmConfig) {
 
   const summaries = [...groups.entries()].map(([groupName, point]) => ({
     groupName,
-    alarm: getPointAlarm(point, definition, alarmConfig)
+    alarm: getPointAlarm(point, definition, alarmConfig),
+    trend: buildTrendDescription(groupSeries.get(groupName) || [], definition)
   }));
-  const alarm = summaries.reduce((worst, summary) =>
+  const alarm = summaries.slice(1).reduce((worst, summary) =>
     stateRank(summary.alarm.state) > stateRank(worst.state) ? summary.alarm : worst
-  , buildAlarmState("normal"));
+  , summaries[0]?.alarm || buildAlarmState("normal"));
   const canvas = document.getElementById(definition.canvasId);
   const title = canvas?.closest(".panel")?.querySelector(".chart-heading h3");
   if (title) title.textContent = `${alarm.icon} ${definition.label}`;
@@ -468,12 +472,29 @@ function renderAlarmPresentation(definition, series, alarmConfig) {
     const detail = currentAlarm.cause || currentAlarm.label;
     return `${currentAlarm.icon} ${[valueText, detail].filter(Boolean).join(" · ")}`;
   };
+  const trendText = buildTrendDescription(series, definition);
   analysis.textContent = summaries.length > 1
-    ? summaries.map(({ groupName, alarm: groupAlarm }) =>
-        `${shortAreaName(groupName)} ${describeAlarm(groupAlarm)}`
+    ? summaries.map(({ groupName, alarm: groupAlarm, trend }) =>
+        `${shortAreaName(groupName)} ${[describeAlarm(groupAlarm), trend].filter(Boolean).join(" · ")}`
       ).join(" · ")
-    : describeAlarm(alarm);
+    : [describeAlarm(alarm), trendText].filter(Boolean).join(" · ");
   analysis.className = `trend-analysis alarm-status ${alarm.state}`;
+}
+
+function buildTrendDescription(series, definition) {
+  if (series.length < 2) return "Sin variación disponible";
+
+  const previous = Number(series[series.length - 2].value);
+  const current = Number(series[series.length - 1].value);
+  if (!Number.isFinite(previous) || !Number.isFinite(current)) return "";
+
+  const difference = current - previous;
+  const tolerance = Math.max(Math.abs(previous) * 0.01, definition.decimals === 0 ? 1 : 0.01);
+  const sign = difference > 0 ? "+" : "";
+  const formattedDifference = `${sign}${formatNumber(difference, definition.decimals)} ${definition.unit}`;
+
+  if (Math.abs(difference) <= tolerance) return `Variación ${formattedDifference} · Estable`;
+  return `${difference > 0 ? "Subió" : "Bajó"} ${formattedDifference}`;
 }
 
 function shortAreaName(value) {
