@@ -48,3 +48,22 @@ export async function deleteAllLeachRecords(onProgress = () => {}) {
 
   return deleted;
 }
+
+// Inserta registros validados en lotes bajo el limite de 500 escrituras de Firestore.
+export async function insertImportedRecords(records, onProgress = () => {}) {
+  let inserted = 0;
+
+  for (let start = 0; start < records.length; start += 400) {
+    const batch = writeBatch(db);
+    const chunk = records.slice(start, start + 400);
+
+    chunk.forEach((record) => {
+      batch.set(doc(collection(db, "leach_records")), record);
+    });
+
+    await batch.commit();
+    inserted += chunk.length;
+    onProgress(inserted, records.length);
+  }
+
+  return inserted;

@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MetKinetics PlantView | Centro de Monitoreo Operacional</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260708-9">
+    <link rel="stylesheet" href="css/style.css?v=20260708-10">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260708-10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+    <script type="module" src="js/app.js?v=20260708-11"></script>
   </head>
   <body>
     <div class="shell">
@@ -88,6 +89,40 @@
               </dl>
             </section>
           </div>
+          <section class="admin-subsection bulk-import">
+            <h3>IMPORTACI&Oacute;N MASIVA</h3>
+            <p class="admin-note">Cargue registros operacionales desde Excel (.xlsx) o CSV. La primera fila debe contener los nombres de las columnas.</p>
+            <div class="import-controls">
+              <label class="file-picker" for="bulkImportFile">
+                <span>Archivo Excel o CSV</span>
+                <input id="bulkImportFile" type="file" accept=".xlsx,.csv">
+              </label>
+              <button id="startBulkImportButton" class="primary-action" type="button" disabled>Importar registros</button>
+            </div>
+            <p id="bulkImportFileInfo" class="admin-message" role="status">Seleccione un archivo para comenzar.</p>
+            <div id="bulkImportProgressPanel" class="import-progress-panel is-hidden" aria-live="polite">
+              <div class="import-progress-heading">
+                <span id="bulkImportProgressLabel">Preparando importaci&oacute;n...</span>
+                <strong id="bulkImportProgressPercent">0 %</strong>
+              </div>
+              <progress id="bulkImportProgress" max="100" value="0">0 %</progress>
+            </div>
+            <dl id="bulkImportSummary" class="import-summary is-hidden">
+              <div><dt>Total registros</dt><dd id="bulkImportTotal">0</dd></div>
+              <div><dt>Registros correctos</dt><dd id="bulkImportSuccess">0</dd></div>
+              <div><dt>Registros con error</dt><dd id="bulkImportErrorCount">0</dd></div>
+              <div><dt>Tiempo empleado</dt><dd id="bulkImportElapsed">0 s</dd></div>
+            </dl>
+            <div id="bulkImportErrorsPanel" class="import-errors is-hidden">
+              <h4>Filas con error</h4>
+              <div class="table-wrap">
+                <table class="import-errors-table">
+                  <thead><tr><th>Fila</th><th>Detalle</th></tr></thead>
+                  <tbody id="bulkImportErrorsBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
           <section class="admin-subsection">
             <h3>OPCIONES FUTURAS</h3>
             <div class="future-options">
