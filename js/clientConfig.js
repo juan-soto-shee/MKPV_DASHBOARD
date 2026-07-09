@@ -21,12 +21,15 @@ async function loadClientConfig() {
     fetchJson(`${base}/equipos.json`),
     fetchJson(`${base}/layoutVisible.json`)
   ]);
+  const clientProfileResult = await loadClientProfile(base, activeClient, identity);
 
   const variableMap = Object.fromEntries(variables.variables.map((variable) => [variable.key, variable]));
   const equipmentMap = Object.fromEntries(equipment.equipos.map((item) => [item.nombre, item]));
 
   return Object.freeze({
     activeClient,
+    clientProfile: clientProfileResult.profile,
+    configStatus: clientProfileResult.status,
     identity,
     variables: variables.variables,
     variableMap,
@@ -34,6 +37,41 @@ async function loadClientConfig() {
     equipment: equipment.equipos,
     equipmentMap,
     layout
+  });
+}
+
+async function loadClientProfile(base, activeClient, identity) {
+  try {
+    const profile = await fetchJson(`${base}/client.json`);
+    return {
+      profile: normalizeClientProfile(profile, activeClient, identity),
+      status: {
+        ok: true,
+        message: "Configuración cargada correctamente",
+        fallbackName: ""
+      }
+    };
+  } catch (error) {
+    console.warn("No se pudo cargar client.json; se usará DemoClientConfig:", error.message);
+    return {
+      profile: normalizeClientProfile({}, activeClient, identity),
+      status: {
+        ok: false,
+        message: "Error cargando configuración. Se utilizará DemoClientConfig.",
+        fallbackName: "DemoClientConfig"
+      }
+    };
+  }
+}
+
+function normalizeClientProfile(profile, activeClient, identity) {
+  return Object.freeze({
+    cliente: profile.cliente || identity.marca,
+    faena: profile.faena || identity.titulo,
+    proceso: profile.proceso || identity.proceso,
+    clienteId: profile.clienteId || activeClient,
+    versionConfiguracion: profile.versionConfiguracion || identity.version,
+    estado: profile.estado || "Activo"
   });
 }
 

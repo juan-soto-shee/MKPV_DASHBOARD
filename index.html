@@ -42,6 +42,34 @@
             </div>
             <button id="closeAlarmAdminButton" class="secondary-action" type="button">Volver al monitoreo</button>
           </div>
+          <section class="admin-subsection active-profile-card">
+            <div class="profile-card-heading">
+              <h3>PERFIL OPERACIONAL ACTIVO</h3>
+              <span id="profileStatusBadge" class="profile-status-badge">
+                <span id="profileStatusDot" class="status-dot normal"></span>
+                <span id="profileStatusText">Configuraci&oacute;n cargada correctamente</span>
+              </span>
+            </div>
+            <p id="profileFallbackMessage" class="admin-message is-hidden" role="status"></p>
+            <dl class="system-facts profile-facts">
+              <div><dt>Cliente</dt><dd id="activeProfileClient">--</dd></div>
+              <div><dt>Faena</dt><dd id="activeProfileSite">--</dd></div>
+              <div><dt>Proceso</dt><dd id="activeProfileProcess">--</dd></div>
+              <div><dt>Cliente ID</dt><dd id="activeProfileClientId">--</dd></div>
+              <div><dt>Versi&oacute;n</dt><dd id="activeProfileConfigVersion">--</dd></div>
+            </dl>
+          </section>
+          <section class="admin-subsection">
+            <h3>INFORMACI&Oacute;N DEL SISTEMA</h3>
+            <dl class="system-facts">
+              <div><dt>Proyecto Firebase</dt><dd id="firebaseProject"></dd></div>
+              <div><dt>Cantidad de registros asociados al cliente activo</dt><dd id="systemRecordCount">0</dd></div>
+              <div><dt>&Uacute;ltimo registro recibido</dt><dd id="systemLastRecord">--</dd></div>
+              <div><dt>&Uacute;ltima sincronizaci&oacute;n</dt><dd id="systemLastSync">--</dd></div>
+              <div><dt>Versi&oacute;n PlantView</dt><dd id="systemVersion"></dd></div>
+              <div><dt>Estado Firebase</dt><dd id="systemFirebaseStatus">--</dd></div>
+            </dl>
+          </section>
           <div class="admin-subsection">
           <h3>CONFIGURACI&Oacute;N DE ALARMAS</h3>
           <p class="admin-note">La aplicaci&oacute;n Android leer&aacute; <strong id="alarmConfigPath"></strong> para calcular autom&aacute;ticamente las alarmas.</p>
@@ -73,25 +101,24 @@
               <dl class="system-facts">
                 <div><dt id="recordsCollectionLabel"></dt><dd id="adminRecordCount">0</dd></div>
                 <div><dt>&Uacute;ltimo registro recibido</dt><dd id="adminLastRecord">--</dd></div>
+                <div><dt>&Uacute;ltima sincronizaci&oacute;n</dt><dd id="adminLastSync">--</dd></div>
                 <div><dt>Estado Firebase</dt><dd id="adminFirebaseStatus">--</dd></div>
               </dl>
               <button id="resetOperationDataButton" class="danger-action" type="button">REINICIAR DATOS DE OPERACI&Oacute;N</button>
               <p id="resetDataMessage" class="admin-message" role="status"></p>
             </section>
-            <section class="admin-subsection">
-              <h3>INFORMACI&Oacute;N DEL SISTEMA</h3>
-              <dl class="system-facts">
-                <div><dt>Versi&oacute;n</dt><dd id="systemVersion"></dd></div>
-                <div><dt>Proyecto Firebase</dt><dd id="firebaseProject"></dd></div>
-                <div><dt>Estado Firebase</dt><dd id="systemFirebaseStatus">--</dd></div>
-                <div><dt>Cantidad de registros</dt><dd id="systemRecordCount">0</dd></div>
-                <div><dt>&Uacute;ltimo registro</dt><dd id="systemLastRecord">--</dd></div>
-              </dl>
-            </section>
           </div>
           <section class="admin-subsection bulk-import">
             <h3>IMPORTACI&Oacute;N MASIVA</h3>
             <p class="admin-note">Cargue registros operacionales desde Excel (.xlsx) o CSV. La primera fila debe contener los nombres de las columnas.</p>
+            <div class="operation-target">
+              <p>Los registros ser&aacute;n importados para:</p>
+              <dl class="system-facts compact-facts">
+                <div><dt>Cliente</dt><dd id="bulkImportTargetClient">--</dd></div>
+                <div><dt>Faena</dt><dd id="bulkImportTargetSite">--</dd></div>
+                <div><dt>Proceso</dt><dd id="bulkImportTargetProcess">--</dd></div>
+              </dl>
+            </div>
             <div class="import-controls">
               <label class="file-picker" for="bulkImportFile">
                 <span>Archivo Excel o CSV</span>
@@ -222,6 +249,14 @@
       <section class="admin-password-panel" role="dialog" aria-modal="true" aria-labelledby="resetDataTitle">
         <h2 id="resetDataTitle">&iquest;Desea eliminar todos los registros operacionales?</h2>
         <p>Se eliminar&aacute;n &uacute;nicamente los documentos de <strong id="resetRecordsCollection"></strong>. No se eliminar&aacute;n la configuraci&oacute;n de alarmas, usuarios ni otros datos del sistema.</p>
+        <div class="operation-target">
+          <p>Se eliminar&aacute;n &uacute;nicamente los registros pertenecientes a:</p>
+          <dl class="system-facts compact-facts">
+            <div><dt>Cliente</dt><dd id="resetTargetClient">--</dd></div>
+            <div><dt>Cliente ID</dt><dd id="resetTargetClientId">--</dd></div>
+            <div><dt>Cantidad de registros</dt><dd id="resetTargetCount">0</dd></div>
+          </dl>
+        </div>
         <p>Esta acci&oacute;n no puede deshacerse.</p>
         <label id="resetPasswordField" class="admin-password-field is-hidden">
           <span>Confirme nuevamente la contrase&ntilde;a</span>
@@ -231,6 +266,24 @@
         <div class="dialog-actions">
           <button id="cancelResetButton" class="secondary-action" type="button">Cancelar</button>
           <button id="continueResetButton" class="danger-action" type="button">Continuar</button>
+        </div>
+      </section>
+    </div>
+    <div id="bulkImportConfirmOverlay" class="admin-overlay is-hidden" aria-hidden="true">
+      <section class="admin-password-panel" role="dialog" aria-modal="true" aria-labelledby="bulkImportConfirmTitle">
+        <h2 id="bulkImportConfirmTitle">Confirmar importaci&oacute;n masiva</h2>
+        <div class="operation-target">
+          <p>Los registros ser&aacute;n importados para:</p>
+          <dl class="system-facts compact-facts">
+            <div><dt>Cliente</dt><dd id="bulkImportConfirmClient">--</dd></div>
+            <div><dt>Faena</dt><dd id="bulkImportConfirmSite">--</dd></div>
+            <div><dt>Proceso</dt><dd id="bulkImportConfirmProcess">--</dd></div>
+          </dl>
+        </div>
+        <p id="bulkImportConfirmMessage" class="admin-message" role="status"></p>
+        <div class="dialog-actions">
+          <button id="cancelBulkImportButton" class="secondary-action" type="button">Cancelar</button>
+          <button id="confirmBulkImportButton" class="primary-action" type="button">Importar registros</button>
         </div>
       </section>
     </div>

@@ -1,9 +1,9 @@
-import { startRealtimeListener } from "./firestoreService.js?v=20260709-2";
+import { startRealtimeListener } from "./firestoreService.js?v=20260709-3";
 import { demoRecords } from "../data/demoData.js?v=20260708-4";
 import { updateCharts } from "./charts.js?v=20260709-1";
-import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-2";
-import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-2";
-import { initBulkImport } from "./bulkImport.js?v=20260709-2";
+import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-3";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-3";
+import { initBulkImport } from "./bulkImport.js?v=20260709-3";
 import { clientConfig } from "./clientConfig.js";
 
 applyClientConfiguration();
@@ -42,6 +42,7 @@ startRealtimeListener((records) => {
   updateAdminStats({
     count: records.length,
     lastRecord: records[0]?.timestampCreacion?.toDate?.()?.toISOString?.() || records[0]?.timestampCreacion || null,
+    lastSync: new Date().toISOString(),
     connected: state.connected
   });
 
@@ -296,6 +297,7 @@ function getDominantVariable(record) {
 
 function applyClientConfiguration() {
   const { identity, layout } = clientConfig;
+  const profile = clientConfig.clientProfile;
   const text = layout.textos;
   document.title = identity.tituloPagina;
   setText("brandName", identity.marca);
@@ -313,6 +315,7 @@ function applyClientConfiguration() {
   setText("alarmConfigPath", `${identity.firebase.coleccionConfiguracion}/${identity.firebase.documentoConfiguracion}`);
   setText("recordsCollectionLabel", `Registros en ${identity.firebase.coleccionRegistros} (${clientConfig.activeClient})`);
   setText("resetRecordsCollection", `${identity.firebase.coleccionRegistros} para ${clientConfig.activeClient}`);
+  renderActiveProfile(profile);
 
   const periodFilter = document.getElementById("periodFilter");
   periodFilter.innerHTML = layout.periodos.map((period, index) =>
@@ -357,6 +360,33 @@ function applyClientConfiguration() {
   Object.entries(sectionSelectors).forEach(([key, selector]) => {
     document.querySelector(selector)?.classList.toggle("is-hidden", layout.secciones[key] === false);
   });
+}
+
+function renderActiveProfile(profile) {
+  // Futuro: un mismo cliente podrá tener procesos activos separados como Lixiviación, SX, EW, Concentradora o HydroSim.
+  setText("activeProfileClient", profile.cliente);
+  setText("activeProfileSite", profile.faena);
+  setText("activeProfileProcess", profile.proceso);
+  setText("activeProfileClientId", profile.clienteId);
+  setText("activeProfileConfigVersion", profile.versionConfiguracion);
+  setText("bulkImportTargetClient", profile.cliente);
+  setText("bulkImportTargetSite", profile.faena);
+  setText("bulkImportTargetProcess", profile.proceso);
+  setText("bulkImportConfirmClient", profile.cliente);
+  setText("bulkImportConfirmSite", profile.faena);
+  setText("bulkImportConfirmProcess", profile.proceso);
+  setText("resetTargetClient", profile.cliente);
+  setText("resetTargetClientId", profile.clienteId);
+
+  const status = clientConfig.configStatus;
+  const statusDot = document.getElementById("profileStatusDot");
+  const fallbackMessage = document.getElementById("profileFallbackMessage");
+  if (statusDot) statusDot.className = `status-dot ${status.ok ? "normal" : "critico"}`;
+  setText("profileStatusText", status.message);
+  if (fallbackMessage) {
+    fallbackMessage.textContent = status.ok ? "" : status.message;
+    fallbackMessage.classList.toggle("is-hidden", status.ok);
+  }
 }
 
 function setText(id, value) {

@@ -4,7 +4,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
-import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-2";
+import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-3";
 import { clientConfig } from "./clientConfig.js";
 
 const ADMIN_PASSWORD = "Met2026!";
@@ -19,7 +19,7 @@ const editableFields = ["bajoCritico", "bajoAlerta", "altoAlerta", "altoCritico"
 
 let configState = {};
 let configListeners = [];
-let adminStats = { count: 0, lastRecord: null, connected: false };
+let adminStats = { count: 0, lastRecord: null, lastSync: null, connected: false };
 
 export function initAlarmAdmin() {
   const elements = getElements();
@@ -83,6 +83,9 @@ function openResetDialog(elements) {
   elements.resetDialogMessage.textContent = "";
   elements.continueResetButton.textContent = "Continuar";
   elements.continueResetButton.dataset.stage = "warning";
+  if (elements.resetTargetClient) elements.resetTargetClient.textContent = clientConfig.clientProfile.cliente;
+  if (elements.resetTargetClientId) elements.resetTargetClientId.textContent = clientConfig.clientProfile.clienteId;
+  if (elements.resetTargetCount) elements.resetTargetCount.textContent = String(adminStats.count);
 }
 
 function closeResetDialog(elements) {
@@ -400,6 +403,9 @@ function getElements() {
     resetPasswordField: document.getElementById("resetPasswordField"),
     resetPasswordInput: document.getElementById("resetPasswordInput"),
     resetDialogMessage: document.getElementById("resetDialogMessage"),
+    resetTargetClient: document.getElementById("resetTargetClient"),
+    resetTargetClientId: document.getElementById("resetTargetClientId"),
+    resetTargetCount: document.getElementById("resetTargetCount"),
     cancelResetButton: document.getElementById("cancelResetButton"),
     continueResetButton: document.getElementById("continueResetButton")
   };
@@ -415,12 +421,18 @@ function renderAdminStats() {
   const connection = document.getElementById("adminFirebaseStatus");
   const systemCount = document.getElementById("systemRecordCount");
   const systemLast = document.getElementById("systemLastRecord");
+  const adminLastSync = document.getElementById("adminLastSync");
+  const systemLastSync = document.getElementById("systemLastSync");
   const systemConnection = document.getElementById("systemFirebaseStatus");
   const formattedLast = adminStats.lastRecord
     ? new Date(adminStats.lastRecord).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })
     : "--";
+  const formattedSync = adminStats.lastSync
+    ? new Date(adminStats.lastSync).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })
+    : "--";
   [count, systemCount].forEach((element) => { if (element) element.textContent = String(adminStats.count); });
   [last, systemLast].forEach((element) => { if (element) element.textContent = formattedLast; });
+  [adminLastSync, systemLastSync].forEach((element) => { if (element) element.textContent = formattedSync; });
   [connection, systemConnection].forEach((element) => {
     if (element) element.textContent = adminStats.connected ? "Conectado" : "Sin conexion";
   });

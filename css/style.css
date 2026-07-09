@@ -314,9 +314,56 @@ h3 {
   color: var(--cyan);
 }
 
+.profile-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.profile-card-heading h3 {
+  color: var(--cyan);
+}
+
+.profile-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.profile-status-badge .status-dot {
+  width: 12px;
+  height: 12px;
+  flex-basis: 12px;
+}
+
+.profile-facts,
+.compact-facts {
+  margin-bottom: 0;
+}
+
+.operation-target {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid rgba(147, 185, 197, 0.12);
+  border-radius: 8px;
+  background: rgba(3, 13, 18, 0.24);
+}
+
+.operation-target p {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 .admin-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 
