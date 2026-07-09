@@ -67,3 +67,4 @@ export async function insertImportedRecords(records, onProgress = () => {}) {
   }
 
   return inserted;
+}
