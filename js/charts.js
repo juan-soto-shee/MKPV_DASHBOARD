@@ -5,6 +5,11 @@ const gridColor = "rgba(127, 208, 226, 0.12)";
 const PLANT_AREA = "PLANTA";
 const pileAreas = ["Pila 1", "Pila 2", "Pila 3"];
 const pileColors = ["#4e9aaa", "#f59e0b", "#22c55e"];
+const stateColors = {
+  normal: "#22c55e",
+  warning: "#f59e0b",
+  alarm: "#ef4444"
+};
 
 const chartDefinitions = [
   {
@@ -81,6 +86,7 @@ export function updateCharts(records, context = {}) {
       const plantAcidSeries = buildSplitSeries(context.sourceRecords || [], definition.field);
       upsertMultiLineChart(definition, plantAcidSeries, variableConfig);
       renderSplitTrendAnalysis(definition, plantAcidSeries);
+      renderAlarmPresentation(definition, plantAcidSeries.flatMap((group) => group.points), variableConfig);
       return;
     }
 
@@ -94,6 +100,7 @@ export function updateCharts(records, context = {}) {
 
     upsertLineChart(definition, series, variableConfig);
     renderTrendAnalysis(definition, series);
+    renderAlarmPresentation(definition, series, variableConfig);
   });
 }
 
@@ -115,20 +122,25 @@ function buildSplitSeries(records, field) {
 }
 
 function upsertLineChart(definition, series, alarmConfig) {
+  const pointStates = series.map((point) => getPointAlarm(point, definition, alarmConfig));
   const thresholdDatasets = buildThresholdDatasets(series.length, alarmConfig);
   const data = {
     labels: series.map((point) => point.label),
     datasets: [{
       label: `${definition.label} (${definition.unit})`,
       data: series.map((point) => point.value),
-      borderColor: definition.color,
+      borderColor: lineColor(pointStates, definition.color),
       backgroundColor: transparentize(definition.color),
       fill: true,
       tension: 0.32,
       borderWidth: 2,
       pointRadius: 2.5,
       pointHoverRadius: 5,
-      pointBackgroundColor: series.map((point) => alarmPointColor(point.value, alarmConfig)),
+      pointBackgroundColor: pointStates.map((state) => state.color),
+      pointBorderColor: pointStates.map((state) => state.color),
+      segment: {
+        borderColor: (context) => segmentColor(context, pointStates, definition.color)
+      },
       pointData: series
     }, ...thresholdDatasets]
   };
@@ -147,15 +159,24 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
     datasets: seriesGroups
       .filter((group) => group.points.length)
       .map((group) => ({
+          alarmStates: group.points.map((point) => getPointAlarm(point, definition, alarmConfig)),
           label: group.label,
           data: group.points.map((point) => ({ x: point.timestamp, y: point.value })),
-          borderColor: group.color,
+          borderColor: lineColor(group.points.map((point) => getPointAlarm(point, definition, alarmConfig)), group.color),
           backgroundColor: transparentize(group.color),
           fill: false,
           tension: 0.32,
           borderWidth: 2,
           pointRadius: 2.5,
-          pointBackgroundColor: group.points.map((point) => alarmPointColor(point.value, alarmConfig)),
+          pointBackgroundColor: group.points.map((point) => getPointAlarm(point, definition, alarmConfig).color),
+          pointBorderColor: group.points.map((point) => getPointAlarm(point, definition, alarmConfig).color),
+          segment: {
+            borderColor: (context) => segmentColor(
+              context,
+              group.points.map((point) => getPointAlarm(point, definition, alarmConfig)),
+              group.color
+            )
+          },
           pointHoverRadius: 5,
           pointData: group.points
         }))
@@ -168,6 +189,7 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
 
 function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null, xScaleMode = "category") {
   const useLinearScale = xScaleMode !== "category";
+  const mobile = isMobileChartView();
 
   return {
     responsive: true,
@@ -176,6 +198,7 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
       mode: "index",
       intersect: false
     },
+    events: mobile ? [] : ["mousemove", "mouseout", "click", "touchstart", "touchmove"],
     plugins: {
       legend: {
         display: showLegend,
@@ -187,6 +210,7 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
         }
       },
       tooltip: {
+        enabled: !mobile,
         filter: (context) => !context.dataset.isThreshold,
         callbacks: {
           label: (context) => {
@@ -197,8 +221,13 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
           afterLabel: (context) => {
             const point = context.dataset.pointData?.[context.dataIndex];
             if (!point?.record) return "";
-            const exceeded = describeExceeded(point.value, alarmConfig);
-            return [`Hora: ${point.record.hora || formatLabel(point.record.timestampCreacion)}`, `Subarea: ${point.record.subarea || "--"}`, `Estado: ${point.record.estado || "Normal"}`, exceeded].filter(Boolean);
+            const alarm = getPointAlarm(point, definition, alarmConfig);
+            return [
+              `Hora: ${point.record.hora || formatLabel(point.record.timestampCreacion)}`,
+              `Subarea: ${point.record.subarea || "--"}`,
+              `Estado: ${alarm.label}`,
+              alarm.cause ? `Limite superado: ${alarm.cause}` : ""
+            ].filter(Boolean);
           }
         }
       }
@@ -279,20 +308,123 @@ function buildTimeThresholdDatasets(timeRange, config) {
   }));
 }
 
-function alarmPointColor(value, config) {
-  if (!config) return "#d9f7ff";
-  if (value <= config.bajoCritico || value >= config.altoCritico) return "#ef4444";
-  if (value < config.bajoAlerta || value > config.altoAlerta) return "#f59e0b";
-  return "#d9f7ff";
+function getPointAlarm(point, definition, config) {
+  const record = point?.record || {};
+  const alarms = Array.isArray(record.alarmasActivas) ? record.alarmasActivas : [];
+  const matchingAlarms = alarms.filter((alarm) => alarmMatchesDefinition(alarm, definition));
+  const relevantAlarms = matchingAlarms.length ? matchingAlarms : (alarms.length === 1 ? alarms : []);
+
+  if (relevantAlarms.length) {
+    const alarm = [...relevantAlarms].sort((a, b) =>
+      stateRank(b.severidad || b.estado) - stateRank(a.severidad || a.estado)
+    )[0];
+    const state = normalizeAlarmState(alarm.severidad || alarm.estado || record.estado);
+    return buildAlarmState(state, alarmCause(alarm) || thresholdCause(point.value, config, state));
+  }
+
+  const recordState = normalizeAlarmState(record.estado);
+  if (recordState !== "normal") {
+    return buildAlarmState(recordState, thresholdCause(point.value, config, recordState));
+  }
+
+  const thresholdState = thresholdAlarmState(point.value, config);
+  return buildAlarmState(thresholdState, thresholdCause(point.value, config, thresholdState));
 }
 
-function describeExceeded(value, config) {
-  if (!config) return "";
-  if (value <= config.bajoCritico) return `Limite superado: bajo critico (${config.bajoCritico})`;
-  if (value < config.bajoAlerta) return `Limite superado: bajo alerta (${config.bajoAlerta})`;
-  if (value >= config.altoCritico) return `Limite superado: alto critico (${config.altoCritico})`;
-  if (value > config.altoAlerta) return `Limite superado: alto alerta (${config.altoAlerta})`;
+function alarmMatchesDefinition(alarm, definition) {
+  const variable = normalizeText(alarm.variable || alarm.nombre || alarm.campo || alarm.variableId);
+  if (!variable) return false;
+  const aliases = {
+    flujoPLS: ["flujopls", "flujoderiego", "flujopls"],
+    flujoRefino: ["flujorefino"],
+    acidezRefino: ["acidezrefino", "acidolibre", "acidez"],
+    cuPls: ["cu2pls", "cupls", "cobrepls"],
+    nivelPiscinaPLS: ["nivelpiscinapls", "nivelpls"],
+    nivelPiscinaRefino: ["nivelpiscinorefino", "nivelpiscinorefino", "nivelrefino"]
+  };
+  return (aliases[definition.field] || []).some((alias) => variable.includes(alias));
+}
+
+function normalizeText(value) {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+}
+
+function normalizeAlarmState(value) {
+  const state = normalizeText(value);
+  if (state.includes("critic") || state.includes("alert") || state.includes("alarma")) return "alarm";
+  if (state.includes("advert") || state.includes("prevent") || state.includes("warning")) return "warning";
+  return "normal";
+}
+
+function stateRank(value) {
+  return { normal: 0, warning: 1, alarm: 2 }[normalizeAlarmState(value)];
+}
+
+function buildAlarmState(state, cause = "") {
+  const normalized = state || "normal";
+  return {
+    state: normalized,
+    color: stateColors[normalized],
+    icon: normalized === "alarm" ? "🔴" : normalized === "warning" ? "🟡" : "🟢",
+    label: normalized === "alarm" ? "Alerta" : normalized === "warning" ? "Advertencia" : "Estable",
+    cause
+  };
+}
+
+function alarmCause(alarm) {
+  return alarm.causa || alarm.limiteSuperado || alarm.limite || alarm.descripcion || "";
+}
+
+function thresholdAlarmState(value, config) {
+  if (!config || !Number.isFinite(Number(value))) return "normal";
+  if (value <= Number(config.bajoCritico) || value >= Number(config.altoCritico)) return "alarm";
+  if (value < Number(config.bajoAlerta) || value > Number(config.altoAlerta)) return "warning";
+  return "normal";
+}
+
+function thresholdCause(value, config, state) {
+  if (!config || state === "normal") return "";
+  if (value <= Number(config.bajoCritico)) return "Bajo Límite Bajo";
+  if (value < Number(config.bajoAlerta)) return "Límite Preventivo Bajo";
+  if (value >= Number(config.altoCritico)) return "Sobre Límite Alto";
+  if (value > Number(config.altoAlerta)) return "Límite Preventivo Alto";
   return "";
+}
+
+function lineColor(states, fallback) {
+  const worst = states.reduce((result, state) =>
+    stateRank(state.state) > stateRank(result.state) ? state : result
+  , buildAlarmState("normal"));
+  return worst.state === "normal" ? fallback : worst.color;
+}
+
+function segmentColor(context, states, fallback) {
+  const adjacent = [states[context.p0DataIndex], states[context.p1DataIndex]].filter(Boolean);
+  return lineColor(adjacent, fallback);
+}
+
+function isMobileChartView() {
+  return window.matchMedia("(max-width: 820px)").matches
+    || /Android/i.test(window.navigator.userAgent || "");
+}
+
+function renderAlarmPresentation(definition, series, alarmConfig) {
+  const latest = series.reduce((result, point) =>
+    !result || new Date(point.record?.timestampCreacion) > new Date(result.record?.timestampCreacion)
+      ? point
+      : result
+  , null);
+  const alarm = latest ? getPointAlarm(latest, definition, alarmConfig) : buildAlarmState("normal");
+  const canvas = document.getElementById(definition.canvasId);
+  const title = canvas?.closest(".panel")?.querySelector(".chart-heading h3");
+  if (title) title.textContent = `${alarm.icon} ${definition.label}`;
+
+  if (!isMobileChartView()) return;
+  const analysis = document.getElementById(definition.analysisId);
+  if (!analysis) return;
+  analysis.textContent = `${alarm.icon} ${alarm.label}${alarm.cause ? ` (${alarm.cause})` : ""}`;
+  analysis.className = `trend-analysis alarm-status ${alarm.state}`;
 }
 
 function renderTrendAnalysis(definition, series) {

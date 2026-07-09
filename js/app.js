@@ -1,7 +1,7 @@
 import { startRealtimeListener } from "./firestoreService.js?v=20260708-4";
 import { demoRecords } from "../data/demoData.js?v=20260708-4";
-import { updateCharts } from "./charts.js?v=20260708-8";
-import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260708-4";
+import { updateCharts } from "./charts.js?v=20260708-9";
+import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260708-5";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260708-4";
 
 const state = {
@@ -254,6 +254,7 @@ function normalizeStateLabel(value) {
   const stateClass = normalizeStateClass(value);
   if (stateClass === "critico") return "Crítico";
   if (stateClass === "alerta") return "Alerta";
+  if (stateClass === "advertencia" || stateClass === "warning") return "Advertencia";
   return "Normal";
 }
 

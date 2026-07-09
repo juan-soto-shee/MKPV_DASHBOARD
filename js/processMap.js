@@ -97,7 +97,7 @@ export function normalizeStateClass(state) {
 function severityValue(state) {
   const stateClass = normalizeStateClass(state);
   if (stateClass === "critico") return 3;
-  if (stateClass === "alerta") return 2;
+  if (stateClass === "alerta" || stateClass === "advertencia" || stateClass === "warning") return 2;
   return 1;
 }
 

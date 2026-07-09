@@ -159,6 +159,11 @@ h3 {
   background: var(--amber);
 }
 
+.status-dot.advertencia,
+.status-dot.warning {
+  background: var(--amber);
+}
+
 .status-dot.critico {
   background: var(--red);
 }
@@ -521,6 +526,11 @@ h3 {
   border-color: rgba(245, 158, 11, 0.42);
 }
 
+.process-node.advertencia,
+.process-node.warning {
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
 .process-node.critico {
   border-color: rgba(239, 68, 68, 0.48);
 }
@@ -572,6 +582,11 @@ h3 {
 }
 
 .alerta {
+  color: var(--amber);
+}
+
+.advertencia,
+.warning {
   color: var(--amber);
 }
 
@@ -667,6 +682,18 @@ h3 {
 }
 
 .trend-analysis.stable {
+  color: var(--green);
+}
+
+.trend-analysis.alarm-status.warning {
+  color: var(--amber);
+}
+
+.trend-analysis.alarm-status.alarm {
+  color: #ef4444;
+}
+
+.trend-analysis.alarm-status.normal {
   color: var(--green);
 }
 
