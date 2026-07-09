@@ -1,0 +1,17 @@
+{
+  "id": "entrefases_profile",
+  "marca": "Solmin",
+  "titulo": "Mantos Blancos | Planta Entrefases",
+  "tituloPagina": "MetKinetics PlantView | Planta Entrefases",
+  "proceso": "Planta Entrefases",
+  "areaPrincipal": "PLANTA",
+  "locale": "es-CL",
+  "version": "PlantView v1.0",
+  "firebase": {
+    "coleccionRegistros": "leach_records",
+    "coleccionConfiguracion": "configuration",
+    "coleccionConfiguracionLegacy": "alarm_config",
+    "documentoConfiguracion": "entrefases",
+    "proyectoVisible": "metkinetics-leachview"
+  }
+}

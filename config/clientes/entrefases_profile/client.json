@@ -1,0 +1,14 @@
+{
+  "clientName": "Solmin",
+  "siteName": "Mantos Blancos",
+  "processName": "Planta Entrefases",
+  "profileName": "Planta Entrefases",
+  "profileId": "entrefases_profile",
+  "clienteId": "entrefases_profile",
+  "version": "1.0",
+  "cliente": "Solmin",
+  "faena": "Mantos Blancos",
+  "proceso": "Planta Entrefases",
+  "versionConfiguracion": "1.0",
+  "estado": "Activo"
+}
