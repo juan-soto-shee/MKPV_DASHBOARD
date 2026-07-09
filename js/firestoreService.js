@@ -13,10 +13,12 @@ import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
 
 const RECORDS_COLLECTION = clientConfig.identity.firebase.coleccionRegistros;
+const CLIENTE_ACTIVO = clientConfig.activeClient;
 
 export function startRealtimeListener(callback, onConnectionChange = () => {}) {
   const recordsQuery = query(
     collection(db, RECORDS_COLLECTION),
+    where("clienteId", "==", CLIENTE_ACTIVO),
     orderBy("timestampCreacion", "desc")
   );
 
@@ -35,16 +37,20 @@ export function startRealtimeListener(callback, onConnectionChange = () => {}) {
   });
 }
 
-// Borra exclusivamente documentos de leach_records, en lotes bajo el limite de Firestore.
+// Borra exclusivamente documentos del cliente activo, en lotes bajo el limite de Firestore.
 export async function deleteAllLeachRecords(onProgress = () => {}) {
   let deleted = 0;
 
   while (true) {
-    const snapshot = await getDocs(query(collection(db, RECORDS_COLLECTION), limit(450)));
+    const snapshot = await getDocs(query(
+      collection(db, RECORDS_COLLECTION),
+      where("clienteId", "==", CLIENTE_ACTIVO),
+      limit(450)
+    ));
     if (snapshot.empty) break;
 
     const batch = writeBatch(db);
-    snapshot.docs.forEach((record) => batch.delete(doc(db, RECORDS_COLLECTION, record.id)));
+    snapshot.docs.forEach((record) => batch.delete(record.ref));
     await batch.commit();
     deleted += snapshot.size;
     onProgress(deleted);
@@ -63,7 +69,7 @@ export async function insertDemoRecords(records, onProgress = () => {}) {
 
     chunk.forEach((record) => {
       const recordRef = doc(collection(db, RECORDS_COLLECTION));
-      batch.set(recordRef, { ...record, isDemo: true });
+      batch.set(recordRef, withActiveClient({ ...record, isDemo: true }));
     });
 
     await batch.commit();
@@ -83,7 +89,7 @@ export async function insertImportedRecords(records, onProgress = () => {}) {
     const chunk = records.slice(start, start + 400);
 
     chunk.forEach((record) => {
-      batch.set(doc(collection(db, RECORDS_COLLECTION)), record);
+      batch.set(doc(collection(db, RECORDS_COLLECTION)), withActiveClient(record));
     });
 
     await batch.commit();
@@ -101,6 +107,7 @@ export async function deleteDemoRecords(onProgress = () => {}) {
   while (true) {
     const demoQuery = query(
       collection(db, RECORDS_COLLECTION),
+      where("clienteId", "==", CLIENTE_ACTIVO),
       where("isDemo", "==", true),
       limit(400)
     );
@@ -115,4 +122,11 @@ export async function deleteDemoRecords(onProgress = () => {}) {
   }
 
   return deleted;
+}
+
+function withActiveClient(record) {
+  return {
+    ...record,
+    clienteId: CLIENTE_ACTIVO
+  };
 }

@@ -4,7 +4,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
-import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-1";
+import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-2";
 import { clientConfig } from "./clientConfig.js";
 
 const ADMIN_PASSWORD = "Met2026!";
@@ -111,7 +111,7 @@ async function continueReset(elements) {
 
   elements.continueResetButton.disabled = true;
   elements.cancelResetButton.disabled = true;
-  elements.resetDialogMessage.textContent = `Eliminando documentos de ${clientConfig.identity.firebase.coleccionRegistros}...`;
+  elements.resetDialogMessage.textContent = `Eliminando documentos de ${clientConfig.identity.firebase.coleccionRegistros} para ${clientConfig.activeClient}...`;
   try {
     await deleteAllLeachRecords((deleted) => {
       elements.resetDialogMessage.textContent = `${deleted} registros eliminados...`;

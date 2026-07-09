@@ -1,4 +1,4 @@
-import { evaluateAlarmState } from "./alarmAdmin.js?v=20260709-1";
+import { evaluateAlarmState } from "./alarmAdmin.js?v=20260709-2";
 import { clientConfig, PLANT_AREA, getVariable } from "./clientConfig.js";
 
 export { PLANT_AREA };

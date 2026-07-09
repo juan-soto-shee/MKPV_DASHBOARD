@@ -8,11 +8,12 @@ async function fetchJson(path) {
 
 async function loadClientConfig() {
   const active = await fetchJson("activeClient.json");
-  if (!active.client || !/^[a-z0-9_-]+$/i.test(active.client)) {
+  const activeClient = active.activeClient || active.client;
+  if (!activeClient || !/^[a-z0-9_-]+$/i.test(activeClient)) {
     throw new Error("config/activeClient.json no contiene un cliente válido");
   }
 
-  const base = `clientes/${active.client}`;
+  const base = `clientes/${activeClient}`;
   const [identity, variables, alarms, equipment, layout] = await Promise.all([
     fetchJson(`${base}/identidad.json`),
     fetchJson(`${base}/variables.json`),
@@ -25,7 +26,7 @@ async function loadClientConfig() {
   const equipmentMap = Object.fromEntries(equipment.equipos.map((item) => [item.nombre, item]));
 
   return Object.freeze({
-    activeClient: active.client,
+    activeClient,
     identity,
     variables: variables.variables,
     variableMap,

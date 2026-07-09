@@ -1,9 +1,9 @@
-import { startRealtimeListener } from "./firestoreService.js?v=20260709-1";
+import { startRealtimeListener } from "./firestoreService.js?v=20260709-2";
 import { demoRecords } from "../data/demoData.js?v=20260708-4";
 import { updateCharts } from "./charts.js?v=20260709-1";
-import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-1";
-import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-1";
-import { initBulkImport } from "./bulkImport.js?v=20260709-1";
+import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-2";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-2";
+import { initBulkImport } from "./bulkImport.js?v=20260709-2";
 import { clientConfig } from "./clientConfig.js";
 
 applyClientConfiguration();
@@ -311,8 +311,8 @@ function applyClientConfiguration() {
   setText("systemVersion", identity.version);
   setText("firebaseProject", identity.firebase.proyectoVisible);
   setText("alarmConfigPath", `${identity.firebase.coleccionConfiguracion}/${identity.firebase.documentoConfiguracion}`);
-  setText("recordsCollectionLabel", `Registros en ${identity.firebase.coleccionRegistros}`);
-  setText("resetRecordsCollection", identity.firebase.coleccionRegistros);
+  setText("recordsCollectionLabel", `Registros en ${identity.firebase.coleccionRegistros} (${clientConfig.activeClient})`);
+  setText("resetRecordsCollection", `${identity.firebase.coleccionRegistros} para ${clientConfig.activeClient}`);
 
   const periodFilter = document.getElementById("periodFilter");
   periodFilter.innerHTML = layout.periodos.map((period, index) =>

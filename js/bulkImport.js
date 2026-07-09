@@ -1,6 +1,6 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-1";
-import { insertImportedRecords } from "./firestoreService.js?v=20260709-1";
+import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-2";
+import { insertImportedRecords } from "./firestoreService.js?v=20260709-2";
 import { clientConfig } from "./clientConfig.js";
 
 const EXPECTED_COLUMNS = [
@@ -126,6 +126,7 @@ function buildRecord(row, config) {
   ), "Normal");
 
   return {
+    clienteId: clientConfig.activeClient,
     fecha: formatDate(date),
     hora: formatTime(date),
     turno: cleanText(row.turno),
