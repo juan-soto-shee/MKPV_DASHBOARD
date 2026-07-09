@@ -1,9 +1,8 @@
-import { startRealtimeListener } from "./firestoreService.js?v=20260709-3";
-import { demoRecords } from "../data/demoData.js?v=20260708-4";
+import { inspectLegacyRecords, startRealtimeListener } from "./firestoreService.js?v=20260709-6";
 import { updateCharts } from "./charts.js?v=20260709-1";
-import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-3";
-import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-3";
-import { initBulkImport } from "./bulkImport.js?v=20260709-3";
+import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-6";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-6";
+import { initBulkImport } from "./bulkImport.js?v=20260709-6";
 import { clientConfig } from "./clientConfig.js";
 
 applyClientConfiguration();
@@ -13,7 +12,8 @@ const state = {
   sourceLabel: "Inicializando",
   selectedArea: PLANT_AREA,
   selectedPeriodHours: clientConfig.layout.periodos[0]?.horas || 24,
-  connected: false
+  connected: false,
+  hasLegacyRecords: false
 };
 
 const elements = {
@@ -34,16 +34,21 @@ initAlarmAdmin();
 initBulkImport();
 onAlarmConfigChange(() => render());
 
-startRealtimeListener((records) => {
-  const hasRecords = records.length > 0;
+inspectLegacyRecords().then((result) => {
+  state.hasLegacyRecords = result.hasLegacyRecords;
+  updateAdminStats({ hasLegacyRecords: result.hasLegacyRecords });
+});
 
-  state.records = normalizeRecords(hasRecords ? records : demoRecords);
-  state.sourceLabel = hasRecords ? "Firestore en tiempo real" : "Demo local: Firestore vacio";
+startRealtimeListener((records) => {
+  const normalizedRecords = normalizeRecords(records);
+  state.records = normalizedRecords;
+  state.sourceLabel = records.length ? "Tiempo real" : "Sin registros para el perfil activo";
   updateAdminStats({
     count: records.length,
-    lastRecord: records[0]?.timestampCreacion?.toDate?.()?.toISOString?.() || records[0]?.timestampCreacion || null,
+    lastRecord: normalizedRecords[0]?.timestampCreacion || null,
     lastSync: new Date().toISOString(),
-    connected: state.connected
+    connected: state.connected,
+    hasLegacyRecords: state.hasLegacyRecords
   });
 
   render();
@@ -313,7 +318,7 @@ function applyClientConfiguration() {
   setText("systemVersion", identity.version);
   setText("firebaseProject", identity.firebase.proyectoVisible);
   setText("alarmConfigPath", `${identity.firebase.coleccionConfiguracion}/${identity.firebase.documentoConfiguracion}`);
-  setText("recordsCollectionLabel", `Registros en ${identity.firebase.coleccionRegistros} (${clientConfig.activeClient})`);
+  setText("recordsCollectionLabel", `Registros asociados (${clientConfig.activeClient})`);
   setText("resetRecordsCollection", `${identity.firebase.coleccionRegistros} para ${clientConfig.activeClient}`);
   renderActiveProfile(profile);
 

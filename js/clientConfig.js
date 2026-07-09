@@ -12,6 +12,8 @@ async function loadClientConfig() {
   if (!activeClient || !/^[a-z0-9_-]+$/i.test(activeClient)) {
     throw new Error("config/activeClient.json no contiene un cliente válido");
   }
+  console.info("Cliente activo:");
+  console.info(activeClient);
 
   const base = `clientes/${activeClient}`;
   const [identity, variables, alarms, equipment, layout] = await Promise.all([

@@ -14,12 +14,12 @@ import { clientConfig } from "./clientConfig.js";
 
 const RECORDS_COLLECTION = clientConfig.identity.firebase.coleccionRegistros;
 const CLIENTE_ACTIVO = clientConfig.activeClient;
+const LEGACY_SCAN_LIMIT = 1000;
 
 export function startRealtimeListener(callback, onConnectionChange = () => {}) {
   const recordsQuery = query(
     collection(db, RECORDS_COLLECTION),
-    where("clienteId", "==", CLIENTE_ACTIVO),
-    orderBy("timestampCreacion", "desc")
+    where("clienteId", "==", CLIENTE_ACTIVO)
   );
 
   return onSnapshot(recordsQuery, (snapshot) => {
@@ -28,13 +28,41 @@ export function startRealtimeListener(callback, onConnectionChange = () => {}) {
       ...doc.data()
     }));
 
+    console.info("Consulta utilizada:", `${RECORDS_COLLECTION} where clienteId == ${CLIENTE_ACTIVO}`);
+    console.info("Cantidad de documentos encontrados:", snapshot.size);
     callback(records);
     onConnectionChange(true);
   }, (error) => {
-    console.warn("Firestore no disponible:", error.message);
+    console.warn("Error de comunicacion:", error.message);
     onConnectionChange(false);
     callback([]);
   });
+}
+
+export async function inspectLegacyRecords() {
+  try {
+    const snapshot = await getDocs(query(
+      collection(db, RECORDS_COLLECTION),
+      limit(LEGACY_SCAN_LIMIT)
+    ));
+    const legacyCount = snapshot.docs.filter((record) => !Object.hasOwn(record.data(), "clienteId")).length;
+    if (legacyCount) {
+      console.info("Los registros fueron creados antes de implementar clienteId.");
+    }
+    return {
+      checked: snapshot.size,
+      legacyCount,
+      hasLegacyRecords: legacyCount > 0
+    };
+  } catch (error) {
+    console.warn("No se pudo verificar registros historicos sin clienteId:", error.message);
+    return {
+      checked: 0,
+      legacyCount: 0,
+      hasLegacyRecords: false,
+      error
+    };
+  }
 }
 
 // Borra exclusivamente documentos del cliente activo, en lotes bajo el limite de Firestore.
@@ -125,8 +153,13 @@ export async function deleteDemoRecords(onProgress = () => {}) {
 }
 
 function withActiveClient(record) {
-  return {
+  const recordWithClient = {
     ...record,
     clienteId: CLIENTE_ACTIVO
   };
+  if (!withActiveClient.loggedExample) {
+    console.info("Ejemplo de registro enviado:", recordWithClient);
+    withActiveClient.loggedExample = true;
+  }
+  return recordWithClient;
 }

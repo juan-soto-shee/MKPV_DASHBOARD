@@ -1,6 +1,6 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-2";
-import { insertImportedRecords } from "./firestoreService.js?v=20260709-2";
+import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-6";
+import { insertImportedRecords } from "./firestoreService.js?v=20260709-6";
 import { clientConfig } from "./clientConfig.js";
 
 const EXPECTED_COLUMNS = [
@@ -67,7 +67,7 @@ async function importFile(elements) {
     });
 
     if (validRecords.length) {
-      updateProgress(elements, 40, "Subiendo registros a Firestore...");
+      updateProgress(elements, 40, "Subiendo registros al sistema...");
       await insertImportedRecords(validRecords, (inserted, total) => {
         const percent = 40 + Math.round((inserted / total) * 60);
         updateProgress(elements, percent, `Subiendo ${inserted} de ${total} registros correctos...`);

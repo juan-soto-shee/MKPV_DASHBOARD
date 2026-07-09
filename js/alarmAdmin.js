@@ -4,7 +4,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
-import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-3";
+import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-6";
 import { clientConfig } from "./clientConfig.js";
 
 const ADMIN_PASSWORD = "Met2026!";
@@ -19,7 +19,7 @@ const editableFields = ["bajoCritico", "bajoAlerta", "altoAlerta", "altoCritico"
 
 let configState = {};
 let configListeners = [];
-let adminStats = { count: 0, lastRecord: null, lastSync: null, connected: false };
+let adminStats = { count: 0, lastRecord: null, lastSync: null, connected: false, hasLegacyRecords: false };
 
 export function initAlarmAdmin() {
   const elements = getElements();
@@ -183,7 +183,7 @@ async function loadAlarmConfig(elements) {
     console.warn("No se pudo cargar la configuracion:", error.message);
     configState = buildDefaultConfig();
     renderAlarmRows(elements);
-    elements.alarmAdminMessage.textContent = "No se pudo leer Firestore. Se muestran valores iniciales.";
+    elements.alarmAdminMessage.textContent = "No se pudo leer la configuracion remota. Se muestran valores iniciales.";
   } finally {
     elements.saveAlarmConfigButton.disabled = false;
   }
@@ -424,6 +424,7 @@ function renderAdminStats() {
   const adminLastSync = document.getElementById("adminLastSync");
   const systemLastSync = document.getElementById("systemLastSync");
   const systemConnection = document.getElementById("systemFirebaseStatus");
+  const legacyMessage = document.getElementById("legacyRecordsMessage");
   const formattedLast = adminStats.lastRecord
     ? new Date(adminStats.lastRecord).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })
     : "--";
@@ -433,9 +434,22 @@ function renderAdminStats() {
   [count, systemCount].forEach((element) => { if (element) element.textContent = String(adminStats.count); });
   [last, systemLast].forEach((element) => { if (element) element.textContent = formattedLast; });
   [adminLastSync, systemLastSync].forEach((element) => { if (element) element.textContent = formattedSync; });
+  const systemStatus = getSystemStatus();
   [connection, systemConnection].forEach((element) => {
-    if (element) element.textContent = adminStats.connected ? "Conectado" : "Sin conexion";
+    if (element) element.textContent = systemStatus;
   });
+  if (legacyMessage) {
+    legacyMessage.textContent = adminStats.hasLegacyRecords
+      ? "Existen registros históricos sin asociar al perfil activo."
+      : "";
+    legacyMessage.classList.toggle("is-hidden", !adminStats.hasLegacyRecords);
+  }
+}
+
+function getSystemStatus() {
+  if (!adminStats.connected) return "🔴 Error de comunicación";
+  if (!adminStats.count) return "🟡 Sin registros para el perfil activo";
+  return "🟢 Conectado";
 }
 
 function escapeHtml(value) {

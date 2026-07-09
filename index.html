@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/style.css?v=20260708-12">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260709-2"></script>
+    <script type="module" src="js/app.js?v=20260709-6"></script>
   </head>
   <body>
     <div class="shell">
@@ -62,13 +62,14 @@
           <section class="admin-subsection">
             <h3>INFORMACI&Oacute;N DEL SISTEMA</h3>
             <dl class="system-facts">
-              <div><dt>Proyecto Firebase</dt><dd id="firebaseProject"></dd></div>
+              <div><dt>Proyecto del sistema</dt><dd id="firebaseProject"></dd></div>
               <div><dt>Cantidad de registros asociados al cliente activo</dt><dd id="systemRecordCount">0</dd></div>
               <div><dt>&Uacute;ltimo registro recibido</dt><dd id="systemLastRecord">--</dd></div>
               <div><dt>&Uacute;ltima sincronizaci&oacute;n</dt><dd id="systemLastSync">--</dd></div>
               <div><dt>Versi&oacute;n PlantView</dt><dd id="systemVersion"></dd></div>
-              <div><dt>Estado Firebase</dt><dd id="systemFirebaseStatus">--</dd></div>
+              <div><dt>Estado del sistema</dt><dd id="systemFirebaseStatus">--</dd></div>
             </dl>
+            <p id="legacyRecordsMessage" class="admin-message is-hidden" role="status"></p>
           </section>
           <div class="admin-subsection">
           <h3>CONFIGURACI&Oacute;N DE ALARMAS</h3>
@@ -102,7 +103,7 @@
                 <div><dt id="recordsCollectionLabel"></dt><dd id="adminRecordCount">0</dd></div>
                 <div><dt>&Uacute;ltimo registro recibido</dt><dd id="adminLastRecord">--</dd></div>
                 <div><dt>&Uacute;ltima sincronizaci&oacute;n</dt><dd id="adminLastSync">--</dd></div>
-                <div><dt>Estado Firebase</dt><dd id="adminFirebaseStatus">--</dd></div>
+                <div><dt>Estado del sistema</dt><dd id="adminFirebaseStatus">--</dd></div>
               </dl>
               <button id="resetOperationDataButton" class="danger-action" type="button">REINICIAR DATOS DE OPERACI&Oacute;N</button>
               <p id="resetDataMessage" class="admin-message" role="status"></p>
