@@ -1,6 +1,6 @@
 import { startRealtimeListener } from "./firestoreService.js?v=20260708-4";
 import { demoRecords } from "../data/demoData.js?v=20260708-4";
-import { updateCharts } from "./charts.js?v=20260708-10";
+import { updateCharts } from "./charts.js?v=20260708-11";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260708-5";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260708-4";
 import { initBulkImport } from "./bulkImport.js?v=20260708-1";

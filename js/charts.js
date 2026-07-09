@@ -309,23 +309,27 @@ function getPointAlarm(point, definition, config) {
   const record = point?.record || {};
   const alarms = Array.isArray(record.alarmasActivas) ? record.alarmasActivas : [];
   const matchingAlarms = alarms.filter((alarm) => alarmMatchesDefinition(alarm, definition));
-  const relevantAlarms = matchingAlarms.length ? matchingAlarms : (alarms.length === 1 ? alarms : []);
 
-  if (relevantAlarms.length) {
-    const alarm = [...relevantAlarms].sort((a, b) =>
+  if (matchingAlarms.length) {
+    const alarm = [...matchingAlarms].sort((a, b) =>
       stateRank(b.severidad || b.estado) - stateRank(a.severidad || a.estado)
     )[0];
     const state = normalizeAlarmState(alarm.severidad || alarm.estado || record.estado);
-    return buildAlarmState(state, alarmCause(alarm) || thresholdCause(point.value, config, state));
-  }
-
-  const recordState = normalizeAlarmState(record.estado);
-  if (recordState !== "normal") {
-    return buildAlarmState(recordState, thresholdCause(point.value, config, recordState));
+    return buildAlarmState(
+      state,
+      alarmCause(alarm) || thresholdCause(point.value, config, state),
+      point.value,
+      config
+    );
   }
 
   const thresholdState = thresholdAlarmState(point.value, config);
-  return buildAlarmState(thresholdState, thresholdCause(point.value, config, thresholdState));
+  return buildAlarmState(
+    thresholdState,
+    thresholdCause(point.value, config, thresholdState),
+    point.value,
+    config
+  );
 }
 
 function alarmMatchesDefinition(alarm, definition) {
@@ -349,8 +353,8 @@ function normalizeText(value) {
 
 function normalizeAlarmState(value) {
   const state = normalizeText(value);
-  if (state.includes("critic") || state.includes("alert") || state.includes("alarma")) return "alarm";
-  if (state.includes("advert") || state.includes("prevent") || state.includes("warning")) return "warning";
+  if (state.includes("critic") || state.includes("alarma")) return "alarm";
+  if (state.includes("alert") || state.includes("advert") || state.includes("prevent") || state.includes("warning")) return "warning";
   return "normal";
 }
 
@@ -358,14 +362,16 @@ function stateRank(value) {
   return { normal: 0, warning: 1, alarm: 2 }[normalizeAlarmState(value)];
 }
 
-function buildAlarmState(state, cause = "") {
+function buildAlarmState(state, cause = "", value = null, config = null) {
   const normalized = state || "normal";
   return {
     state: normalized,
     color: stateColors[normalized],
     icon: normalized === "alarm" ? "🔴" : normalized === "warning" ? "🟡" : "🟢",
     label: normalized === "alarm" ? "Alerta" : normalized === "warning" ? "Advertencia" : "Estable",
-    cause
+    cause,
+    value,
+    config
   };
 }
 
@@ -382,10 +388,11 @@ function thresholdAlarmState(value, config) {
 
 function thresholdCause(value, config, state) {
   if (!config || state === "normal") return "";
-  if (value <= Number(config.bajoCritico)) return "Bajo Límite Bajo";
-  if (value < Number(config.bajoAlerta)) return "Límite Preventivo Bajo";
-  if (value >= Number(config.altoCritico)) return "Sobre Límite Alto";
-  if (value > Number(config.altoAlerta)) return "Límite Preventivo Alto";
+  const unit = config.unidad ? ` ${config.unidad}` : "";
+  if (value <= Number(config.bajoCritico)) return `Bajo crítico ≤ ${formatNumber(config.bajoCritico, 2)}${unit}`;
+  if (value < Number(config.bajoAlerta)) return `Bajo alerta < ${formatNumber(config.bajoAlerta, 2)}${unit}`;
+  if (value >= Number(config.altoCritico)) return `Alto crítico ≥ ${formatNumber(config.altoCritico, 2)}${unit}`;
+  if (value > Number(config.altoAlerta)) return `Alto alerta > ${formatNumber(config.altoAlerta, 2)}${unit}`;
   return "";
 }
 
@@ -431,11 +438,18 @@ function renderAlarmPresentation(definition, series, alarmConfig) {
 
   const analysis = document.getElementById(definition.analysisId);
   if (!analysis) return;
+  const describeAlarm = (currentAlarm) => {
+    const valueText = Number.isFinite(Number(currentAlarm.value))
+      ? `${formatNumber(currentAlarm.value, definition.decimals)} ${definition.unit}`
+      : "";
+    const detail = currentAlarm.cause || currentAlarm.label;
+    return `${currentAlarm.icon} ${[valueText, detail].filter(Boolean).join(" · ")}`;
+  };
   analysis.textContent = summaries.length > 1
     ? summaries.map(({ groupName, alarm: groupAlarm }) =>
-        `${shortAreaName(groupName)} ${groupAlarm.icon} ${groupAlarm.cause || groupAlarm.label}`
+        `${shortAreaName(groupName)} ${describeAlarm(groupAlarm)}`
       ).join(" · ")
-    : `${alarm.icon} ${alarm.label}${alarm.cause ? ` · ${alarm.cause}` : ""}`;
+    : describeAlarm(alarm);
   analysis.className = `trend-analysis alarm-status ${alarm.state}`;
 }
 
