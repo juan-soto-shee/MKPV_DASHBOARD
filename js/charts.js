@@ -123,6 +123,7 @@ function buildSplitSeries(records, field) {
 
 function upsertLineChart(definition, series, alarmConfig) {
   const pointStates = series.map((point) => getPointAlarm(point, definition, alarmConfig));
+  const pointRadii = buildMarkerRadii(pointStates);
   const thresholdDatasets = buildThresholdDatasets(series.length, alarmConfig);
   const data = {
     labels: series.map((point) => point.label),
@@ -134,10 +135,15 @@ function upsertLineChart(definition, series, alarmConfig) {
       fill: true,
       tension: 0.32,
       borderWidth: 2,
-      pointRadius: 2.5,
+      pointRadius: pointRadii,
       pointHoverRadius: 5,
-      pointBackgroundColor: pointStates.map((state) => state.color),
-      pointBorderColor: pointStates.map((state) => state.color),
+      pointHitRadius: 8,
+      pointBackgroundColor: pointStates.map((state, index) =>
+        pointRadii[index] ? state.color : "transparent"
+      ),
+      pointBorderColor: pointStates.map((state, index) =>
+        pointRadii[index] ? state.color : "transparent"
+      ),
       segment: {
         borderColor: (context) => segmentColor(context, pointStates, definition.color)
       },
@@ -158,28 +164,33 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
   const data = {
     datasets: seriesGroups
       .filter((group) => group.points.length)
-      .map((group) => ({
-          alarmStates: group.points.map((point) => getPointAlarm(point, definition, alarmConfig)),
+      .map((group) => {
+        const alarmStates = group.points.map((point) => getPointAlarm(point, definition, alarmConfig));
+        const pointRadii = buildMarkerRadii(alarmStates);
+        return {
+          alarmStates,
           label: group.label,
           data: group.points.map((point) => ({ x: point.timestamp, y: point.value })),
-          borderColor: lineColor(group.points.map((point) => getPointAlarm(point, definition, alarmConfig)), group.color),
+          borderColor: lineColor(alarmStates, group.color),
           backgroundColor: transparentize(group.color),
           fill: false,
           tension: 0.32,
           borderWidth: 2,
-          pointRadius: 2.5,
-          pointBackgroundColor: group.points.map((point) => getPointAlarm(point, definition, alarmConfig).color),
-          pointBorderColor: group.points.map((point) => getPointAlarm(point, definition, alarmConfig).color),
+          pointRadius: pointRadii,
+          pointBackgroundColor: alarmStates.map((state, index) =>
+            pointRadii[index] ? state.color : "transparent"
+          ),
+          pointBorderColor: alarmStates.map((state, index) =>
+            pointRadii[index] ? state.color : "transparent"
+          ),
           segment: {
-            borderColor: (context) => segmentColor(
-              context,
-              group.points.map((point) => getPointAlarm(point, definition, alarmConfig)),
-              group.color
-            )
+            borderColor: (context) => segmentColor(context, alarmStates, group.color)
           },
           pointHoverRadius: 5,
+          pointHitRadius: 8,
           pointData: group.points
-        }))
+        };
+      })
       .concat(buildTimeThresholdDatasets(timeRange, alarmConfig))
   };
 
@@ -406,6 +417,18 @@ function lineColor(states, fallback) {
 function segmentColor(context, states, fallback) {
   const adjacent = [states[context.p0DataIndex], states[context.p1DataIndex]].filter(Boolean);
   return lineColor(adjacent, fallback);
+}
+
+function buildMarkerRadii(states) {
+  return states.map((state, index) => {
+    const previousState = states[index - 1]?.state;
+    const isLast = index === states.length - 1;
+    const startsAlarm = state.state !== "normal" && state.state !== previousState;
+
+    if (startsAlarm) return state.state === "alarm" ? 4 : 3.5;
+    if (isLast) return state.state === "normal" ? 2.5 : 3.5;
+    return 0;
+  });
 }
 
 function isMobileChartView() {
