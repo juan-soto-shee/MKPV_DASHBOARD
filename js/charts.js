@@ -195,7 +195,7 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
-      mode: "index",
+      mode: "nearest",
       intersect: false
     },
     events: mobile ? [] : ["mousemove", "mouseout", "click", "touchstart", "touchmove"],
@@ -211,23 +211,20 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
       },
       tooltip: {
         enabled: !mobile,
+        position: "nearest",
         filter: (context) => !context.dataset.isThreshold,
         callbacks: {
+          title: () => "",
           label: (context) => {
             if (context.parsed.y === null) return null;
-            const prefix = context.dataset.label ? `${context.dataset.label}: ` : "";
-            return `${prefix}${formatTooltipNumber(context.parsed.y)} ${unit}`;
+            const seriesName = showLegend ? `${context.dataset.label} — ` : "";
+            return `${seriesName}${definition.label}: ${formatTooltipNumber(context.parsed.y)} ${unit}`;
           },
           afterLabel: (context) => {
             const point = context.dataset.pointData?.[context.dataIndex];
             if (!point?.record) return "";
-            const alarm = getPointAlarm(point, definition, alarmConfig);
-            return [
-              `Hora: ${point.record.hora || formatLabel(point.record.timestampCreacion)}`,
-              `Subarea: ${point.record.subarea || "--"}`,
-              `Estado: ${alarm.label}`,
-              alarm.cause ? `Limite superado: ${alarm.cause}` : ""
-            ].filter(Boolean);
+            const time = point.record.hora || formatTime(point.record.timestampCreacion);
+            return `${time} · ${point.record.subarea || "--"}`;
           }
         }
       }
@@ -410,21 +407,42 @@ function isMobileChartView() {
 }
 
 function renderAlarmPresentation(definition, series, alarmConfig) {
-  const latest = series.reduce((result, point) =>
-    !result || new Date(point.record?.timestampCreacion) > new Date(result.record?.timestampCreacion)
-      ? point
-      : result
-  , null);
-  const alarm = latest ? getPointAlarm(latest, definition, alarmConfig) : buildAlarmState("normal");
+  const groups = new Map();
+  series.forEach((point) => {
+    const groupName = definition.field === "acidezRefino"
+      ? point.record?.subarea || "Área"
+      : definition.label;
+    const current = groups.get(groupName);
+    if (!current || new Date(point.record?.timestampCreacion) > new Date(current.record?.timestampCreacion)) {
+      groups.set(groupName, point);
+    }
+  });
+
+  const summaries = [...groups.entries()].map(([groupName, point]) => ({
+    groupName,
+    alarm: getPointAlarm(point, definition, alarmConfig)
+  }));
+  const alarm = summaries.reduce((worst, summary) =>
+    stateRank(summary.alarm.state) > stateRank(worst.state) ? summary.alarm : worst
+  , buildAlarmState("normal"));
   const canvas = document.getElementById(definition.canvasId);
   const title = canvas?.closest(".panel")?.querySelector(".chart-heading h3");
   if (title) title.textContent = `${alarm.icon} ${definition.label}`;
 
-  if (!isMobileChartView()) return;
   const analysis = document.getElementById(definition.analysisId);
   if (!analysis) return;
-  analysis.textContent = `${alarm.icon} ${alarm.label}${alarm.cause ? ` (${alarm.cause})` : ""}`;
+  analysis.textContent = summaries.length > 1
+    ? summaries.map(({ groupName, alarm: groupAlarm }) =>
+        `${shortAreaName(groupName)} ${groupAlarm.icon} ${groupAlarm.cause || groupAlarm.label}`
+      ).join(" · ")
+    : `${alarm.icon} ${alarm.label}${alarm.cause ? ` · ${alarm.cause}` : ""}`;
   analysis.className = `trend-analysis alarm-status ${alarm.state}`;
+}
+
+function shortAreaName(value) {
+  return String(value || "")
+    .replace(/^Pila\s+/i, "P")
+    .replace(/^Piscina\s+/i, "");
 }
 
 function renderTrendAnalysis(definition, series) {
@@ -502,6 +520,13 @@ function formatLabel(value) {
   return date.toLocaleString("es-CL", {
     day: "2-digit",
     month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function formatTime(value) {
+  return new Date(value).toLocaleTimeString("es-CL", {
     hour: "2-digit",
     minute: "2-digit"
   });
