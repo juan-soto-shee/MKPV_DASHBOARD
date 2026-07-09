@@ -1,9 +1,10 @@
+import { clientConfig, PLANT_AREA } from "./clientConfig.js";
+
 let charts = {};
 
 const chartTextColor = "#d9f7ff";
 const gridColor = "rgba(127, 208, 226, 0.12)";
-const PLANT_AREA = "PLANTA";
-const pileAreas = ["Pila 1", "Pila 2", "Pila 3"];
+const pileAreas = clientConfig.equipment.filter((item) => item.tipo === "pila").map((item) => item.nombre);
 const pileColors = ["#4e9aaa", "#f59e0b", "#22c55e"];
 const stateColors = {
   normal: "#22c55e",
@@ -11,62 +12,20 @@ const stateColors = {
   alarm: "#ef4444"
 };
 
-const chartDefinitions = [
-  {
-    canvasId: "flowTrendChart",
-    analysisId: "flowTrendAnalysis",
-    field: "flujoPLS",
-    label: "Flujo PLS",
-    unit: "m3/h",
-    decimals: 0,
-    color: "#168aa0"
-  },
-  {
-    canvasId: "refinoFlowTrendChart",
-    analysisId: "refinoFlowTrendAnalysis",
-    field: "flujoRefino",
-    label: "Flujo Refino",
-    unit: "m3/h",
-    decimals: 0,
-    color: "#38bdf8"
-  },
-  {
-    canvasId: "acidTrendChart",
-    analysisId: "acidTrendAnalysis",
-    field: "acidezRefino",
-    label: "Acidez Refino",
-    unit: "g/L",
-    decimals: 2,
-    color: "#4e9aaa"
-  },
-  {
-    canvasId: "cuTrendChart",
-    analysisId: "cuTrendAnalysis",
-    field: "cuPls",
-    label: "Cu2+ PLS",
-    unit: "g/L",
-    decimals: 2,
-    color: "#22c55e"
-  },
-  {
-    canvasId: "plsLevelTrendChart",
-    analysisId: "plsLevelTrendAnalysis",
-    field: "nivelPiscinaPLS",
-    label: "Nivel Piscina PLS",
-    unit: "%",
-    decimals: 0,
-    color: "#06b6d4"
-  },
-  {
-    canvasId: "refinoLevelTrendChart",
-    analysisId: "refinoLevelTrendAnalysis",
-    field: "nivelPiscinaRefino",
-    label: "Nivel Piscina Refino",
-    unit: "%",
-    decimals: 0,
-    color: "#a78bfa"
-  }
-];
+const chartDefinitions = clientConfig.layout.variablesTendencia
+  .map((key) => clientConfig.variableMap[key])
+  .filter(Boolean)
+  .map((variable) => ({
+    canvasId: variable.canvasId,
+    analysisId: variable.analysisId,
+    field: variable.key,
+    label: variable.nombre,
+    unit: variable.unidad,
+    decimals: variable.decimales,
+    color: variable.color,
+    splitAtPlant: variable.seriePorEquipoEnPlanta,
+    perEquipment: variable.porEquipo
+  }));
 
 export function updateCharts(records, context = {}) {
   if (!window.Chart) {
@@ -77,12 +36,14 @@ export function updateCharts(records, context = {}) {
   const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
 
   chartDefinitions.forEach((definition) => {
-    const configKey = definition.field === "flujoPLS" && context.selectedArea !== PLANT_AREA
-      ? `flujoPLS${String(context.selectedArea || "").replace(/\s/g, "")}`
+    const configKey = definition.perEquipment && context.selectedArea !== PLANT_AREA
+      ? clientConfig.alarmVariables.find((item) =>
+          item.variable === definition.field && item.equipo === context.selectedArea
+        )?.key || definition.field
       : definition.field;
     const variableConfig = context.alarmConfig?.[configKey];
 
-    if (definition.field === "acidezRefino" && context.selectedArea === PLANT_AREA) {
+    if (definition.splitAtPlant && context.selectedArea === PLANT_AREA) {
       const plantAcidSeries = buildSplitSeries(context.sourceRecords || [], definition.field);
       upsertMultiLineChart(definition, plantAcidSeries, variableConfig);
       renderSplitTrendAnalysis(definition, plantAcidSeries);
@@ -347,15 +308,11 @@ function getPointAlarm(point, definition, config) {
 function alarmMatchesDefinition(alarm, definition) {
   const variable = normalizeText(alarm.variable || alarm.nombre || alarm.campo || alarm.variableId);
   if (!variable) return false;
-  const aliases = {
-    flujoPLS: ["flujopls", "flujoderiego", "flujopls"],
-    flujoRefino: ["flujorefino"],
-    acidezRefino: ["acidezrefino", "acidolibre", "acidez"],
-    cuPls: ["cu2pls", "cupls", "cobrepls"],
-    nivelPiscinaPLS: ["nivelpiscinapls", "nivelpls"],
-    nivelPiscinaRefino: ["nivelpiscinorefino", "nivelpiscinorefino", "nivelrefino"]
-  };
-  return (aliases[definition.field] || []).some((alias) => variable.includes(alias));
+  const configured = clientConfig.variableMap[definition.field];
+  const aliases = [configured?.key, configured?.nombre, ...(configured?.aliases || [])]
+    .filter(Boolean)
+    .map(normalizeText);
+  return aliases.some((alias) => variable.includes(alias));
 }
 
 function normalizeText(value) {
@@ -441,7 +398,7 @@ function renderAlarmPresentation(definition, series, alarmConfig) {
   const groups = new Map();
   const groupSeries = new Map();
   series.forEach((point) => {
-    const groupName = definition.field === "acidezRefino"
+    const groupName = definition.splitAtPlant
       ? point.record?.subarea || "Área"
       : definition.label;
     if (!groupSeries.has(groupName)) groupSeries.set(groupName, []);
@@ -522,9 +479,9 @@ function getCompactCondition(alarm) {
 }
 
 function shortAreaName(value) {
-  return String(value || "")
-    .replace(/^Pila\s+/i, "P")
-    .replace(/^Piscina\s+/i, "");
+  const equipment = clientConfig.equipmentMap[value];
+  if (equipment?.tipo === "pila") return String(value).replace(/\D+/g, (match) => match.trim() ? "P" : match);
+  return String(value || "");
 }
 
 function renderTrendAnalysis(definition, series) {

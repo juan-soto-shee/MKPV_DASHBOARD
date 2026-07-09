@@ -1,15 +1,18 @@
-import { startRealtimeListener } from "./firestoreService.js?v=20260708-4";
+import { startRealtimeListener } from "./firestoreService.js?v=20260709-1";
 import { demoRecords } from "../data/demoData.js?v=20260708-4";
-import { updateCharts } from "./charts.js?v=20260708-15";
-import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260708-6";
-import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260708-4";
-import { initBulkImport } from "./bulkImport.js?v=20260708-1";
+import { updateCharts } from "./charts.js?v=20260709-1";
+import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-1";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-1";
+import { initBulkImport } from "./bulkImport.js?v=20260709-1";
+import { clientConfig } from "./clientConfig.js";
+
+applyClientConfiguration();
 
 const state = {
   records: [],
   sourceLabel: "Inicializando",
   selectedArea: PLANT_AREA,
-  selectedPeriodHours: 24,
+  selectedPeriodHours: clientConfig.layout.periodos[0]?.horas || 24,
   connected: false
 };
 
@@ -23,9 +26,7 @@ const elements = {
   alarmsList: document.getElementById("alarmsList"),
   alarmCount: document.getElementById("alarmCount"),
   periodFilter: document.getElementById("periodFilter"),
-  countPila1: document.getElementById("countPila1"),
-  countPila2: document.getElementById("countPila2"),
-  countPila3: document.getElementById("countPila3")
+  mobileCounts: document.getElementById("mobileCounts")
 };
 
 bindControls();
@@ -77,8 +78,8 @@ function render() {
 
   elements.plantStatusLabel.textContent = plantState;
   elements.plantStatusDot.className = `status-dot ${normalizeStateClass(plantState)}`;
-  elements.lastUpdated.textContent = `Ultima actualizacion: ${latest ? formatDateTime(latest.timestampCreacion) : "--"}`;
-  elements.currentShift.textContent = `Turno actual: ${latest?.turno || "--"}`;
+  elements.lastUpdated.textContent = `${clientConfig.layout.textos.ultimaActualizacion}: ${latest ? formatDateTime(latest.timestampCreacion) : "--"}`;
+  elements.currentShift.textContent = `${clientConfig.layout.textos.turnoActual}: ${latest?.turno || "--"}`;
 
   renderProcessMap(elements.processMap, recentRecords, state.selectedArea, handleProcessSelection, alarmConfig);
   renderAlarms(selectedRecords);
@@ -155,6 +156,9 @@ function severityRank(value) {
 }
 
 function renderHistoryTable(records) {
+  const historyVariables = clientConfig.layout.variablesHistorial
+    .map((key) => clientConfig.variableMap[key])
+    .filter(Boolean);
   elements.historyTableBody.innerHTML = records.map((record) => {
     const stateClass = normalizeStateClass(record.estado);
 
@@ -164,12 +168,7 @@ function renderHistoryTable(records) {
         <td>${escapeHtml(record.hora || formatTime(record.timestampCreacion))}</td>
         <td>${escapeHtml(record.turno || "--")}</td>
         <td>${escapeHtml(record.subarea || "--")}</td>
-        <td>${formatNumber(record.flujoPLS, 0)} m3/h</td>
-        <td>${formatNumber(record.flujoRefino, 0)} m3/h</td>
-        <td>${formatNumber(record.acidezRefino, 2)} g/L</td>
-        <td>${formatNumber(record.cuPls, 2)} g/L</td>
-        <td>${formatNumber(record.nivelPiscinaRefino, 0)}%</td>
-        <td>${formatNumber(record.nivelPiscinaPLS, 0)}%</td>
+        ${historyVariables.map((variable) => `<td>${formatNumber(record[variable.key], variable.decimales)} ${escapeHtml(variable.unidad)}</td>`).join("")}
         <td><span class="state-pill ${stateClass}">${escapeHtml(record.estado)}</span></td>
       </tr>
     `;
@@ -177,9 +176,10 @@ function renderHistoryTable(records) {
 }
 
 function renderMobileSummary(records) {
-  elements.countPila1.textContent = countBySubarea(records, "Pila 1");
-  elements.countPila2.textContent = countBySubarea(records, "Pila 2");
-  elements.countPila3.textContent = countBySubarea(records, "Pila 3");
+  clientConfig.layout.equiposResumenMovil.forEach((area) => {
+    const counter = elements.mobileCounts.querySelector(`[data-area-count="${CSS.escape(area)}"]`);
+    if (counter) counter.textContent = countBySubarea(records, area);
+  });
 }
 
 function countBySubarea(records, subarea) {
@@ -216,9 +216,7 @@ function filterByPeriod(records, hours) {
 function updateMobilePeriodTitle() {
   const title = document.getElementById("mobilePeriodTitle");
   if (!title) return;
-  title.textContent = state.selectedPeriodHours === 24
-    ? "Últimas 24 horas"
-    : state.selectedPeriodHours === 168 ? "Últimos 7 días" : "Últimos 30 días";
+  title.textContent = clientConfig.layout.periodos.find((period) => period.horas === state.selectedPeriodHours)?.titulo || "";
 }
 
 function normalizeRecords(records) {
@@ -227,25 +225,25 @@ function normalizeRecords(records) {
       const timestampCreacion = normalizeTimestamp(record.timestampCreacion, record.fecha, record.hora);
       const subarea = normalizeSubarea(record.subarea || record.area);
 
-      return {
+      const normalizedRecord = {
         ...record,
         timestampCreacion,
         fecha: record.fecha || formatDate(timestampCreacion),
         hora: record.hora || formatTime(timestampCreacion),
-        area: record.area || "Lixiviacion",
+        area: record.area || clientConfig.identity.proceso,
         subarea,
         operador: record.operador || "--",
         turno: record.turno || "--",
         estado: normalizeStateLabel(record.estado),
-        flujoPLS: numeric(record.flujoPLS ?? record.flujoRiego),
-        flujoRefino: numeric(record.flujoRefino),
-        acidezRefino: numeric(record.acidezRefino ?? record.acidoLibre),
-        cuPls: numeric(record.cuPls ?? record.cuPLS),
-        nivelPiscinaRefino: numeric(record.nivelPiscinaRefino),
-        nivelPiscinaPLS: numeric(record.nivelPiscinaPLS),
         observacion: record.observacion || "",
         alarmasActivas: Array.isArray(record.alarmasActivas) ? record.alarmasActivas : []
       };
+      clientConfig.variables.forEach((variable) => {
+        const sourceKeys = [variable.key, ...(variable.aliases || [])];
+        const sourceKey = sourceKeys.find((key) => Object.hasOwn(record, key));
+        normalizedRecord[variable.key] = numeric(sourceKey ? record[sourceKey] : null);
+      });
+      return normalizedRecord;
     })
     .sort((a, b) => new Date(b.timestampCreacion) - new Date(a.timestampCreacion));
 }
@@ -267,12 +265,12 @@ function normalizeSubarea(value) {
   const text = String(value || "").trim();
   const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-  if (normalized.includes("pila 1")) return "Pila 1";
-  if (normalized.includes("pila 2")) return "Pila 2";
-  if (normalized.includes("pila 3")) return "Pila 3";
-  if (normalized.includes("refino")) return "Piscina Refino";
-  if (normalized.includes("pls")) return "Piscina PLS";
-  if (normalized.includes("riego") || normalized.includes("apilamiento")) return "Pila 1";
+  const equipment = clientConfig.equipment.find((item) =>
+    [item.nombre, ...(item.aliases || [])].some((alias) => normalized.includes(
+      alias.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    ))
+  );
+  if (equipment) return equipment.nombre;
 
   return text || "Sin subarea";
 }
@@ -286,19 +284,84 @@ function normalizeStateLabel(value) {
 }
 
 function getDominantVariable(record) {
-  const values = [
-    ["Flujo PLS", record.flujoPLS, "m3/h"],
-    ["Flujo Refino", record.flujoRefino, "m3/h"],
-    ["Acidez Refino", record.acidezRefino, "g/L"],
-    ["Cu2+ PLS", record.cuPls, "g/L"],
-    ["Nivel Refino", record.nivelPiscinaRefino, "%"],
-    ["Nivel PLS", record.nivelPiscinaPLS, "%"]
-  ].filter(([, value]) => Number.isFinite(value));
+  const values = clientConfig.variables
+    .map((variable) => [variable.nombre, record[variable.key], variable])
+    .filter(([, value]) => Number.isFinite(value));
 
   if (!values.length) return "Comentario operacional";
 
-  const [label, value, unit] = values[0];
-  return `${label}: ${formatNumber(value, unit === "%" || unit === "m3/h" ? 0 : 2)} ${unit}`;
+  const [label, value, variable] = values[0];
+  return `${label}: ${formatNumber(value, variable.decimales)} ${variable.unidad}`;
+}
+
+function applyClientConfiguration() {
+  const { identity, layout } = clientConfig;
+  const text = layout.textos;
+  document.title = identity.tituloPagina;
+  setText("brandName", identity.marca);
+  setText("clientTitle", identity.titulo);
+  setText("generalStatusCaption", text.estadoGeneral);
+  setText("processEyebrow", text.procesoEyebrow);
+  setText("processTitle", text.vistaOperacional);
+  setText("trendsEyebrow", text.tendenciasEyebrow);
+  setText("trendsTitle", text.tendencias);
+  setText("alarmsTitle", text.alarmas);
+  setText("historyEyebrow", text.historialEyebrow);
+  setText("historyTitle", text.historial);
+  setText("systemVersion", identity.version);
+  setText("firebaseProject", identity.firebase.proyectoVisible);
+  setText("alarmConfigPath", `${identity.firebase.coleccionConfiguracion}/${identity.firebase.documentoConfiguracion}`);
+  setText("recordsCollectionLabel", `Registros en ${identity.firebase.coleccionRegistros}`);
+  setText("resetRecordsCollection", identity.firebase.coleccionRegistros);
+
+  const periodFilter = document.getElementById("periodFilter");
+  periodFilter.innerHTML = layout.periodos.map((period, index) =>
+    `<button type="button" class="${index === 0 ? "is-active" : ""}" data-period="${period.horas}">${escapeHtml(period.etiqueta)}</button>`
+  ).join("");
+
+  const chartsGrid = document.getElementById("chartsGrid");
+  let currentGroup = null;
+  chartsGrid.innerHTML = layout.variablesTendencia.map((key) => clientConfig.variableMap[key])
+    .filter(Boolean)
+    .map((variable) => {
+      const group = variable.grupo !== currentGroup
+        ? `<div class="trend-group-title">${escapeHtml(variable.grupo)}</div>`
+        : "";
+      currentGroup = variable.grupo;
+      return `${group}<article class="panel">
+        <div class="chart-heading"><h3>${escapeHtml(variable.nombre)}</h3><span>${escapeHtml(variable.unidad)}</span></div>
+        <div class="chart-box"><canvas id="${escapeHtml(variable.canvasId)}"></canvas></div>
+        <p id="${escapeHtml(variable.analysisId)}" class="trend-analysis">${escapeHtml(text.sinDatos)}</p>
+      </article>`;
+    }).join("");
+
+  document.getElementById("mobileCounts").innerHTML = layout.equiposResumenMovil.map((area) =>
+    `<span>${escapeHtml(area)} <strong data-area-count="${escapeHtml(area)}">0</strong></span>`
+  ).join("");
+
+  const historyVariables = layout.variablesHistorial.map((key) => clientConfig.variableMap[key]).filter(Boolean);
+  document.getElementById("historyTableHead").innerHTML = [
+    "Fecha", "Hora", "Turno", "Subárea",
+    ...historyVariables.map((variable) => variable.nombreCorto || variable.nombre),
+    "Estado"
+  ].map((label) => `<th>${escapeHtml(label)}</th>`).join("");
+
+  const sectionSelectors = {
+    mapaProceso: ".process-section",
+    tendencias: ".charts-section",
+    resumenMovil: ".mobile-24h",
+    alarmas: ".alarms-section",
+    historial: ".history-section",
+    administracion: "#adminAccessButton"
+  };
+  Object.entries(sectionSelectors).forEach(([key, selector]) => {
+    document.querySelector(selector)?.classList.toggle("is-hidden", layout.secciones[key] === false);
+  });
+}
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
 }
 
 function numeric(value) {

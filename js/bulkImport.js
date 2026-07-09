@@ -1,22 +1,18 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { getAlarmConfig } from "./alarmAdmin.js?v=20260708-4";
-import { insertImportedRecords } from "./firestoreService.js?v=20260708-5";
+import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-1";
+import { insertImportedRecords } from "./firestoreService.js?v=20260709-1";
+import { clientConfig } from "./clientConfig.js";
 
 const EXPECTED_COLUMNS = [
-  "fecha", "hora", "turno", "area", "subarea", "operador", "flujoPLS",
-  "flujoRefino", "acidezRefino", "cuPls", "nivelPiscinaRefino",
-  "nivelPiscinaPLS", "observacion"
+  "fecha", "hora", "turno", "area", "subarea", "operador",
+  ...clientConfig.variables.map((variable) => variable.key), "observacion"
 ];
 const REQUIRED_COLUMNS = ["fecha", "hora", "subarea"];
-const NUMERIC_COLUMNS = [
-  "flujoPLS", "flujoRefino", "acidezRefino", "cuPls",
-  "nivelPiscinaRefino", "nivelPiscinaPLS"
-];
-const VALID_SUBAREAS = new Map([
-  ["pila 1", "Pila 1"],
-  ["pila 2", "Pila 2"],
-  ["pila 3", "Pila 3"]
-]);
+const NUMERIC_COLUMNS = clientConfig.variables.map((variable) => variable.key);
+const VALID_SUBAREAS = new Map(clientConfig.equipment
+  .filter((item) => item.tipo === "pila")
+  .flatMap((item) => [item.nombre, ...(item.aliases || [])]
+    .map((alias) => [normalizeText(alias), item.nombre])));
 const SEVERITY_RANK = { Normal: 0, Alerta: 1, "Crítico": 2 };
 
 export function initBulkImport() {
@@ -117,7 +113,7 @@ function normalizeRow(sourceRow) {
 function buildRecord(row, config) {
   const date = parseDateTime(row.fecha, row.hora);
   const subarea = VALID_SUBAREAS.get(normalizeText(row.subarea));
-  if (!subarea) throw new Error("Subárea inválida. Use Pila 1, Pila 2 o Pila 3.");
+  if (!subarea) throw new Error(`Subárea inválida. Use: ${[...new Set(VALID_SUBAREAS.values())].join(", ")}.`);
 
   const numericValues = {};
   NUMERIC_COLUMNS.forEach((column) => {
@@ -133,7 +129,7 @@ function buildRecord(row, config) {
     fecha: formatDate(date),
     hora: formatTime(date),
     turno: cleanText(row.turno),
-    area: cleanText(row.area) || "Lixiviación",
+    area: cleanText(row.area) || clientConfig.identity.proceso,
     subarea,
     operador: cleanText(row.operador),
     ...numericValues,
@@ -146,9 +142,9 @@ function buildRecord(row, config) {
 
 function buildAlarms(values, subarea, config, observation) {
   return NUMERIC_COLUMNS.flatMap((column) => {
-    const configKey = column === "flujoPLS"
-      ? `flujoPLS${subarea.replace(/\s/g, "")}`
-      : column;
+    const configKey = clientConfig.alarmVariables.find((item) =>
+      item.variable === column && (!item.equipo || item.equipo === subarea)
+    )?.key || column;
     const limits = config?.[configKey] || config?.[column];
     if (!limits) return [];
 

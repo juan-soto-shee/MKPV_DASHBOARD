@@ -4,96 +4,16 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
-import { deleteAllLeachRecords } from "./firestoreService.js";
+import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-1";
+import { clientConfig } from "./clientConfig.js";
 
 const ADMIN_PASSWORD = "Met2026!";
-const COLLECTION_NAME = "configuration";
-const LEGACY_COLLECTION_NAME = "alarm_config";
-const DOCUMENT_ID = "lixiviacion";
-
-const alarmVariables = [
-  {
-    key: "flujoPLSPila1",
-    nombre: "Flujo PLS Pila 1",
-    unidad: "m3/h",
-    bajoCritico: 550,
-    bajoAlerta: 650,
-    altoAlerta: 950,
-    altoCritico: 1050
-  },
-  {
-    key: "flujoPLSPila2",
-    nombre: "Flujo PLS Pila 2",
-    unidad: "m3/h",
-    bajoCritico: 550,
-    bajoAlerta: 650,
-    altoAlerta: 950,
-    altoCritico: 1050
-  },
-  {
-    key: "flujoPLSPila3",
-    nombre: "Flujo PLS Pila 3",
-    unidad: "m3/h",
-    bajoCritico: 550,
-    bajoAlerta: 650,
-    altoAlerta: 950,
-    altoCritico: 1050
-  },
-  {
-    key: "flujoPLS",
-    nombre: "Flujo PLS Total",
-    unidad: "m3/h",
-    bajoCritico: 550,
-    bajoAlerta: 650,
-    altoAlerta: 6000,
-    altoCritico: 6500
-  },
-  {
-    key: "flujoRefino",
-    nombre: "Flujo Refino",
-    unidad: "m3/h",
-    bajoCritico: 500,
-    bajoAlerta: 620,
-    altoAlerta: 900,
-    altoCritico: 1000
-  },
-  {
-    key: "acidezRefino",
-    nombre: "Acidez Refino",
-    unidad: "g/L",
-    bajoCritico: 3,
-    bajoAlerta: 5,
-    altoAlerta: 12,
-    altoCritico: 15
-  },
-  {
-    key: "cuPls",
-    nombre: "Cu2+ PLS",
-    unidad: "g/L",
-    bajoCritico: 0.4,
-    bajoAlerta: 0.7,
-    altoAlerta: 1.8,
-    altoCritico: 2.2
-  },
-  {
-    key: "nivelPiscinaRefino",
-    nombre: "Nivel Piscina Refino",
-    unidad: "%",
-    bajoCritico: 20,
-    bajoAlerta: 35,
-    altoAlerta: 82,
-    altoCritico: 92
-  },
-  {
-    key: "nivelPiscinaPLS",
-    nombre: "Nivel Piscina PLS",
-    unidad: "%",
-    bajoCritico: 20,
-    bajoAlerta: 35,
-    altoAlerta: 82,
-    altoCritico: 92
-  }
-];
+const {
+  coleccionConfiguracion: COLLECTION_NAME,
+  coleccionConfiguracionLegacy: LEGACY_COLLECTION_NAME,
+  documentoConfiguracion: DOCUMENT_ID
+} = clientConfig.identity.firebase;
+const alarmVariables = clientConfig.alarmVariables;
 
 const editableFields = ["bajoCritico", "bajoAlerta", "altoAlerta", "altoCritico"];
 
@@ -191,7 +111,7 @@ async function continueReset(elements) {
 
   elements.continueResetButton.disabled = true;
   elements.cancelResetButton.disabled = true;
-  elements.resetDialogMessage.textContent = "Eliminando documentos de leach_records...";
+  elements.resetDialogMessage.textContent = `Eliminando documentos de ${clientConfig.identity.firebase.coleccionRegistros}...`;
   try {
     await deleteAllLeachRecords((deleted) => {
       elements.resetDialogMessage.textContent = `${deleted} registros eliminados...`;
@@ -438,7 +358,7 @@ function mergeStoredConfig(storedConfig) {
   const defaults = buildDefaultConfig();
 
   alarmVariables.forEach((variable) => {
-    const legacyPileConfig = variable.key.startsWith("flujoPLSPila")
+    const legacyPileConfig = variable.equipo
       ? storedConfig?.flujoPLSPila
       : null;
 

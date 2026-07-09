@@ -1,5 +1,25 @@
 # MetKinetics PlantView
 
+## Configuración por cliente
+
+La aplicación carga el cliente indicado en `config/activeClient.json`. La
+configuración del demo actual vive en `config/clientes/demo_lixiviacion/`:
+
+- `identidad.json`: identidad, proceso y rutas lógicas de Firebase.
+- `variables.json`: variables, nombres, unidades, decimales, gráficos y reglas
+  de agregación.
+- `limitesAlarmas.json`: límites iniciales y asociación variable/equipo.
+- `equipos.json`: áreas, equipos, tipos y alias de entrada.
+- `layoutVisible.json`: secciones, periodos, textos y orden visible.
+
+Para incorporar otro cliente, copie esa carpeta, ajuste sus JSON y cambie
+únicamente el valor `client` de `config/activeClient.json`. No existe un
+configurador de cliente en la interfaz.
+
+Los límites guardados en Firestore continúan teniendo prioridad sobre los
+valores iniciales del JSON. Se conservan las colecciones y documentos actuales,
+incluida la lectura compatible de la configuración heredada.
+
 Demo web estática para visualizar datos operacionales de una planta de lixiviación usando Firebase Firestore en tiempo real.
 
 ## Ejecutar

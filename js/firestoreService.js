@@ -10,10 +10,13 @@ import {
   writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
+import { clientConfig } from "./clientConfig.js";
+
+const RECORDS_COLLECTION = clientConfig.identity.firebase.coleccionRegistros;
 
 export function startRealtimeListener(callback, onConnectionChange = () => {}) {
   const recordsQuery = query(
-    collection(db, "leach_records"),
+    collection(db, RECORDS_COLLECTION),
     orderBy("timestampCreacion", "desc")
   );
 
@@ -37,11 +40,11 @@ export async function deleteAllLeachRecords(onProgress = () => {}) {
   let deleted = 0;
 
   while (true) {
-    const snapshot = await getDocs(query(collection(db, "leach_records"), limit(450)));
+    const snapshot = await getDocs(query(collection(db, RECORDS_COLLECTION), limit(450)));
     if (snapshot.empty) break;
 
     const batch = writeBatch(db);
-    snapshot.docs.forEach((record) => batch.delete(doc(db, "leach_records", record.id)));
+    snapshot.docs.forEach((record) => batch.delete(doc(db, RECORDS_COLLECTION, record.id)));
     await batch.commit();
     deleted += snapshot.size;
     onProgress(deleted);
@@ -59,7 +62,7 @@ export async function insertDemoRecords(records, onProgress = () => {}) {
     const chunk = records.slice(start, start + 400);
 
     chunk.forEach((record) => {
-      const recordRef = doc(collection(db, "leach_records"));
+      const recordRef = doc(collection(db, RECORDS_COLLECTION));
       batch.set(recordRef, { ...record, isDemo: true });
     });
 
@@ -80,7 +83,7 @@ export async function insertImportedRecords(records, onProgress = () => {}) {
     const chunk = records.slice(start, start + 400);
 
     chunk.forEach((record) => {
-      batch.set(doc(collection(db, "leach_records")), record);
+      batch.set(doc(collection(db, RECORDS_COLLECTION)), record);
     });
 
     await batch.commit();
@@ -97,7 +100,7 @@ export async function deleteDemoRecords(onProgress = () => {}) {
 
   while (true) {
     const demoQuery = query(
-      collection(db, "leach_records"),
+      collection(db, RECORDS_COLLECTION),
       where("isDemo", "==", true),
       limit(400)
     );

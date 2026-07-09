@@ -1,10 +1,14 @@
-import { evaluateAlarmState } from "./alarmAdmin.js?v=20260708-4";
+import { evaluateAlarmState } from "./alarmAdmin.js?v=20260709-1";
+import { clientConfig, PLANT_AREA, getVariable } from "./clientConfig.js";
 
-export const PLANT_AREA = "PLANTA";
+export { PLANT_AREA };
 
-const processAreas = [PLANT_AREA, "Pila 1", "Pila 2", "Pila 3"];
-const monitoredAreas = [...processAreas, "Piscina PLS", "Piscina Refino"];
-const pileAreas = ["Pila 1", "Pila 2", "Pila 3"];
+const processAreas = clientConfig.layout.ordenEquiposMapa;
+const monitoredAreas = [PLANT_AREA, ...clientConfig.equipment.map((item) => item.nombre)];
+const pileAreas = clientConfig.equipment.filter((item) => item.tipo === "pila").map((item) => item.nombre);
+const text = clientConfig.layout.textos;
+const plantPrimaryVariable = clientConfig.variables.find((variable) => variable.porEquipo)
+  || clientConfig.variables[0];
 
 export function getWorstState(records, alarmConfig = null) {
   return records.reduce((worst, record) => {
@@ -19,43 +23,45 @@ export function buildPlantRecords(records) {
   const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
   const groups = groupRecordsByComparableTime(chronological);
   const latestPileRecords = new Map();
-  const latestLevels = {
-    nivelPiscinaRefino: null,
-    nivelPiscinaPLS: null
-  };
+  const latestValues = new Map();
   const plantRecords = [];
 
   groups.forEach((groupRecords) => {
     const representative = groupRecords[groupRecords.length - 1];
     const pileRecords = groupRecords.filter((record) => pileAreas.includes(record.subarea));
-    const refinoLevel = latestFiniteValue(groupRecords, "nivelPiscinaRefino");
-    const plsLevel = latestFiniteValue(groupRecords, "nivelPiscinaPLS");
 
     pileRecords.forEach((record) => {
       latestPileRecords.set(record.subarea, record);
     });
 
-    if (Number.isFinite(refinoLevel)) latestLevels.nivelPiscinaRefino = refinoLevel;
-    if (Number.isFinite(plsLevel)) latestLevels.nivelPiscinaPLS = plsLevel;
+    clientConfig.variables.forEach((variable) => {
+      const latest = latestFiniteValue(groupRecords, variable.key);
+      if (Number.isFinite(latest)) latestValues.set(variable.key, latest);
+    });
     if (!latestPileRecords.size) return;
 
     const activePileRecords = pileAreas
       .map((area) => latestPileRecords.get(area))
       .filter(Boolean);
 
+    const aggregatedValues = Object.fromEntries(clientConfig.variables.map((variable) => {
+      if (variable.agregacion === "suma") {
+        return [variable.key, sum(activePileRecords, variable.key)];
+      }
+      if (variable.agregacion === "promedioPonderado") {
+        return [variable.key, weightedAverage(activePileRecords, variable.key, variable.ponderador)];
+      }
+      return [variable.key, latestValues.get(variable.key) ?? null];
+    }));
+
     plantRecords.push({
       ...representative,
+      ...aggregatedValues,
       id: `plant-${getTimeGroupKey(representative)}`,
-      area: "Lixiviacion",
+      area: clientConfig.identity.proceso,
       subarea: PLANT_AREA,
       estado: getWorstState(groupRecords),
-      flujoPLS: sum(activePileRecords, "flujoPLS"),
-      flujoRefino: sum(activePileRecords, "flujoRefino"),
-      acidezRefino: latestFiniteValue(groupRecords, "acidezRefino"),
-      cuPls: weightedAverage(activePileRecords, "cuPls", "flujoPLS"),
-      nivelPiscinaRefino: latestLevels.nivelPiscinaRefino,
-      nivelPiscinaPLS: latestLevels.nivelPiscinaPLS,
-      observacion: "Estado consolidado de planta"
+      observacion: text.estadoConsolidado
     });
   });
 
@@ -110,22 +116,22 @@ function buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig) 
         return {
           name,
           state: "Sin datos",
-          metricLabel: "Produccion Total",
-          metricValue: "Sin datos en el periodo",
+          metricLabel: text.produccionTotal,
+          metricValue: text.sinDatos,
           alarmSummary: ""
         };
       }
       const plantState = alarmConfig && latestPlant
-        ? evaluateAlarmState("flujoPLS", latestPlant.flujoPLS, alarmConfig)
+        ? evaluateAlarmState(plantPrimaryVariable.key, latestPlant[plantPrimaryVariable.key], alarmConfig)
         : getWorstState([...latestBySubarea.values()], alarmConfig);
 
       return {
         name,
         state: plantState || "Normal",
-        metricLabel: "Produccion Total",
-        metricValue: Number.isFinite(latestPlant?.flujoPLS)
-          ? valueWithUnit(latestPlant.flujoPLS, "m3/h", 0)
-          : "Sin datos en el periodo",
+        metricLabel: text.produccionTotal,
+        metricValue: Number.isFinite(latestPlant?.[plantPrimaryVariable.key])
+          ? valueWithVariable(latestPlant[plantPrimaryVariable.key], plantPrimaryVariable.key)
+          : text.sinDatos,
         alarmSummary: summarizeAlarms([...latestBySubarea.values()].flatMap((record) => record.alarmasActivas || []))
       };
     }
@@ -135,8 +141,8 @@ function buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig) 
       return {
         name,
         state: "Sin datos",
-        metricLabel: "Flujo PLS",
-        metricValue: "Sin datos en el periodo",
+        metricLabel: getVariable(clientConfig.equipmentMap[name]?.variablePrincipal)?.nombre || text.sinDatos,
+        metricValue: text.sinDatos,
         alarmSummary: ""
       };
     }
@@ -147,7 +153,7 @@ function buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig) 
       name,
       state: getNodeState(name, liveRecord, alarmConfig),
       metricLabel: metric.label,
-      metricValue: metric.value || "Sin datos en el periodo",
+      metricValue: metric.value || text.sinDatos,
       alarmSummary: summarizeAlarms(liveRecord?.alarmasActivas || [])
     };
   });
@@ -156,12 +162,11 @@ function buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig) 
 function getRecordState(record, alarmConfig = null) {
   if (alarmConfig) {
     return Object.keys(alarmConfig).reduce((worst, variableKey) => {
-      if (variableKey === "flujoPLS") return worst;
-      if (variableKey.startsWith("flujoPLSPila")) {
-        const recordPileKey = `flujoPLS${String(record?.subarea || "").replace(/\s/g, "")}`;
-        if (variableKey !== recordPileKey) return worst;
-      }
-      const recordField = variableKey.startsWith("flujoPLSPila") ? "flujoPLS" : variableKey;
+      const alarmDefinition = clientConfig.alarmVariables.find((item) => item.key === variableKey);
+      if (!alarmDefinition) return worst;
+      if (alarmDefinition.equipo && alarmDefinition.equipo !== record?.subarea) return worst;
+      if (!alarmDefinition.equipo && alarmDefinition.variable === plantPrimaryVariable.key) return worst;
+      const recordField = alarmDefinition.variable;
       const current = evaluateAlarmState(variableKey, record?.[recordField], alarmConfig);
       return severityValue(current) > severityValue(worst) ? current : worst;
     }, "Normal");
@@ -174,9 +179,11 @@ function getRecordState(record, alarmConfig = null) {
 }
 
 function getNodeState(nodeName, record, alarmConfig) {
-  if (nodeName.startsWith("Pila") && alarmConfig) {
-    const configKey = `flujoPLS${nodeName.replace(/\s/g, "")}`;
-    return evaluateAlarmState(configKey, record?.flujoPLS, alarmConfig);
+  const equipment = clientConfig.equipmentMap[nodeName];
+  if (equipment?.tipo === "pila" && alarmConfig) {
+    const configKey = clientConfig.alarmVariables.find((item) => item.equipo === nodeName)?.key;
+    if (!configKey) return getRecordState(record, alarmConfig);
+    return evaluateAlarmState(configKey, record?.[equipment.variablePrincipal], alarmConfig);
   }
 
   return getRecordState(record, alarmConfig);
@@ -192,12 +199,10 @@ function summarizeAlarms(alarms) {
 }
 
 function getNodeMetricRecord(records, latestBySubarea, nodeName, selectedArea) {
-  if (nodeName === "Piscina PLS") {
-    return getLevelRecord(records, selectedArea, "nivelPiscinaPLS") || latestBySubarea.get(nodeName);
-  }
-
-  if (nodeName === "Piscina Refino") {
-    return getLevelRecord(records, selectedArea, "nivelPiscinaRefino") || latestBySubarea.get(nodeName);
+  const equipment = clientConfig.equipmentMap[nodeName];
+  const variable = getVariable(equipment?.variablePrincipal);
+  if (equipment?.tipo === "piscina" && variable) {
+    return getLevelRecord(records, selectedArea, variable.key) || latestBySubarea.get(nodeName);
   }
 
   return latestBySubarea.get(nodeName);
@@ -239,24 +244,12 @@ function findLatestRecordWithFiniteValue(records, field) {
 }
 
 function getMetric(area, record) {
-  if (area.startsWith("Pila")) {
+  const equipment = clientConfig.equipmentMap[area];
+  const variable = getVariable(equipment?.variablePrincipal);
+  if (variable) {
     return {
-      label: "Flujo PLS",
-      value: record ? valueWithUnit(record.flujoPLS, "m3/h", 0) : ""
-    };
-  }
-
-  if (area === "Piscina PLS") {
-    return {
-      label: "Nivel",
-      value: record ? valueWithUnit(record.nivelPiscinaPLS, "%", 0) : ""
-    };
-  }
-
-  if (area === "Piscina Refino") {
-    return {
-      label: "Nivel",
-      value: record ? valueWithUnit(record.nivelPiscinaRefino, "%", 0) : ""
+      label: variable.nombre,
+      value: record ? valueWithVariable(record[variable.key], variable.key) : ""
     };
   }
 
@@ -313,13 +306,15 @@ function weightedAverage(records, valueField, weightField) {
   return totals.weight > 0 ? totals.weighted / totals.weight : null;
 }
 
-function valueWithUnit(value, unit, decimals) {
+function valueWithVariable(value, variableKey) {
   if (!Number.isFinite(value)) return "Sin dato";
+  const variable = getVariable(variableKey);
+  if (!variable) return String(value);
 
-  return `${value.toLocaleString("es-CL", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
-  })} ${unit}`;
+  return `${value.toLocaleString(clientConfig.identity.locale, {
+    minimumFractionDigits: variable.decimales,
+    maximumFractionDigits: variable.decimales
+  })} ${variable.unidad}`;
 }
 
 function escapeHtml(value) {

@@ -1,0 +1,17 @@
+{
+  "id": "demo_lixiviacion",
+  "marca": "MetKinetics PlantView",
+  "titulo": "Centro de Monitoreo Operacional de Lixiviación",
+  "tituloPagina": "MetKinetics PlantView | Centro de Monitoreo Operacional",
+  "proceso": "Lixiviación",
+  "areaPrincipal": "PLANTA",
+  "locale": "es-CL",
+  "version": "PlantView v0.2",
+  "firebase": {
+    "coleccionRegistros": "leach_records",
+    "coleccionConfiguracion": "configuration",
+    "coleccionConfiguracionLegacy": "alarm_config",
+    "documentoConfiguracion": "lixiviacion",
+    "proyectoVisible": "metkinetics-leachview"
+  }
+}
