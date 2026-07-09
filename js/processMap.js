@@ -1,4 +1,3 @@
-import { demoProcess } from "../data/demoData.js?v=20260708-4";
 import { evaluateAlarmState } from "./alarmAdmin.js?v=20260708-4";
 
 export const PLANT_AREA = "PLANTA";
@@ -104,35 +103,51 @@ function severityValue(state) {
 function buildProcessNodes(records, latestBySubarea, selectedArea, alarmConfig) {
   const plantRecords = buildPlantRecords(records);
   const latestPlant = plantRecords[plantRecords.length - 1];
-  const fallbackPlant = demoProcess.find((node) => node.name === PLANT_AREA);
 
   return processAreas.map((name) => {
     if (name === PLANT_AREA) {
+      if (!latestPlant) {
+        return {
+          name,
+          state: "Sin datos",
+          metricLabel: "Produccion Total",
+          metricValue: "Sin datos en el periodo",
+          alarmSummary: ""
+        };
+      }
       const plantState = alarmConfig && latestPlant
         ? evaluateAlarmState("flujoPLS", latestPlant.flujoPLS, alarmConfig)
         : getWorstState([...latestBySubarea.values()], alarmConfig);
 
       return {
         name,
-        state: plantState || fallbackPlant?.state || "Normal",
+        state: plantState || "Normal",
         metricLabel: "Produccion Total",
         metricValue: Number.isFinite(latestPlant?.flujoPLS)
           ? valueWithUnit(latestPlant.flujoPLS, "m3/h", 0)
-          : fallbackPlant?.metric || "Sin datos recientes",
+          : "Sin datos en el periodo",
         alarmSummary: summarizeAlarms([...latestBySubarea.values()].flatMap((record) => record.alarmasActivas || []))
       };
     }
 
     const liveRecord = latestBySubarea.get(name);
+    if (!liveRecord) {
+      return {
+        name,
+        state: "Sin datos",
+        metricLabel: "Flujo PLS",
+        metricValue: "Sin datos en el periodo",
+        alarmSummary: ""
+      };
+    }
     const metricRecord = getNodeMetricRecord(records, latestBySubarea, name, selectedArea);
-    const fallback = demoProcess.find((node) => node.name === name);
     const metric = getMetric(name, metricRecord);
 
     return {
       name,
-      state: liveRecord ? getNodeState(name, liveRecord, alarmConfig) : fallback?.state || "Normal",
+      state: getNodeState(name, liveRecord, alarmConfig),
       metricLabel: metric.label,
-      metricValue: metric.value || fallback?.metric || "Sin datos recientes",
+      metricValue: metric.value || "Sin datos en el periodo",
       alarmSummary: summarizeAlarms(liveRecord?.alarmasActivas || [])
     };
   });

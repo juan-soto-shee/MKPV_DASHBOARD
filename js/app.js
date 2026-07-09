@@ -1,7 +1,7 @@
 import { startRealtimeListener } from "./firestoreService.js?v=20260708-4";
 import { demoRecords } from "../data/demoData.js?v=20260708-4";
 import { updateCharts } from "./charts.js?v=20260708-11";
-import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260708-5";
+import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260708-6";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260708-4";
 import { initBulkImport } from "./bulkImport.js?v=20260708-1";
 
@@ -68,9 +68,10 @@ function setActiveButton(group, activeButton) {
 }
 
 function render() {
-  const latest = state.records[0];
   const recentRecords = filterByPeriod(state.records, state.selectedPeriodHours);
-  const filteredRecords = filterByArea(recentRecords, state.selectedArea);
+  const latest = recentRecords[0];
+  const selectedRecords = filterRawRecordsByArea(recentRecords, state.selectedArea);
+  const chartRecords = filterByArea(recentRecords, state.selectedArea);
   const alarmConfig = getAlarmConfig();
   const plantState = getWorstState(recentRecords, alarmConfig);
 
@@ -79,11 +80,12 @@ function render() {
   elements.lastUpdated.textContent = `Ultima actualizacion: ${latest ? formatDateTime(latest.timestampCreacion) : "--"}`;
   elements.currentShift.textContent = `Turno actual: ${latest?.turno || "--"}`;
 
-  renderProcessMap(elements.processMap, state.records, state.selectedArea, handleProcessSelection, alarmConfig);
-  renderAlarms(recentRecords);
-  renderHistoryTable(state.records.slice(0, 30));
-  renderMobileSummary(state.records);
-  updateCharts(filteredRecords, {
+  renderProcessMap(elements.processMap, recentRecords, state.selectedArea, handleProcessSelection, alarmConfig);
+  renderAlarms(selectedRecords);
+  renderHistoryTable(selectedRecords.slice(0, 30));
+  renderMobileSummary(recentRecords);
+  updateMobilePeriodTitle();
+  updateCharts(chartRecords, {
     selectedArea: state.selectedArea,
     sourceRecords: recentRecords,
     alarmConfig
@@ -175,11 +177,9 @@ function renderHistoryTable(records) {
 }
 
 function renderMobileSummary(records) {
-  const last24 = filterByPeriod(records, 24);
-
-  elements.countPila1.textContent = countBySubarea(last24, "Pila 1");
-  elements.countPila2.textContent = countBySubarea(last24, "Pila 2");
-  elements.countPila3.textContent = countBySubarea(last24, "Pila 3");
+  elements.countPila1.textContent = countBySubarea(records, "Pila 1");
+  elements.countPila2.textContent = countBySubarea(records, "Pila 2");
+  elements.countPila3.textContent = countBySubarea(records, "Pila 3");
 }
 
 function countBySubarea(records, subarea) {
@@ -191,9 +191,26 @@ function filterByArea(records, area) {
   return records.filter((record) => record.subarea === area);
 }
 
+function filterRawRecordsByArea(records, area) {
+  if (area === PLANT_AREA) return records;
+  return records.filter((record) => record.subarea === area);
+}
+
 function filterByPeriod(records, hours) {
-  const cutoff = Date.now() - hours * 60 * 60 * 1000;
-  return records.filter((record) => new Date(record.timestampCreacion).getTime() >= cutoff);
+  const now = Date.now();
+  const cutoff = now - hours * 60 * 60 * 1000;
+  return records.filter((record) => {
+    const timestamp = new Date(record.timestampCreacion).getTime();
+    return Number.isFinite(timestamp) && timestamp >= cutoff && timestamp <= now;
+  });
+}
+
+function updateMobilePeriodTitle() {
+  const title = document.getElementById("mobilePeriodTitle");
+  if (!title) return;
+  title.textContent = state.selectedPeriodHours === 24
+    ? "Últimas 24 horas"
+    : state.selectedPeriodHours === 168 ? "Últimos 7 días" : "Últimos 30 días";
 }
 
 function normalizeRecords(records) {
