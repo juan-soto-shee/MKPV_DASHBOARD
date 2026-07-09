@@ -197,11 +197,19 @@ function filterRawRecordsByArea(records, area) {
 }
 
 function filterByPeriod(records, hours) {
-  const now = Date.now();
-  const cutoff = now - hours * 60 * 60 * 1000;
+  const timestamps = records
+    .map((record) => new Date(record.timestampCreacion).getTime())
+    .filter(Number.isFinite);
+  if (!timestamps.length) return [];
+
+  // El histórico se recorre desde el último registro disponible. Esto permite
+  // explorar correctamente datos importados o demo aunque estén adelantados
+  // respecto del reloj del dispositivo.
+  const latestTimestamp = Math.max(...timestamps);
+  const cutoff = latestTimestamp - hours * 60 * 60 * 1000;
   return records.filter((record) => {
     const timestamp = new Date(record.timestampCreacion).getTime();
-    return Number.isFinite(timestamp) && timestamp >= cutoff && timestamp <= now;
+    return Number.isFinite(timestamp) && timestamp >= cutoff && timestamp <= latestTimestamp;
   });
 }
 
