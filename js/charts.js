@@ -234,8 +234,9 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
           afterLabel: (context) => {
             const point = context.dataset.pointData?.[context.dataIndex];
             if (!point?.record) return "";
+            const date = point.record.fecha || formatDate(point.record.timestampCreacion);
             const time = point.record.hora || formatTime(point.record.timestampCreacion);
-            return `${time} · ${point.record.subarea || "--"}`;
+            return `${date} · ${time} · ${point.record.subarea || "--"}`;
           }
         }
       }
@@ -587,6 +588,14 @@ function formatTime(value) {
   return new Date(value).toLocaleTimeString("es-CL", {
     hour: "2-digit",
     minute: "2-digit"
+  });
+}
+
+function formatDate(value) {
+  return new Date(value).toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
   });
 }
 
