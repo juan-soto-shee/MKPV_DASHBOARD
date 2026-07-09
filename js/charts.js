@@ -467,11 +467,8 @@ function renderAlarmPresentation(definition, series, alarmConfig) {
   const analysis = document.getElementById(definition.analysisId);
   if (!analysis) return;
   const describeAlarm = (currentAlarm) => {
-    const valueText = Number.isFinite(Number(currentAlarm.value))
-      ? `${formatNumber(currentAlarm.value, definition.decimals)} ${definition.unit}`
-      : "";
-    const detail = currentAlarm.cause || currentAlarm.label;
-    return `${currentAlarm.icon} ${[valueText, detail].filter(Boolean).join(" · ")}`;
+    const condition = getCompactCondition(currentAlarm);
+    return `${currentAlarm.icon} ${condition}`;
   };
   const trendText = buildTrendDescription(series, definition);
   analysis.textContent = summaries.length > 1
@@ -490,12 +487,30 @@ function buildTrendDescription(series, definition) {
   if (!Number.isFinite(previous) || !Number.isFinite(current)) return "";
 
   const difference = current - previous;
-  const tolerance = Math.max(Math.abs(previous) * 0.01, definition.decimals === 0 ? 1 : 0.01);
-  const sign = difference > 0 ? "+" : "";
-  const formattedDifference = `${sign}${formatNumber(difference, definition.decimals)} ${definition.unit}`;
+  if (difference === 0) return "Sin variación";
+  if (previous === 0) return difference > 0 ? "Subió" : "Bajó";
 
-  if (Math.abs(difference) <= tolerance) return `Variación ${formattedDifference} · Estable`;
-  return `${difference > 0 ? "Subió" : "Bajó"} ${formattedDifference}`;
+  const percentage = Math.abs((difference / previous) * 100);
+  return `${difference > 0 ? "Subió" : "Bajó"} ${formatNumber(percentage, 1)} %`;
+}
+
+function getCompactCondition(alarm) {
+  const value = Number(alarm.value);
+  const config = alarm.config;
+
+  if (config && Number.isFinite(value)) {
+    if (value <= Number(config.bajoCritico)) return "Bajo crítico";
+    if (value < Number(config.bajoAlerta)) return "Bajo alerta";
+    if (value >= Number(config.altoCritico)) return "Alto crítico";
+    if (value > Number(config.altoAlerta)) return "Alto alerta";
+  }
+
+  const cause = normalizeText(alarm.cause);
+  if (cause.includes("bajocritic")) return "Bajo crítico";
+  if (cause.includes("bajoalert") || cause.includes("preventivobajo")) return "Bajo alerta";
+  if (cause.includes("altocritic") || cause.includes("sobrelimitealto")) return "Alto crítico";
+  if (cause.includes("altoalert") || cause.includes("preventivoalto")) return "Alto alerta";
+  return alarm.label || "Estable";
 }
 
 function shortAreaName(value) {
