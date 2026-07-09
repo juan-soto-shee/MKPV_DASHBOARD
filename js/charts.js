@@ -488,10 +488,18 @@ function buildTrendDescription(series, definition) {
 
   const difference = current - previous;
   if (difference === 0) return "Sin variación";
-  if (previous === 0) return difference > 0 ? "Subió" : "Bajó";
 
-  const percentage = Math.abs((difference / previous) * 100);
-  return `${difference > 0 ? "Subió" : "Bajó"} ${formatNumber(percentage, 1)} %`;
+  return `${difference > 0 ? "Subió" : "Bajó"} ${formatTrendVariation(difference, definition)}`;
+}
+
+function formatTrendVariation(difference, definition) {
+  const absoluteDifference = Math.abs(difference);
+  const decimals = definition.unit === "%" ? Math.max(definition.decimals, 1) : definition.decimals;
+  const unit = definition.unit === "%"
+    ? (absoluteDifference === 1 ? "punto porcentual" : "puntos porcentuales")
+    : definition.unit;
+
+  return `${formatNumber(absoluteDifference, decimals)} ${unit}`;
 }
 
 function getCompactCondition(alarm) {
@@ -539,9 +547,8 @@ function renderTrendAnalysis(definition, series) {
   }
 
   const direction = difference > 0 ? "Subiendo" : "Bajando";
-  const sign = difference > 0 ? "+" : "";
 
-  element.textContent = `${direction} ${sign}${formatNumber(difference, definition.decimals)} ${definition.unit}`;
+  element.textContent = `${direction} ${formatTrendVariation(difference, definition)}`;
   element.className = `trend-analysis ${difference > 0 ? "up" : "down"}`;
 }
 
@@ -560,8 +567,7 @@ function renderSplitTrendAnalysis(definition, seriesGroups) {
     if (Math.abs(difference) <= tolerance) return `${group.label}: estable`;
 
     const direction = difference > 0 ? "subio" : "bajo";
-    const sign = difference > 0 ? "+" : "";
-    return `${group.label}: ${direction} ${sign}${formatNumber(difference, definition.decimals)} ${definition.unit}`;
+    return `${group.label}: ${direction} ${formatTrendVariation(difference, definition)}`;
   });
 
   if (!trends.length) {
