@@ -1,5 +1,5 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-8";
+import { getAlarmConfig } from "./alarmAdmin.js?v=20260710-2";
 import { insertImportedRecords } from "./firestoreService.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 
@@ -271,7 +271,7 @@ function buildGenericRecord(row, config) {
     profileId: clientConfig.profileId,
     fecha: formatDate(date),
     hora: formatTime(date),
-    turno: cleanText(row.turno),
+    turno: cleanText(row.turno) || getOperationalShift(date),
     area: cleanText(row.area) || clientConfig.identity.proceso,
     subarea,
     operador: cleanText(row.operador),
@@ -443,6 +443,13 @@ function parseNumber(value, column) {
 function isShiftA(date) {
   return date.getHours() < 20
     || (date.getHours() === 20 && date.getMinutes() === 0 && date.getSeconds() === 0);
+}
+
+function getOperationalShift(date) {
+  if (clientConfig.profileId === ENTREFASES_PROFILE_ID) return isShiftA(date) ? "A" : "B";
+  if (date.getHours() < 8) return "C";
+  if (date.getHours() < 16) return "A";
+  return "B";
 }
 
 function openConfirm(elements, preparation) {
