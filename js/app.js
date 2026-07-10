@@ -1,8 +1,8 @@
-import { inspectLegacyRecords, startRealtimeListener } from "./firestoreService.js?v=20260709-6";
+import { inspectLegacyRecords, startRealtimeListener } from "./firestoreService.js?v=20260709-7";
 import { updateCharts } from "./charts.js?v=20260709-1";
-import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-6";
+import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-6";
-import { initBulkImport } from "./bulkImport.js?v=20260709-6";
+import { initBulkImport } from "./bulkImport.js?v=20260709-7";
 import { clientConfig } from "./clientConfig.js";
 
 applyClientConfiguration();
@@ -194,12 +194,27 @@ function countBySubarea(records, subarea) {
 
 function filterByArea(records, area) {
   if (area === PLANT_AREA) return buildPlantRecords(records);
-  return records.filter((record) => record.subarea === area);
+  const directRecords = records.filter((record) => record.subarea === area);
+  if (directRecords.length) return directRecords;
+  return getEquipmentRecords(records, area);
 }
 
 function filterRawRecordsByArea(records, area) {
   if (area === PLANT_AREA) return records;
-  return records.filter((record) => record.subarea === area);
+  const directRecords = records.filter((record) => record.subarea === area);
+  if (directRecords.length) return directRecords;
+  return getEquipmentRecords(records, area);
+}
+
+function getEquipmentRecords(records, area) {
+  const equipment = clientConfig.equipmentMap[area];
+  if (!equipment) return [];
+  const variableKeys = clientConfig.variables
+    .filter((variable) => variable.equipoId === equipment.id)
+    .map((variable) => variable.key);
+  return records.filter((record) => variableKeys.some((key) =>
+    Number.isFinite(record[key]) || String(record[key] || "").trim()
+  ));
 }
 
 function filterByPeriod(records, hours) {

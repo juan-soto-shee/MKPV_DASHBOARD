@@ -20,6 +20,10 @@ export function getWorstState(records, alarmConfig = null) {
 }
 
 export function buildPlantRecords(records) {
+  if (!pileAreas.length) {
+    return [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
+  }
+
   const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
   const groups = groupRecordsByComparableTime(chronological);
   const latestPileRecords = new Map();
@@ -228,6 +232,22 @@ function getLatestBySubarea(records) {
   records.forEach((record) => {
     if (monitoredAreas.includes(record.subarea) && !latestBySubarea.has(record.subarea)) {
       latestBySubarea.set(record.subarea, record);
+    }
+    if (!pileAreas.length) {
+      clientConfig.equipment.forEach((equipment) => {
+        const variableKeys = [
+          equipment.variablePrincipal,
+          ...clientConfig.variables
+            .filter((variable) => variable.equipoId === equipment.id)
+            .map((variable) => variable.key)
+        ].filter(Boolean);
+        const hasEquipmentValue = variableKeys.some((key) =>
+          Number.isFinite(record[key]) || String(record[key] || "").trim()
+        );
+        if (hasEquipmentValue && !latestBySubarea.has(equipment.nombre)) {
+          latestBySubarea.set(equipment.nombre, record);
+        }
+      });
     }
   });
 

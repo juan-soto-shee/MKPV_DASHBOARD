@@ -480,7 +480,7 @@ h3 {
 
 .import-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 10px;
   margin: 16px 0 0;
 }
@@ -501,6 +501,35 @@ h3 {
   margin: 5px 0 0;
   font-size: 1.15rem;
   font-weight: 850;
+}
+
+.import-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.import-preview div {
+  min-width: 0;
+}
+
+.import-preview h4 {
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.import-preview pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(147, 185, 197, .14);
+  border-radius: 8px;
+  background: rgba(3, 13, 18, .38);
+  color: #dbeafe;
+  font-size: .74rem;
+  line-height: 1.45;
 }
 
 .import-errors {
@@ -1046,7 +1075,8 @@ td {
 
   .admin-grid,
   .future-options,
-  .import-summary {
+  .import-summary,
+  .import-preview {
     grid-template-columns: 1fr;
   }
 

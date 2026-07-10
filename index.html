@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/style.css?v=20260708-12">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260709-6"></script>
+    <script type="module" src="js/app.js?v=20260709-7"></script>
   </head>
   <body>
     <div class="shell">
@@ -125,7 +125,7 @@
                 <span>Archivo Excel o CSV</span>
                 <input id="bulkImportFile" type="file" accept=".xlsx,.csv">
               </label>
-              <button id="startBulkImportButton" class="primary-action" type="button" disabled>Importar registros</button>
+              <button id="startBulkImportButton" class="primary-action" type="button" disabled>Preparar importaci&oacute;n</button>
             </div>
             <p id="bulkImportFileInfo" class="admin-message" role="status">Seleccione un archivo para comenzar.</p>
             <div id="bulkImportProgressPanel" class="import-progress-panel is-hidden" aria-live="polite">
@@ -136,11 +136,24 @@
               <progress id="bulkImportProgress" max="100" value="0">0 %</progress>
             </div>
             <dl id="bulkImportSummary" class="import-summary is-hidden">
+              <div><dt>Hoja usada</dt><dd id="bulkImportSheet">--</dd></div>
               <div><dt>Total registros</dt><dd id="bulkImportTotal">0</dd></div>
               <div><dt>Registros correctos</dt><dd id="bulkImportSuccess">0</dd></div>
               <div><dt>Registros con error</dt><dd id="bulkImportErrorCount">0</dd></div>
+              <div><dt>Importados</dt><dd id="bulkImportInserted">--</dd></div>
+              <div><dt>Duplicados omitidos</dt><dd id="bulkImportDuplicates">--</dd></div>
               <div><dt>Tiempo empleado</dt><dd id="bulkImportElapsed">0 s</dd></div>
             </dl>
+            <div id="bulkImportPreviewPanel" class="import-preview is-hidden">
+              <div>
+                <h4>Primer registro preparado</h4>
+                <pre id="bulkImportFirstPreview"></pre>
+              </div>
+              <div>
+                <h4>&Uacute;ltimo registro preparado</h4>
+                <pre id="bulkImportLastPreview"></pre>
+              </div>
+            </div>
             <div id="bulkImportErrorsPanel" class="import-errors is-hidden">
               <h4>Filas con error</h4>
               <div class="table-wrap">

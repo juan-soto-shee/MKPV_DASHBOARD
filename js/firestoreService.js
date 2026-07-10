@@ -111,10 +111,26 @@ export async function insertDemoRecords(records, onProgress = () => {}) {
 // Inserta registros validados en lotes bajo el limite de 500 escrituras de Firestore.
 export async function insertImportedRecords(records, onProgress = () => {}) {
   let inserted = 0;
+  let duplicates = 0;
+  const existingKeys = await getExistingTimestampKeys();
+  const uniqueRecords = records.filter((record) => {
+    const key = timestampKey(record.timestampCreacion);
+    if (existingKeys.has(key)) {
+      duplicates += 1;
+      return false;
+    }
+    existingKeys.add(key);
+    return true;
+  });
 
-  for (let start = 0; start < records.length; start += 400) {
+  if (!uniqueRecords.length) {
+    onProgress(0, records.length, duplicates);
+    return { inserted, duplicates };
+  }
+
+  for (let start = 0; start < uniqueRecords.length; start += 400) {
     const batch = writeBatch(db);
-    const chunk = records.slice(start, start + 400);
+    const chunk = uniqueRecords.slice(start, start + 400);
 
     chunk.forEach((record) => {
       batch.set(doc(collection(db, RECORDS_COLLECTION)), withActiveClient(record));
@@ -122,10 +138,10 @@ export async function insertImportedRecords(records, onProgress = () => {}) {
 
     await batch.commit();
     inserted += chunk.length;
-    onProgress(inserted, records.length);
+    onProgress(inserted, records.length, duplicates);
   }
 
-  return inserted;
+  return { inserted, duplicates };
 }
 
 // Elimina exclusivamente documentos marcados explícitamente como DEMO.
@@ -162,4 +178,22 @@ function withActiveClient(record) {
     withActiveClient.loggedExample = true;
   }
   return recordWithClient;
+}
+
+async function getExistingTimestampKeys() {
+  const snapshot = await getDocs(query(
+    collection(db, RECORDS_COLLECTION),
+    where("clienteId", "==", CLIENTE_ACTIVO)
+  ));
+  return new Set(snapshot.docs
+    .map((record) => timestampKey(record.data().timestampCreacion))
+    .filter(Boolean));
+}
+
+function timestampKey(value) {
+  if (!value) return "";
+  if (value.toMillis) return String(value.toMillis());
+  if (value.toDate) return String(value.toDate().getTime());
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "" : String(parsed.getTime());
 }
