@@ -1,4 +1,4 @@
-import { deleteDemoRecords, insertDemoRecords } from "./firestoreService.js?v=20260709-8";
+import { deleteDemoRecords, insertDemoRecords } from "./firestoreService.js?v=20260710-2";
 
 const CSV_COLUMNS = [
   "fecha",

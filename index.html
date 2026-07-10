@@ -3,19 +3,24 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PlantView</title>
+    <title>MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260708-12">
+    <link rel="stylesheet" href="css/style.css?v=20260710-2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260709-8"></script>
+    <script type="module" src="js/app.js?v=20260710-2"></script>
   </head>
   <body>
     <div class="shell">
       <header class="topbar">
         <div class="brand-block">
-          <p id="brandName" class="eyebrow"></p>
-          <h1 id="clientTitle"></h1>
+          <p class="eyebrow">MetKinetics PlantView</p>
+          <h1>Centro de Monitoreo Operacional</h1>
+          <div class="implementation-identity" aria-label="Implementaci&oacute;n activa">
+            <span>Cliente: <strong id="headerClient">--</strong></span>
+            <span>Faena: <strong id="headerSite">--</strong></span>
+            <span>Proceso: <strong id="headerProcess">--</strong></span>
+          </div>
         </div>
         <div class="operations-status">
           <button id="adminAccessButton" class="admin-access-button" type="button">Administracion</button>
@@ -61,17 +66,40 @@
               <div><dt>Versi&oacute;n</dt><dd id="activeProfileConfigVersion">--</dd></div>
             </dl>
           </section>
+          <section id="legacyCleanupSection" class="admin-subsection is-hidden">
+            <p class="eyebrow">Administraci&oacute;n de Datos</p>
+            <h3>LIMPIAR DATOS LEGACY DEMO</h3>
+            <p class="admin-note">Esta operaci&oacute;n elimina exclusivamente registros artificiales antiguos de la demo que no tienen <strong>clienteId</strong>. No afecta datos asociados a ninguna implementaci&oacute;n.</p>
+            <div class="legacy-cleanup-actions">
+              <button id="inspectLegacyButton" class="primary-action" type="button">Detectar datos legacy</button>
+              <button id="cleanLegacyButton" class="danger-action" type="button" disabled>ELIMINAR DATOS LEGACY DEMO</button>
+            </div>
+            <p id="legacyCleanupMessage" class="admin-message" role="status">La detecci&oacute;n solo se ejecutar&aacute; al presionar el bot&oacute;n.</p>
+            <div id="legacyCleanupPreview" class="is-hidden">
+              <dl class="system-facts legacy-cleanup-facts">
+                <div><dt>Total revisados</dt><dd id="legacyChecked">0</dd></div>
+                <div><dt>Datos legacy demo encontrados</dt><dd id="legacyFound">0</dd></div>
+                <div><dt>Sin clienteId no compatibles</dt><dd id="legacyDoubtful">0</dd></div>
+                <div><dt>Registros con clienteId protegidos</dt><dd id="legacyProtected">0</dd></div>
+              </dl>
+            </div>
+          </section>
           <section class="admin-subsection">
             <h3>INFORMACI&Oacute;N DEL SISTEMA</h3>
             <dl class="system-facts">
-              <div><dt>Proyecto del sistema</dt><dd id="firebaseProject"></dd></div>
+              <div><dt>Producto</dt><dd>MetKinetics PlantView</dd></div>
+              <div><dt>Cliente</dt><dd id="systemClient">--</dd></div>
+              <div><dt>Faena</dt><dd id="systemSite">--</dd></div>
+              <div><dt>Proceso</dt><dd id="systemProcess">--</dd></div>
+              <div><dt>Implementaci&oacute;n</dt><dd id="systemImplementation">--</dd></div>
+              <div><dt>Perfil Operacional</dt><dd id="systemOperationalProfile">--</dd></div>
+              <div><dt>Cliente ID</dt><dd id="systemClientId">--</dd></div>
               <div><dt>Cantidad de registros asociados al cliente activo</dt><dd id="systemRecordCount">0</dd></div>
               <div><dt>&Uacute;ltimo registro recibido</dt><dd id="systemLastRecord">--</dd></div>
               <div><dt>&Uacute;ltima sincronizaci&oacute;n</dt><dd id="systemLastSync">--</dd></div>
               <div><dt>Versi&oacute;n PlantView</dt><dd id="systemVersion"></dd></div>
               <div><dt>Estado del sistema</dt><dd id="systemFirebaseStatus">--</dd></div>
             </dl>
-            <p id="legacyRecordsMessage" class="admin-message is-hidden" role="status"></p>
           </section>
           <div class="admin-subsection">
           <h3>CONFIGURACI&Oacute;N DE ALARMAS</h3>
@@ -300,6 +328,23 @@
         <div class="dialog-actions">
           <button id="cancelBulkImportButton" class="secondary-action" type="button">Cancelar</button>
           <button id="confirmBulkImportButton" class="primary-action" type="button">Importar registros</button>
+        </div>
+      </section>
+    </div>
+    <div id="legacyCleanupOverlay" class="admin-overlay is-hidden" aria-hidden="true">
+      <section class="admin-password-panel" role="dialog" aria-modal="true" aria-labelledby="legacyCleanupTitle">
+        <h2 id="legacyCleanupTitle">Limpiar Datos Legacy Demo</h2>
+        <p>Se eliminar&aacute;n &uacute;nicamente documentos artificiales de la demo sin clienteId identificados de forma segura.</p>
+        <p id="legacyCleanupDialogMessage" class="admin-message" role="status"></p>
+        <div id="legacyCleanupPasswordStage" class="is-hidden">
+          <label class="admin-password-field">
+            <span>Contrase&ntilde;a administrativa</span>
+            <input id="legacyCleanupPasswordInput" type="password" autocomplete="current-password">
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <button id="cancelLegacyCleanup" class="secondary-action" type="button">Cancelar</button>
+          <button id="continueLegacyCleanup" class="danger-action" type="button">S&iacute;, continuar</button>
         </div>
       </section>
     </div>

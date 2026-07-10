@@ -1,21 +1,35 @@
-# MetKinetics PlantView Dashboard
+# MetKinetics PlantView
 
-Demo web estatica para visualizar datos operacionales de PlantView usando Firebase Firestore en tiempo real.
+MetKinetics PlantView es una plataforma web de monitoreo operacional para múltiples procesos industriales. La interfaz obtiene la identidad del cliente, la faena y el proceso desde la implementación activa; ningún perfil operacional funciona como identidad de cliente.
 
-## Arquitectura multi-cliente
+## Arquitectura
 
-La configuracion queda separada en dos conceptos:
+```text
+MetKinetics PlantView
+        ↓
+Implementación (cliente, faena, proceso y clienteId)
+        ↓
+Perfil Operacional (variables, alarmas, layout y equipos)
+        ↓
+Variables
+        ↓
+Datos Firestore filtrados por clienteId
+```
 
-- Perfil Operacional: define el proceso reutilizable. Incluye variables, alarmas, layout y proceso/equipos. No contiene nombres de cliente, empresa ni faena.
-- Implementacion: define un cliente/faena concreta y apunta a un perfil operacional mediante `profileId`.
+- **Implementación:** instancia concreta definida en `config/customers/{implementationId}/client.json`.
+- **Perfil Operacional:** configuración técnica reutilizable definida en `config/profiles/{profileId}/`.
+- **clienteId:** identificador exclusivo usado para consultar, importar y eliminar datos.
 
-Esto permite que varios clientes usen el mismo perfil operacional sin mezclar datos, porque los registros se filtran por `clienteId`.
+El `profileId` nunca se usa para asociar registros. Varias implementaciones pueden compartir un perfil sin mezclar sus datos.
 
-## Estructura nueva
+## Estructura de configuración
 
 ```text
 config/
   activeImplementation.json
+  customers/
+    demo_lixiviacion/client.json
+    solmin_mantos_blancos/client.json
   profiles/
     lixiviacion/
       variables.json
@@ -27,70 +41,9 @@ config/
       alarms.json
       layout.json
       process.json
-  customers/
-    demo_lixiviacion/
-      client.json
-    solmin_mantos_blancos/
-      client.json
 ```
 
-## Como se carga la implementacion activa
-
-La prioridad de seleccion es:
-
-1. Parametro de URL `?implementation=demo_lixiviacion`.
-2. `config/activeImplementation.json`.
-3. Parametro legacy `?profile=...`.
-4. Fallback legacy `config/activeClient.json`.
-
-Ejemplo:
-
-```json
-{
-  "activeImplementation": "demo_lixiviacion"
-}
-```
-
-## Como crear un perfil reutilizable
-
-Crear una carpeta en `config/profiles/{profileId}/` con:
-
-- `variables.json`
-- `alarms.json`
-- `layout.json`
-- `process.json`
-
-El perfil debe describir solo el comportamiento operacional: variables, unidades, limites, equipos, relaciones y orden visual.
-
-No debe incluir:
-
-- `clientName`
-- `siteName`
-- `clienteId`
-- nombre de empresa
-- nombre de faena
-
-Ejemplo de perfil:
-
-```text
-config/profiles/entrefases/
-```
-
-Clientes que podrian usarlo:
-
-- `solmin_mantos_blancos`
-- `cliente_b_entrefases`
-- `cliente_c_entrefases`
-
-## Como crear un cliente nuevo
-
-Crear:
-
-```text
-config/customers/{implementationId}/client.json
-```
-
-Ejemplo:
+Cada `client.json` declara de forma independiente:
 
 ```json
 {
@@ -105,73 +58,50 @@ Ejemplo:
 }
 ```
 
-`implementationId` identifica la implementacion activa. `profileId` identifica el perfil tecnico reutilizable. `clienteId` es el valor usado para consultar, importar y eliminar registros en Firestore.
+## Selección de implementación
 
-## Implementaciones disponibles
+La prioridad es:
 
-### Demo Lixiviacion
+1. Parámetro URL `?implementation=`.
+2. `config/activeImplementation.json`.
+3. Parámetro temporal `?profile=` como compatibilidad legacy.
+4. `config/activeClient.json` como fallback legacy.
 
-- Implementacion: `demo_lixiviacion`
-- Perfil operacional: `lixiviacion`
-- Cliente ID: `demo_lixiviacion`
-
-URL:
+Ejemplos:
 
 ```text
 index.html?implementation=demo_lixiviacion
-```
-
-### Solmin Mantos Blancos
-
-- Implementacion: `solmin_mantos_blancos`
-- Perfil operacional: `entrefases`
-- Cliente ID: `solmin_mantos_blancos`
-
-URL:
-
-```text
 index.html?implementation=solmin_mantos_blancos
 ```
 
-## Uso de datos
+## Implementaciones incluidas
 
-- Las graficas, layout, equipos y alarmas usan el perfil operacional (`profileId`).
-- La identidad visual y la tarjeta de administracion usan el customer/implementacion.
-- Firestore se filtra siempre por `clienteId`.
-- La importacion masiva asigna automaticamente `clienteId = clientConfig.clienteId`.
-- El borrado historico protegido elimina solo documentos con `clienteId == clientConfig.clienteId`.
-- No se usa `profileId` para filtrar datos, porque varios clientes pueden compartir el mismo perfil.
+| Implementación | Cliente | Faena | Proceso | Perfil Operacional |
+|---|---|---|---|---|
+| `demo_lixiviacion` | MetKinetics Demo | Faena Demo | Lixiviación | `lixiviacion` |
+| `solmin_mantos_blancos` | Solmin | Mantos Blancos | Planta Entrefases | `entrefases` |
 
-## Compatibilidad legacy temporal
+## Datos y administración
 
-Se conservan estas rutas legacy para no romper GitHub Pages ni configuraciones existentes:
+- El listener principal consulta `leach_records` con `where("clienteId", "==", clientConfig.clienteId)`.
+- La importación masiva asigna el `clienteId` de la implementación activa.
+- Los registros nuevos de la demo incluyen `clienteId = "demo_lixiviacion"` y `timestampCreacion`.
+- La herramienta **Limpiar Datos Legacy Demo** solo aparece en `demo_lixiviacion`.
+- Esa herramienta se ejecuta manualmente, pide doble confirmación y solo elimina documentos sin `clienteId` identificados con seguridad como datos artificiales antiguos de la demo.
+- Los documentos con cualquier `clienteId`, incluidos los de `solmin_mantos_blancos`, quedan protegidos.
 
-```text
-config/clientes/demo_lixiviacion/
-config/clientes/entrefases_profile/
-config/activeClient.json
-```
+## Compatibilidad legacy
 
-La aplicacion prefiere la estructura nueva. Si falta algun JSON nuevo, intenta usar estas rutas legacy como fallback temporal.
+Las rutas antiguas bajo `config/clientes/` y `config/activeClient.json` se conservan temporalmente para no romper despliegues existentes. La aplicación prefiere siempre `config/customers/`, `config/profiles/` y `config/activeImplementation.json`.
 
-No se eliminaron registros ni se importaron datos durante esta migracion.
+## Ejecución local y GitHub Pages
 
-## Ejecutar localmente
-
-Abre `index.html` desde un servidor estatico local o publicalo directamente en GitHub Pages.
+El proyecto usa rutas relativas y no necesita un proceso de compilación, por lo que puede publicarse directamente en GitHub Pages.
 
 ```powershell
 python -m http.server 8080
 ```
 
-Luego visita:
+Luego abre `http://localhost:8080`.
 
-```text
-http://localhost:8080
-```
-
-## Firebase
-
-No modificar `js/firebaseConfig.js` para cambiar clientes. La seleccion de cliente/faena se hace mediante `config/activeImplementation.json` o el parametro `?implementation=`.
-
-La app escucha la coleccion `leach_records` filtrando por `clienteId`.
+No se debe modificar `js/firebaseConfig.js` para seleccionar clientes. La selección se realiza con `?implementation=` o `config/activeImplementation.json`.

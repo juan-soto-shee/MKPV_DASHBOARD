@@ -1,8 +1,9 @@
-import { getRecordsForPeriod, inspectLegacyRecords, startRealtimeListener } from "./firestoreService.js?v=20260709-8";
+import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260710-2";
 import { updateCharts } from "./charts.js?v=20260709-1";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
-import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-8";
-import { initBulkImport } from "./bulkImport.js?v=20260709-8";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260710-2";
+import { initBulkImport } from "./bulkImport.js?v=20260710-2";
+import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 
 applyClientConfiguration();
@@ -13,7 +14,6 @@ const state = {
   selectedArea: PLANT_AREA,
   selectedPeriodHours: clientConfig.layout.periodos[0]?.horas || 24,
   connected: false,
-  hasLegacyRecords: false,
   realtimeRecords: []
 };
 
@@ -33,28 +33,39 @@ const elements = {
 bindControls();
 initAlarmAdmin();
 initBulkImport();
+initLegacyCleanup({ refreshDashboard: restartRealtimeListener });
 onAlarmConfigChange(() => render());
 
-startRealtimeListener((records) => {
+startDashboardListener();
+
+function startDashboardListener() {
+  return startRealtimeListener(handleRealtimeRecords, handleConnectionChange);
+}
+
+function handleRealtimeRecords(records) {
   const normalizedRecords = normalizeRecords(records);
-  const legacyInspection = inspectLegacyRecords(records);
   state.realtimeRecords = normalizedRecords;
   state.records = normalizedRecords;
-  state.hasLegacyRecords = legacyInspection.hasLegacyRecords;
-  state.sourceLabel = records.length ? "Tiempo real" : "Sin registros para el perfil activo";
+  state.sourceLabel = records.length ? "Tiempo real" : "Sin registros para esta implementación";
   updateAdminStats({
     count: records.length,
     lastRecord: normalizedRecords[0]?.timestampCreacion || null,
     lastSync: new Date().toISOString(),
-    connected: state.connected,
-    hasLegacyRecords: legacyInspection.hasLegacyRecords
+    connected: state.connected
   });
 
   render();
-}, (connected) => {
+}
+
+function handleConnectionChange(connected) {
   state.connected = connected;
   updateAdminStats({ connected });
-});
+}
+
+async function restartRealtimeListener() {
+  closeRealtimeListener();
+  startDashboardListener();
+}
 
 function bindControls() {
   elements.periodFilter.addEventListener("click", (event) => {
@@ -75,8 +86,7 @@ async function loadPeriodRecords(hours) {
       count: state.records.length,
       lastRecord: state.records[0]?.timestampCreacion || state.realtimeRecords[0]?.timestampCreacion || null,
       lastSync: new Date().toISOString(),
-      connected: state.connected,
-      hasLegacyRecords: state.hasLegacyRecords
+      connected: state.connected
     });
   } catch (error) {
     console.warn("No se pudo cargar el rango solicitado; se usaran datos en memoria:", error.message);
@@ -336,8 +346,9 @@ function applyClientConfiguration() {
   const profile = clientConfig.clientProfile;
   const text = layout.textos;
   document.title = identity.tituloPagina;
-  setText("brandName", identity.marca);
-  setText("clientTitle", identity.titulo);
+  setText("headerClient", profile.cliente);
+  setText("headerSite", profile.faena);
+  setText("headerProcess", profile.proceso);
   setText("generalStatusCaption", text.estadoGeneral);
   setText("processEyebrow", text.procesoEyebrow);
   setText("processTitle", text.vistaOperacional);
@@ -347,7 +358,6 @@ function applyClientConfiguration() {
   setText("historyEyebrow", text.historialEyebrow);
   setText("historyTitle", text.historial);
   setText("systemVersion", identity.version);
-  setText("firebaseProject", identity.firebase.proyectoVisible);
   setText("alarmConfigPath", `${identity.firebase.coleccionConfiguracion}/${identity.firebase.documentoConfiguracion}`);
   setText("recordsCollectionLabel", `Registros asociados (${clientConfig.clienteId})`);
   setText("resetRecordsCollection", `${identity.firebase.coleccionRegistros} para ${clientConfig.clienteId}`);
@@ -407,6 +417,12 @@ function renderActiveProfile(profile) {
   setText("activeOperationalProfile", profile.profileId);
   setText("activeProfileClientId", profile.clienteId);
   setText("activeProfileConfigVersion", profile.versionConfiguracion);
+  setText("systemClient", profile.cliente);
+  setText("systemSite", profile.faena);
+  setText("systemProcess", profile.proceso);
+  setText("systemImplementation", profile.implementationId);
+  setText("systemOperationalProfile", profile.profileId);
+  setText("systemClientId", profile.clienteId);
   setText("bulkImportTargetClient", profile.cliente);
   setText("bulkImportTargetSite", profile.faena);
   setText("bulkImportTargetProcess", profile.proceso);

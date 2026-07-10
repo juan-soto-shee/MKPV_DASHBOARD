@@ -124,42 +124,6 @@ export async function getRecordsForPeriod(hours) {
   return records;
 }
 
-export function inspectLegacyRecords(records = lastRealtimeRecords) {
-  const legacyCount = records.filter((record) => !Object.hasOwn(record, "clienteId")).length;
-  return {
-    checked: records.length,
-    legacyCount,
-    hasLegacyRecords: legacyCount > 0
-  };
-}
-
-export async function inspectLegacyRecordsRemote() {
-  try {
-    debugLog("consulta puntual diagnostico legacy", { collection: RECORDS_COLLECTION, limit: REALTIME_LIMIT });
-    const snapshot = await getDocs(query(
-      collection(db, RECORDS_COLLECTION),
-      limit(REALTIME_LIMIT)
-    ));
-    const legacyCount = snapshot.docs.filter((record) => !Object.hasOwn(record.data(), "clienteId")).length;
-    if (legacyCount) {
-      console.info("Los registros fueron creados antes de implementar clienteId.");
-    }
-    return {
-      checked: snapshot.size,
-      legacyCount,
-      hasLegacyRecords: legacyCount > 0
-    };
-  } catch (error) {
-    console.warn("No se pudo verificar registros historicos sin clienteId:", error.message);
-    return {
-      checked: 0,
-      legacyCount: 0,
-      hasLegacyRecords: false,
-      error
-    };
-  }
-}
-
 // Borra exclusivamente documentos del cliente activo, en lotes bajo el limite de Firestore.
 export async function deleteAllLeachRecords(onProgress = () => {}) {
   let deleted = 0;
@@ -307,7 +271,7 @@ async function getExistingTimestampKeys(candidateRecords = []) {
   return keys;
 }
 
-function invalidateRecordsCache() {
+export function invalidateRecordsCache() {
   recordsCache.clear();
   debugLog("cache invalidada", { clienteId: CLIENTE_ACTIVO });
 }

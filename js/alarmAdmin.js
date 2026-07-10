@@ -4,10 +4,14 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
-import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-8";
+import { deleteAllLeachRecords } from "./firestoreService.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 
 const ADMIN_PASSWORD = "Met2026!";
+
+export function verifyAdminPassword(password) {
+  return password === ADMIN_PASSWORD;
+}
 const {
   coleccionConfiguracion: COLLECTION_NAME,
   coleccionConfiguracionLegacy: LEGACY_COLLECTION_NAME,
@@ -19,7 +23,7 @@ const editableFields = ["bajoCritico", "bajoAlerta", "altoAlerta", "altoCritico"
 
 let configState = {};
 let configListeners = [];
-let adminStats = { count: 0, lastRecord: null, lastSync: null, connected: false, hasLegacyRecords: false };
+let adminStats = { count: 0, lastRecord: null, lastSync: null, connected: false };
 let alarmConfigLoaded = false;
 
 export function initAlarmAdmin() {
@@ -103,7 +107,7 @@ async function continueReset(elements) {
     return;
   }
 
-  if (elements.resetPasswordInput.value !== ADMIN_PASSWORD) {
+  if (!verifyAdminPassword(elements.resetPasswordInput.value)) {
     elements.resetDialogMessage.textContent = "Contrasena incorrecta. Operacion cancelada.";
     elements.continueResetButton.disabled = true;
     window.setTimeout(() => {
@@ -145,7 +149,7 @@ function closePasswordPanel(elements) {
 }
 
 async function unlockAdmin(elements) {
-  if (elements.adminPasswordInput.value !== ADMIN_PASSWORD) {
+  if (!verifyAdminPassword(elements.adminPasswordInput.value)) {
     elements.adminPasswordMessage.textContent = "Contrasena incorrecta.";
     return;
   }
@@ -433,7 +437,6 @@ function renderAdminStats() {
   const adminLastSync = document.getElementById("adminLastSync");
   const systemLastSync = document.getElementById("systemLastSync");
   const systemConnection = document.getElementById("systemFirebaseStatus");
-  const legacyMessage = document.getElementById("legacyRecordsMessage");
   const formattedLast = adminStats.lastRecord
     ? new Date(adminStats.lastRecord).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })
     : "--";
@@ -447,17 +450,11 @@ function renderAdminStats() {
   [connection, systemConnection].forEach((element) => {
     if (element) element.textContent = systemStatus;
   });
-  if (legacyMessage) {
-    legacyMessage.textContent = adminStats.hasLegacyRecords
-      ? "Existen registros históricos sin asociar al perfil activo."
-      : "";
-    legacyMessage.classList.toggle("is-hidden", !adminStats.hasLegacyRecords);
-  }
 }
 
 function getSystemStatus() {
   if (!adminStats.connected) return "🔴 Error de comunicación";
-  if (!adminStats.count) return "🟡 Sin registros para el perfil activo";
+  if (!adminStats.count) return "🟡 No existen registros para esta implementación";
   return "🟢 Conectado";
 }
 

@@ -478,6 +478,30 @@ h3 {
   accent-color: var(--cyan);
 }
 
+.legacy-cleanup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 10px;
+}
+
+.implementation-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.implementation-identity strong {
+  color: var(--text);
+}
+
+.legacy-cleanup-facts {
+  margin-top: 14px;
+}
+
 .import-summary {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
