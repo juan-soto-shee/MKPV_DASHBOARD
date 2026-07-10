@@ -19,10 +19,7 @@ const ENTREFASES_COLUMNS = [
   "PISCINA_PLS_NIVEL_PORCENTAJE",
   "PISCINA_ILS_NIVEL_PORCENTAJE",
   "BBA_FLOTANTE_PLS_VDF_PORCENTAJE",
-  "BBA_FLOTANTE_PLS_AMP",
-  "DROP_1_PLS",
-  "DROP_3_PLS_PORCENTAJE",
-  "DROP_3_ILS_PORCENTAJE"
+  "BBA_FLOTANTE_PLS_AMP"
 ];
 const ENTREFASES_MAPPING = {
   BBA_110_ESTADO: "bba110Estado",
@@ -35,10 +32,7 @@ const ENTREFASES_MAPPING = {
   PISCINA_PLS_NIVEL_PORCENTAJE: "piscinaPlsNivel",
   PISCINA_ILS_NIVEL_PORCENTAJE: "piscinaIlsNivel",
   BBA_FLOTANTE_PLS_VDF_PORCENTAJE: "bbaFlotantePlsVdf",
-  BBA_FLOTANTE_PLS_AMP: "bbaFlotantePlsAmp",
-  DROP_1_PLS: "drop1Pls",
-  DROP_3_PLS_PORCENTAJE: "drop3PlsPorcentaje",
-  DROP_3_ILS_PORCENTAJE: "drop3IlsPorcentaje"
+  BBA_FLOTANTE_PLS_AMP: "bbaFlotantePlsAmp"
 };
 const EXPECTED_COLUMNS = [
   "fecha", "hora", "turno", "area", "subarea", "operador",

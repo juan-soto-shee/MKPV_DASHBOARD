@@ -7,8 +7,7 @@
     { "id": "bba100", "nombre": "BBA 100", "tipo": "pump" },
     { "id": "dump_mercedes", "nombre": "Dump Mercedes", "tipo": "transfer" },
     { "id": "bba_flotante_pls", "nombre": "BBA Flotante PLS", "tipo": "pump" },
-    { "id": "piscina_ils", "nombre": "Piscina ILS", "tipo": "pool" },
-    { "id": "drops", "nombre": "Drops PLS/ILS", "tipo": "valve_group" }
+    { "id": "piscina_ils", "nombre": "Piscina ILS", "tipo": "pool" }
   ],
   "relaciones": [
     { "desde": "piscina_pls", "hacia": "bba110" },
@@ -16,8 +15,7 @@
     { "desde": "bba110", "hacia": "dump_mercedes" },
     { "desde": "bba100", "hacia": "dump_mercedes" },
     { "desde": "dump_mercedes", "hacia": "bba_flotante_pls" },
-    { "desde": "bba_flotante_pls", "hacia": "piscina_ils" },
-    { "desde": "piscina_ils", "hacia": "drops" }
+    { "desde": "bba_flotante_pls", "hacia": "piscina_ils" }
   ],
   "variablesPorEquipo": {
     "piscina_pls": ["piscinaPlsNivel"],
@@ -25,7 +23,6 @@
     "bba100": ["bba100Estado", "bba100Flujo"],
     "dump_mercedes": [],
     "bba_flotante_pls": ["bbaFlotantePlsVdf", "bbaFlotantePlsAmp"],
-    "piscina_ils": ["piscinaIlsNivel"],
-    "drops": ["drop1Pls", "drop3PlsPorcentaje", "drop3IlsPorcentaje"]
+    "piscina_ils": ["piscinaIlsNivel"]
   }
 }

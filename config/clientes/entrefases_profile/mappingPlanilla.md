@@ -28,6 +28,3 @@ Cada registro importado debe incluir:
 | PISCINA_ILS_NIVEL_PORCENTAJE | piscinaIlsNivel |
 | BBA_FLOTANTE_PLS_VDF_PORCENTAJE | bbaFlotantePlsVdf |
 | BBA_FLOTANTE_PLS_AMP | bbaFlotantePlsAmp |
-| DROP_1_PLS | drop1Pls |
-| DROP_3_PLS_PORCENTAJE | drop3PlsPorcentaje |
-| DROP_3_ILS_PORCENTAJE | drop3IlsPorcentaje |

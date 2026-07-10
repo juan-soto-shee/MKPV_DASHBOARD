@@ -8,8 +8,6 @@
     { "key": "bba110Hz", "variable": "bba110Hz", "nombre": "BBA110 Frecuencia", "unidad": "Hz", "bajoCritico": 0, "bajoAlerta": 30, "altoAlerta": 55, "altoCritico": 60 },
     { "key": "bba110Vdf", "variable": "bba110Vdf", "nombre": "BBA110 VDF", "unidad": "%", "bajoCritico": 0, "bajoAlerta": 40, "altoAlerta": 95, "altoCritico": 100 },
     { "key": "bbaFlotantePlsVdf", "variable": "bbaFlotantePlsVdf", "nombre": "BBA Flotante PLS VDF", "unidad": "%", "bajoCritico": 0, "bajoAlerta": 40, "altoAlerta": 95, "altoCritico": 100 },
-    { "key": "bbaFlotantePlsAmp", "variable": "bbaFlotantePlsAmp", "nombre": "BBA Flotante PLS Corriente", "unidad": "A", "bajoCritico": 0, "bajoAlerta": 50, "altoAlerta": 140, "altoCritico": 170 },
-    { "key": "drop3PlsPorcentaje", "variable": "drop3PlsPorcentaje", "nombre": "DROP 3 PLS Apertura", "unidad": "%", "bajoCritico": 0, "bajoAlerta": 10, "altoAlerta": 100, "altoCritico": 100 },
-    { "key": "drop3IlsPorcentaje", "variable": "drop3IlsPorcentaje", "nombre": "DROP 3 ILS Apertura", "unidad": "%", "bajoCritico": 0, "bajoAlerta": 10, "altoAlerta": 100, "altoCritico": 100 }
+    { "key": "bbaFlotantePlsAmp", "variable": "bbaFlotantePlsAmp", "nombre": "BBA Flotante PLS Corriente", "unidad": "A", "bajoCritico": 0, "bajoAlerta": 50, "altoAlerta": 140, "altoCritico": 170 }
   ]
 }

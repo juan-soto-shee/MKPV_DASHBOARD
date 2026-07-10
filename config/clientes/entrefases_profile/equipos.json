@@ -5,7 +5,6 @@
     { "id": "bba100", "nombre": "BBA 100", "tipo": "pump", "aliases": ["bba 100", "bba100"], "variablePrincipal": "bba100Flujo" },
     { "id": "dump_mercedes", "nombre": "Dump Mercedes", "tipo": "transfer", "aliases": ["dump mercedes"], "variablePrincipal": "" },
     { "id": "bba_flotante_pls", "nombre": "BBA Flotante PLS", "tipo": "pump", "aliases": ["bba flotante pls"], "variablePrincipal": "bbaFlotantePlsVdf" },
-    { "id": "piscina_ils", "nombre": "Piscina ILS", "tipo": "piscina", "aliases": ["piscina ils", "ils"], "variablePrincipal": "piscinaIlsNivel" },
-    { "id": "drops", "nombre": "Drops PLS/ILS", "tipo": "valve_group", "aliases": ["drops", "drops pls ils"], "variablePrincipal": "drop3PlsPorcentaje" }
+    { "id": "piscina_ils", "nombre": "Piscina ILS", "tipo": "piscina", "aliases": ["piscina ils", "ils"], "variablePrincipal": "piscinaIlsNivel" }
   ]
 }

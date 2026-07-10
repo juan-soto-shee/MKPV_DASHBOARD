@@ -5,7 +5,6 @@
     { "id": "bba100", "nombre": "BBA 100", "tipo": "pump", "orden": 3, "variablesPrincipales": ["bba100Estado", "bba100Flujo"], "estadoPrincipal": "bba100Estado", "visible": true },
     { "id": "dump_mercedes", "nombre": "Dump Mercedes", "tipo": "transfer", "orden": 4, "variablesPrincipales": [], "estadoPrincipal": "", "visible": true },
     { "id": "bba_flotante_pls", "nombre": "BBA Flotante PLS", "tipo": "pump", "orden": 5, "variablesPrincipales": ["bbaFlotantePlsVdf", "bbaFlotantePlsAmp"], "estadoPrincipal": "bbaFlotantePlsVdf", "visible": true },
-    { "id": "piscina_ils", "nombre": "Piscina ILS", "tipo": "pool", "orden": 6, "variablesPrincipales": ["piscinaIlsNivel"], "estadoPrincipal": "piscinaIlsNivel", "visible": true },
-    { "id": "drops", "nombre": "Drops PLS/ILS", "tipo": "valve_group", "orden": 7, "variablesPrincipales": ["drop1Pls", "drop3PlsPorcentaje", "drop3IlsPorcentaje"], "estadoPrincipal": "drop1Pls", "visible": true }
+    { "id": "piscina_ils", "nombre": "Piscina ILS", "tipo": "pool", "orden": 6, "variablesPrincipales": ["piscinaIlsNivel"], "estadoPrincipal": "piscinaIlsNivel", "visible": true }
   ]
 }
