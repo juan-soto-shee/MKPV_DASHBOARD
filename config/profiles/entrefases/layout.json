@@ -1,0 +1,34 @@
+{
+  "secciones": {
+    "mapaProceso": true,
+    "tendencias": true,
+    "resumenMovil": true,
+    "alarmas": true,
+    "historial": true,
+    "administracion": true
+  },
+  "periodos": [
+    { "horas": 24, "etiqueta": "24 h", "titulo": "Últimas 24 horas" },
+    { "horas": 168, "etiqueta": "7 días", "titulo": "Últimos 7 días" },
+    { "horas": 720, "etiqueta": "30 días", "titulo": "Últimos 30 días" }
+  ],
+  "textos": {
+    "estadoGeneral": "Estado general de planta",
+    "ultimaActualizacion": "Última actualización",
+    "turnoActual": "Turno actual",
+    "procesoEyebrow": "Proceso Entrefases",
+    "vistaOperacional": "VISTA OPERACIONAL PLANTA ENTREFASES",
+    "tendenciasEyebrow": "Comportamiento temporal",
+    "tendencias": "Tendencias operacionales",
+    "alarmas": "Alarmas activas",
+    "historialEyebrow": "Últimos registros",
+    "historial": "Historial operacional",
+    "sinDatos": "Sin datos",
+    "produccionTotal": "Flujo Total",
+    "estadoConsolidado": "Estado consolidado de planta"
+  },
+  "ordenEquiposMapa": ["PLANTA", "Piscina PLS", "BBA 110", "BBA 100", "BBA Flotante PLS", "Piscina ILS"],
+  "equiposResumenMovil": ["BBA 110", "Piscina PLS", "Piscina ILS", "BBA 100"],
+  "variablesTendencia": ["bba110Flujo", "bba100Flujo", "bba110Vdf", "bba110Hz", "bba110Amp", "bbaFlotantePlsVdf", "bbaFlotantePlsAmp", "piscinaPlsNivel", "piscinaIlsNivel"],
+  "variablesHistorial": ["bba110Estado", "bba110Flujo", "bba100Estado", "bba100Flujo", "piscinaPlsNivel", "piscinaIlsNivel", "bba110Vdf", "bba110Amp", "bba110Hz", "bbaFlotantePlsVdf", "bbaFlotantePlsAmp"]
+}

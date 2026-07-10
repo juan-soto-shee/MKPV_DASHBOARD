@@ -114,7 +114,7 @@ async function continueReset(elements) {
 
   elements.continueResetButton.disabled = true;
   elements.cancelResetButton.disabled = true;
-  elements.resetDialogMessage.textContent = `Eliminando documentos de ${clientConfig.identity.firebase.coleccionRegistros} para ${clientConfig.activeClient}...`;
+    elements.resetDialogMessage.textContent = `Eliminando documentos de ${clientConfig.identity.firebase.coleccionRegistros} para ${clientConfig.clienteId}...`;
   try {
     await deleteAllLeachRecords((deleted) => {
       elements.resetDialogMessage.textContent = `${deleted} registros eliminados...`;

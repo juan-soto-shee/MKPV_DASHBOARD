@@ -1,0 +1,13 @@
+{
+  "variables": [
+    { "key": "flujoPLSPila1", "variable": "flujoPLS", "equipo": "Pila 1", "nombre": "Flujo PLS Pila 1", "unidad": "m3/h", "bajoCritico": 550, "bajoAlerta": 650, "altoAlerta": 950, "altoCritico": 1050 },
+    { "key": "flujoPLSPila2", "variable": "flujoPLS", "equipo": "Pila 2", "nombre": "Flujo PLS Pila 2", "unidad": "m3/h", "bajoCritico": 550, "bajoAlerta": 650, "altoAlerta": 950, "altoCritico": 1050 },
+    { "key": "flujoPLSPila3", "variable": "flujoPLS", "equipo": "Pila 3", "nombre": "Flujo PLS Pila 3", "unidad": "m3/h", "bajoCritico": 550, "bajoAlerta": 650, "altoAlerta": 950, "altoCritico": 1050 },
+    { "key": "flujoPLS", "variable": "flujoPLS", "nombre": "Flujo PLS Total", "unidad": "m3/h", "bajoCritico": 550, "bajoAlerta": 650, "altoAlerta": 6000, "altoCritico": 6500 },
+    { "key": "flujoRefino", "variable": "flujoRefino", "nombre": "Flujo Refino", "unidad": "m3/h", "bajoCritico": 500, "bajoAlerta": 620, "altoAlerta": 900, "altoCritico": 1000 },
+    { "key": "acidezRefino", "variable": "acidezRefino", "nombre": "Acidez Refino", "unidad": "g/L", "bajoCritico": 3, "bajoAlerta": 5, "altoAlerta": 12, "altoCritico": 15 },
+    { "key": "cuPls", "variable": "cuPls", "nombre": "Cu2+ PLS", "unidad": "g/L", "bajoCritico": 0.4, "bajoAlerta": 0.7, "altoAlerta": 1.8, "altoCritico": 2.2 },
+    { "key": "nivelPiscinaRefino", "variable": "nivelPiscinaRefino", "nombre": "Nivel Piscina Refino", "unidad": "%", "bajoCritico": 20, "bajoAlerta": 35, "altoAlerta": 82, "altoCritico": 92 },
+    { "key": "nivelPiscinaPLS", "variable": "nivelPiscinaPLS", "nombre": "Nivel Piscina PLS", "unidad": "%", "bajoCritico": 20, "bajoAlerta": 35, "altoAlerta": 82, "altoCritico": 92 }
+  ]
+}

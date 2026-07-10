@@ -1,0 +1,10 @@
+{
+  "implementationId": "demo_lixiviacion",
+  "clienteId": "demo_lixiviacion",
+  "clientName": "MetKinetics Demo",
+  "siteName": "Faena Demo",
+  "processName": "Lixiviacion",
+  "profileId": "lixiviacion",
+  "version": "1.0",
+  "enabled": true
+}

@@ -1,0 +1,82 @@
+{
+  "variables": [
+    {
+      "key": "flujoPLS",
+      "nombre": "Flujo PLS",
+      "nombreTotal": "Flujo PLS Total",
+      "unidad": "m3/h",
+      "decimales": 0,
+      "color": "#168aa0",
+      "canvasId": "flowTrendChart",
+      "analysisId": "flowTrendAnalysis",
+      "grupo": "PLS",
+      "agregacion": "suma",
+      "porEquipo": true,
+      "aliases": ["flujoPLS", "flujoRiego", "Flujo de riego"]
+    },
+    {
+      "key": "cuPls",
+      "nombre": "Cu2+ PLS",
+      "unidad": "g/L",
+      "decimales": 2,
+      "color": "#22c55e",
+      "canvasId": "cuTrendChart",
+      "analysisId": "cuTrendAnalysis",
+      "grupo": "PLS",
+      "agregacion": "promedioPonderado",
+      "ponderador": "flujoPLS",
+      "aliases": ["cuPls", "cuPLS", "Cu PLS"]
+    },
+    {
+      "key": "flujoRefino",
+      "nombre": "Flujo Refino",
+      "unidad": "m3/h",
+      "decimales": 0,
+      "color": "#38bdf8",
+      "canvasId": "refinoFlowTrendChart",
+      "analysisId": "refinoFlowTrendAnalysis",
+      "grupo": "REFINO",
+      "agregacion": "suma",
+      "aliases": ["flujoRefino"]
+    },
+    {
+      "key": "acidezRefino",
+      "nombre": "Acidez Refino",
+      "unidad": "g/L",
+      "decimales": 2,
+      "color": "#4e9aaa",
+      "canvasId": "acidTrendChart",
+      "analysisId": "acidTrendAnalysis",
+      "grupo": "REFINO",
+      "agregacion": "ultimo",
+      "seriePorEquipoEnPlanta": true,
+      "aliases": ["acidezRefino", "acidoLibre", "Acidez"]
+    },
+    {
+      "key": "nivelPiscinaPLS",
+      "nombre": "Nivel Piscina PLS",
+      "nombreCorto": "Nivel PLS",
+      "unidad": "%",
+      "decimales": 0,
+      "color": "#06b6d4",
+      "canvasId": "plsLevelTrendChart",
+      "analysisId": "plsLevelTrendAnalysis",
+      "grupo": "NIVELES DE PISCINAS",
+      "agregacion": "ultimo",
+      "aliases": ["nivelPiscinaPLS", "Nivel PLS"]
+    },
+    {
+      "key": "nivelPiscinaRefino",
+      "nombre": "Nivel Piscina Refino",
+      "nombreCorto": "Nivel Refino",
+      "unidad": "%",
+      "decimales": 0,
+      "color": "#a78bfa",
+      "canvasId": "refinoLevelTrendChart",
+      "analysisId": "refinoLevelTrendAnalysis",
+      "grupo": "NIVELES DE PISCINAS",
+      "agregacion": "ultimo",
+      "aliases": ["nivelPiscinaRefino", "Nivel Refino"]
+    }
+  ]
+}

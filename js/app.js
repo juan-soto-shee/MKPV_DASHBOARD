@@ -333,8 +333,8 @@ function applyClientConfiguration() {
   setText("systemVersion", identity.version);
   setText("firebaseProject", identity.firebase.proyectoVisible);
   setText("alarmConfigPath", `${identity.firebase.coleccionConfiguracion}/${identity.firebase.documentoConfiguracion}`);
-  setText("recordsCollectionLabel", `Registros asociados (${clientConfig.activeClient})`);
-  setText("resetRecordsCollection", `${identity.firebase.coleccionRegistros} para ${clientConfig.activeClient}`);
+  setText("recordsCollectionLabel", `Registros asociados (${clientConfig.clienteId})`);
+  setText("resetRecordsCollection", `${identity.firebase.coleccionRegistros} para ${clientConfig.clienteId}`);
   renderActiveProfile(profile);
 
   const periodFilter = document.getElementById("periodFilter");
@@ -387,6 +387,8 @@ function renderActiveProfile(profile) {
   setText("activeProfileClient", profile.cliente);
   setText("activeProfileSite", profile.faena);
   setText("activeProfileProcess", profile.proceso);
+  setText("activeImplementationId", profile.implementationId);
+  setText("activeOperationalProfile", profile.profileId);
   setText("activeProfileClientId", profile.clienteId);
   setText("activeProfileConfigVersion", profile.versionConfiguracion);
   setText("bulkImportTargetClient", profile.cliente);

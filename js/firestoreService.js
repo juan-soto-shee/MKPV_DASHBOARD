@@ -13,7 +13,7 @@ import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
 
 const RECORDS_COLLECTION = clientConfig.identity.firebase.coleccionRegistros;
-const CLIENTE_ACTIVO = clientConfig.activeClient;
+const CLIENTE_ACTIVO = clientConfig.clienteId;
 const LEGACY_SCAN_LIMIT = 1000;
 
 export function startRealtimeListener(callback, onConnectionChange = () => {}) {

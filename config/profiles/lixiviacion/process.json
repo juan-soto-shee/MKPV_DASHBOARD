@@ -1,0 +1,9 @@
+{
+  "equipos": [
+    { "id": "pila_1", "nombre": "Pila 1", "tipo": "pila", "aliases": ["pila 1", "riego", "apilamiento"], "variablePrincipal": "flujoPLS" },
+    { "id": "pila_2", "nombre": "Pila 2", "tipo": "pila", "aliases": ["pila 2"], "variablePrincipal": "flujoPLS" },
+    { "id": "pila_3", "nombre": "Pila 3", "tipo": "pila", "aliases": ["pila 3"], "variablePrincipal": "flujoPLS" },
+    { "id": "piscina_pls", "nombre": "Piscina PLS", "tipo": "piscina", "aliases": ["piscina pls", "pls"], "variablePrincipal": "nivelPiscinaPLS" },
+    { "id": "piscina_refino", "nombre": "Piscina Refino", "tipo": "piscina", "aliases": ["piscina refino", "refino"], "variablePrincipal": "nivelPiscinaRefino" }
+  ]
+}

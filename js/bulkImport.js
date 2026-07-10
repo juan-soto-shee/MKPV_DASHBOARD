@@ -3,7 +3,7 @@ import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-6";
 import { insertImportedRecords } from "./firestoreService.js?v=20260709-7";
 import { clientConfig } from "./clientConfig.js";
 
-const ENTREFASES_CLIENT_ID = "entrefases_profile";
+const ENTREFASES_PROFILE_ID = "entrefases";
 const ENTREFASES_AREA = "Planta Entrefases";
 const ENTREFASES_SUBAREA = "Entrefases";
 const ENTREFASES_PREFERRED_SHEET = "BD_Estructura_Ancha";
@@ -164,8 +164,8 @@ async function readWorkbookData(file) {
 }
 
 function prepareEntrefasesRecords(workbookData, config) {
-  if (clientConfig.activeClient !== ENTREFASES_CLIENT_ID) {
-    throw new Error(`El perfil activo debe ser ${ENTREFASES_CLIENT_ID}. Perfil actual: ${clientConfig.activeClient}.`);
+  if (clientConfig.profileId !== ENTREFASES_PROFILE_ID) {
+    throw new Error(`El perfil operacional activo debe ser ${ENTREFASES_PROFILE_ID}. Perfil actual: ${clientConfig.profileId}.`);
   }
 
   const missing = ENTREFASES_COLUMNS.filter((column) => !hasColumn(workbookData.rows, column));
@@ -186,7 +186,7 @@ function prepareEntrefasesRecords(workbookData, config) {
   });
 
   return {
-    mode: "entrefases_profile",
+    mode: "entrefases",
     sheetName: workbookData.sheetName,
     totalRows: workbookData.rows.length,
     validRecords,
@@ -236,7 +236,8 @@ function buildEntrefasesRecord(row, config) {
   const estado = getWorstSeverity(alarmasActivas);
 
   return {
-    clienteId: ENTREFASES_CLIENT_ID,
+    clienteId: clientConfig.clienteId,
+    profileId: clientConfig.profileId,
     area: ENTREFASES_AREA,
     subarea: ENTREFASES_SUBAREA,
     proceso: ENTREFASES_AREA,
@@ -266,7 +267,8 @@ function buildGenericRecord(row, config) {
   const estado = getWorstSeverity(alarmasActivas);
 
   return {
-    clienteId: clientConfig.activeClient,
+    clienteId: clientConfig.clienteId,
+    profileId: clientConfig.profileId,
     fecha: formatDate(date),
     hora: formatTime(date),
     turno: cleanText(row.turno),
@@ -392,7 +394,7 @@ function normalizeSourceRow(sourceRow) {
 }
 
 function isEntrefasesWideSheet(rows) {
-  return clientConfig.activeClient === ENTREFASES_CLIENT_ID && hasColumn(rows, "FECHA_HORA");
+  return clientConfig.profileId === ENTREFASES_PROFILE_ID && hasColumn(rows, "FECHA_HORA");
 }
 
 function hasColumn(rows, expected) {

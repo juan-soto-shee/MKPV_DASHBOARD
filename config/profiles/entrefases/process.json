@@ -1,0 +1,28 @@
+{
+  "nombreProceso": "Planta Entrefases",
+  "tipoProceso": "entrefases",
+  "equipos": [
+    { "id": "piscina_pls", "nombre": "Piscina PLS", "tipo": "pool" },
+    { "id": "bba110", "nombre": "BBA 110", "tipo": "pump" },
+    { "id": "bba100", "nombre": "BBA 100", "tipo": "pump" },
+    { "id": "dump_mercedes", "nombre": "Dump Mercedes", "tipo": "transfer" },
+    { "id": "bba_flotante_pls", "nombre": "BBA Flotante PLS", "tipo": "pump" },
+    { "id": "piscina_ils", "nombre": "Piscina ILS", "tipo": "pool" }
+  ],
+  "relaciones": [
+    { "desde": "piscina_pls", "hacia": "bba110" },
+    { "desde": "piscina_pls", "hacia": "bba100" },
+    { "desde": "bba110", "hacia": "dump_mercedes" },
+    { "desde": "bba100", "hacia": "dump_mercedes" },
+    { "desde": "dump_mercedes", "hacia": "bba_flotante_pls" },
+    { "desde": "bba_flotante_pls", "hacia": "piscina_ils" }
+  ],
+  "variablesPorEquipo": {
+    "piscina_pls": ["piscinaPlsNivel"],
+    "bba110": ["bba110Estado", "bba110Flujo", "bba110Vdf", "bba110Amp", "bba110Hz"],
+    "bba100": ["bba100Estado", "bba100Flujo"],
+    "dump_mercedes": [],
+    "bba_flotante_pls": ["bbaFlotantePlsVdf", "bbaFlotantePlsAmp"],
+    "piscina_ils": ["piscinaIlsNivel"]
+  }
+}
