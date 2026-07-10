@@ -4,7 +4,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
-import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-6";
+import { deleteAllLeachRecords } from "./firestoreService.js?v=20260709-8";
 import { clientConfig } from "./clientConfig.js";
 
 const ADMIN_PASSWORD = "Met2026!";
@@ -20,6 +20,7 @@ const editableFields = ["bajoCritico", "bajoAlerta", "altoAlerta", "altoCritico"
 let configState = {};
 let configListeners = [];
 let adminStats = { count: 0, lastRecord: null, lastSync: null, connected: false, hasLegacyRecords: false };
+let alarmConfigLoaded = false;
 
 export function initAlarmAdmin() {
   const elements = getElements();
@@ -159,6 +160,12 @@ async function unlockAdmin(elements) {
 }
 
 async function loadAlarmConfig(elements) {
+  if (alarmConfigLoaded) {
+    elements.alarmAdminMessage.textContent = "Configuracion cargada en memoria.";
+    elements.saveAlarmConfigButton.disabled = false;
+    return;
+  }
+
   try {
     const configRef = doc(db, COLLECTION_NAME, DOCUMENT_ID);
     const snapshot = await getDoc(configRef);
@@ -179,6 +186,7 @@ async function loadAlarmConfig(elements) {
     elements.alarmAdminMessage.textContent = snapshot.exists() || legacySnapshot?.exists()
       ? `Configuracion cargada desde ${snapshot.exists() ? "configuration" : "alarm_config (compatibilidad)"}.`
       : "Configuracion inicial lista para guardar.";
+    alarmConfigLoaded = true;
   } catch (error) {
     console.warn("No se pudo cargar la configuracion:", error.message);
     configState = buildDefaultConfig();
@@ -208,6 +216,7 @@ async function saveAlarmConfig(elements) {
     // Android leera configuration/lixiviacion para calcular alarmas automaticamente.
     await setDoc(doc(db, COLLECTION_NAME, DOCUMENT_ID), nextConfig, { merge: true });
     configState = nextConfig;
+    alarmConfigLoaded = true;
     renderAlarmRows(elements);
     notifyConfigListeners();
     elements.alarmAdminMessage.textContent = "Configuracion guardada correctamente.";

@@ -1,8 +1,8 @@
-import { inspectLegacyRecords, startRealtimeListener } from "./firestoreService.js?v=20260709-7";
+import { getRecordsForPeriod, inspectLegacyRecords, startRealtimeListener } from "./firestoreService.js?v=20260709-8";
 import { updateCharts } from "./charts.js?v=20260709-1";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
-import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-6";
-import { initBulkImport } from "./bulkImport.js?v=20260709-7";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260709-8";
+import { initBulkImport } from "./bulkImport.js?v=20260709-8";
 import { clientConfig } from "./clientConfig.js";
 
 applyClientConfiguration();
@@ -13,7 +13,8 @@ const state = {
   selectedArea: PLANT_AREA,
   selectedPeriodHours: clientConfig.layout.periodos[0]?.horas || 24,
   connected: false,
-  hasLegacyRecords: false
+  hasLegacyRecords: false,
+  realtimeRecords: []
 };
 
 const elements = {
@@ -34,21 +35,19 @@ initAlarmAdmin();
 initBulkImport();
 onAlarmConfigChange(() => render());
 
-inspectLegacyRecords().then((result) => {
-  state.hasLegacyRecords = result.hasLegacyRecords;
-  updateAdminStats({ hasLegacyRecords: result.hasLegacyRecords });
-});
-
 startRealtimeListener((records) => {
   const normalizedRecords = normalizeRecords(records);
+  const legacyInspection = inspectLegacyRecords(records);
+  state.realtimeRecords = normalizedRecords;
   state.records = normalizedRecords;
+  state.hasLegacyRecords = legacyInspection.hasLegacyRecords;
   state.sourceLabel = records.length ? "Tiempo real" : "Sin registros para el perfil activo";
   updateAdminStats({
     count: records.length,
     lastRecord: normalizedRecords[0]?.timestampCreacion || null,
     lastSync: new Date().toISOString(),
     connected: state.connected,
-    hasLegacyRecords: state.hasLegacyRecords
+    hasLegacyRecords: legacyInspection.hasLegacyRecords
   });
 
   render();
@@ -64,8 +63,25 @@ function bindControls() {
 
     state.selectedPeriodHours = Number(button.dataset.period);
     setActiveButton(elements.periodFilter, button);
-    render();
+    loadPeriodRecords(state.selectedPeriodHours).then(() => render());
   });
+}
+
+async function loadPeriodRecords(hours) {
+  try {
+    const records = await getRecordsForPeriod(hours);
+    state.records = normalizeRecords(records);
+    updateAdminStats({
+      count: state.records.length,
+      lastRecord: state.records[0]?.timestampCreacion || state.realtimeRecords[0]?.timestampCreacion || null,
+      lastSync: new Date().toISOString(),
+      connected: state.connected,
+      hasLegacyRecords: state.hasLegacyRecords
+    });
+  } catch (error) {
+    console.warn("No se pudo cargar el rango solicitado; se usaran datos en memoria:", error.message);
+    state.records = state.realtimeRecords;
+  }
 }
 
 function setActiveButton(group, activeButton) {

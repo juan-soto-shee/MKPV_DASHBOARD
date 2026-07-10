@@ -1,6 +1,6 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-6";
-import { insertImportedRecords } from "./firestoreService.js?v=20260709-7";
+import { getAlarmConfig } from "./alarmAdmin.js?v=20260709-8";
+import { insertImportedRecords } from "./firestoreService.js?v=20260709-8";
 import { clientConfig } from "./clientConfig.js";
 
 const ENTREFASES_PROFILE_ID = "entrefases";
