@@ -3,8 +3,7 @@ const DEFAULT_FIREBASE_CONFIG = Object.freeze({
   coleccionRegistros: "leach_records",
   coleccionConfiguracion: "configuration",
   coleccionConfiguracionLegacy: "alarm_config",
-  documentoConfiguracion: "lixiviacion",
-  proyectoVisible: "metkinetics-leachview"
+  documentoConfiguracion: "lixiviacion"
 });
 
 async function fetchJson(path) {
