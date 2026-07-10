@@ -454,7 +454,6 @@ function renderAdminStats() {
 
 function getSystemStatus() {
   if (!adminStats.connected) return "🔴 Error de comunicación";
-  if (!adminStats.count) return "🟡 No existen registros para esta implementación";
   return "🟢 Conectado";
 }
 

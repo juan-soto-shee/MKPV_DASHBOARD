@@ -4,7 +4,6 @@ import {
   getDocs,
   limit,
   onSnapshot,
-  orderBy,
   query,
   where,
   writeBatch
@@ -31,6 +30,7 @@ let lastRealtimeRecords = [];
 const recordsCache = new Map();
 
 export function startRealtimeListener(callback, onConnectionChange = () => {}) {
+  console.info("[PlantView] clienteId activo:", CLIENTE_ACTIVO);
   if (activeListener && activeListenerClientId === CLIENTE_ACTIVO) {
     debugLog("listener reutilizado", { clienteId: CLIENTE_ACTIVO });
     callback(lastRealtimeRecords);
@@ -42,24 +42,17 @@ export function startRealtimeListener(callback, onConnectionChange = () => {}) {
 
   const recordsQuery = query(
     collection(db, RECORDS_COLLECTION),
-    where("clienteId", "==", CLIENTE_ACTIVO),
-    orderBy("timestampCreacion", "desc"),
-    limit(REALTIME_LIMIT)
+    where("clienteId", "==", CLIENTE_ACTIVO)
   );
 
-  debugLog("listener iniciado", {
+  console.info("[PlantView] consulta Firestore iniciada", {
     collection: RECORDS_COLLECTION,
-    clienteId: CLIENTE_ACTIVO,
-    orderBy: "timestampCreacion desc",
-    limit: REALTIME_LIMIT
+    clienteId: CLIENTE_ACTIVO
   });
 
   activeListenerClientId = CLIENTE_ACTIVO;
   activeListener = onSnapshot(recordsQuery, (snapshot) => {
-    const records = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const records = snapshot.docs.map(toRecord).sort(compareRecordsNewestFirst);
 
     lastRealtimeRecords = records;
     cacheRecords(realtimeCacheKey(), records);
@@ -67,10 +60,11 @@ export function startRealtimeListener(callback, onConnectionChange = () => {}) {
       clienteId: CLIENTE_ACTIVO,
       count: snapshot.size
     });
+    console.info("[PlantView] registros encontrados:", snapshot.size);
     onConnectionChange(true);
     callback(records);
   }, (error) => {
-    console.warn("Error de comunicacion:", error.message);
+    console.error("[PlantView] error Firestore:", error);
     onConnectionChange(false);
     callback([]);
   });
@@ -106,20 +100,15 @@ export async function getRecordsForPeriod(hours) {
     key: cacheKey,
     collection: RECORDS_COLLECTION,
     clienteId: CLIENTE_ACTIVO,
-    orderBy: "timestampCreacion desc",
     limit: queryLimit
   });
 
   const snapshot = await getDocs(query(
     collection(db, RECORDS_COLLECTION),
     where("clienteId", "==", CLIENTE_ACTIVO),
-    orderBy("timestampCreacion", "desc"),
     limit(queryLimit)
   ));
-  const records = snapshot.docs.map((record) => ({
-    id: record.id,
-    ...record.data()
-  }));
+  const records = snapshot.docs.map(toRecord).sort(compareRecordsNewestFirst);
   cacheRecords(cacheKey, records);
   return records;
 }
@@ -313,4 +302,24 @@ function timestampKey(value) {
 function timestampMillis(value) {
   const key = timestampKey(value);
   return key ? Number(key) : NaN;
+}
+
+function toRecord(record) {
+  return { id: record.id, ...record.data() };
+}
+
+function compareRecordsNewestFirst(left, right) {
+  return recordTimestampMillis(right) - recordTimestampMillis(left);
+}
+
+function recordTimestampMillis(record) {
+  const directTimestamp = timestampMillis(record.timestampCreacion ?? record.timestamp);
+  if (Number.isFinite(directTimestamp)) return directTimestamp;
+  if (!record.fecha) return 0;
+  const dateText = String(record.fecha).trim();
+  const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(dateText)
+    ? dateText
+    : dateText.replace(/^(\d{2})[-/](\d{2})[-/](\d{4})$/, "$3-$2-$1");
+  const parsed = new Date(`${isoDate}T${record.hora || "00:00"}`);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 }

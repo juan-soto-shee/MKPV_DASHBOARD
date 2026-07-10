@@ -1,8 +1,8 @@
-import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260710-2";
+import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260710-3";
 import { updateCharts } from "./charts.js?v=20260709-1";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
-import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260710-2";
-import { initBulkImport } from "./bulkImport.js?v=20260710-2";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260710-3";
+import { initBulkImport } from "./bulkImport.js?v=20260710-4";
 import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 
@@ -269,7 +269,7 @@ function updateMobilePeriodTitle() {
 function normalizeRecords(records) {
   return records
     .map((record) => {
-      const timestampCreacion = normalizeTimestamp(record.timestampCreacion, record.fecha, record.hora);
+      const timestampCreacion = normalizeTimestamp(record.timestampCreacion ?? record.timestamp, record.fecha, record.hora);
       const subarea = normalizeSubarea(record.subarea || record.area);
 
       const normalizedRecord = {
@@ -302,7 +302,11 @@ function normalizeTimestamp(value, fecha, hora) {
     if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
   }
   if (fecha && hora) {
-    const parsed = new Date(`${fecha}T${hora}`);
+    const dateText = String(fecha).trim();
+    const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(dateText)
+      ? dateText
+      : dateText.replace(/^(\d{2})[-/](\d{2})[-/](\d{4})$/, "$3-$2-$1");
+    const parsed = new Date(`${isoDate}T${hora}`);
     if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
   }
   return new Date().toISOString();

@@ -1,5 +1,5 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { getAlarmConfig } from "./alarmAdmin.js?v=20260710-2";
+import { getAlarmConfig } from "./alarmAdmin.js?v=20260710-3";
 import { insertImportedRecords } from "./firestoreService.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 
@@ -38,7 +38,7 @@ const EXPECTED_COLUMNS = [
   "fecha", "hora", "turno", "area", "subarea", "operador",
   ...clientConfig.variables.map((variable) => variable.key), "observacion"
 ];
-const REQUIRED_COLUMNS = ["fecha", "hora", "subarea"];
+const REQUIRED_COLUMNS = ["fecha", "hora", "subarea", ...clientConfig.variables.map((variable) => variable.key)];
 const VALID_SUBAREAS = new Map(clientConfig.equipment
   .filter((item) => item.tipo === "pila")
   .flatMap((item) => [item.nombre, ...(item.aliases || [])]
@@ -170,6 +170,8 @@ function prepareEntrefasesRecords(workbookData, config) {
 
   const missing = ENTREFASES_COLUMNS.filter((column) => !hasColumn(workbookData.rows, column));
   if (missing.length) throw new Error(`Faltan columnas obligatorias: ${missing.join(", ")}.`);
+  const unknown = getUnknownColumns(workbookData.rows, ENTREFASES_COLUMNS);
+  if (unknown.length) throw new Error(`Columnas desconocidas para Entrefases: ${unknown.join(", ")}.`);
 
   const validRecords = [];
   const errors = [];
@@ -197,6 +199,8 @@ function prepareEntrefasesRecords(workbookData, config) {
 function prepareGenericRecords(workbookData, config) {
   const missing = REQUIRED_COLUMNS.filter((column) => !hasColumn(workbookData.rows, column));
   if (missing.length) throw new Error(`Faltan columnas obligatorias: ${missing.join(", ")}.`);
+  const unknown = getUnknownColumns(workbookData.rows, EXPECTED_COLUMNS);
+  if (unknown.length) throw new Error(`Columnas desconocidas para ${clientConfig.profileId}: ${unknown.join(", ")}.`);
 
   const validRecords = [];
   const errors = [];
@@ -236,8 +240,12 @@ function buildEntrefasesRecord(row, config) {
   const estado = getWorstSeverity(alarmasActivas);
 
   return {
+    implementationId: clientConfig.implementationId,
     clienteId: clientConfig.clienteId,
     profileId: clientConfig.profileId,
+    clientName: clientConfig.clientName,
+    siteName: clientConfig.siteName,
+    processName: clientConfig.processName,
     area: ENTREFASES_AREA,
     subarea: ENTREFASES_SUBAREA,
     proceso: ENTREFASES_AREA,
@@ -267,8 +275,12 @@ function buildGenericRecord(row, config) {
   const estado = getWorstSeverity(alarmasActivas);
 
   return {
+    implementationId: clientConfig.implementationId,
     clienteId: clientConfig.clienteId,
     profileId: clientConfig.profileId,
+    clientName: clientConfig.clientName,
+    siteName: clientConfig.siteName,
+    processName: clientConfig.processName,
     fecha: formatDate(date),
     hora: formatTime(date),
     turno: cleanText(row.turno) || getOperationalShift(date),
@@ -399,6 +411,11 @@ function isEntrefasesWideSheet(rows) {
 
 function hasColumn(rows, expected) {
   return Object.keys(rows[0] || {}).some((header) => normalizeHeader(header) === normalizeHeader(expected));
+}
+
+function getUnknownColumns(rows, allowedColumns) {
+  const allowed = new Set(allowedColumns.map(normalizeHeader));
+  return Object.keys(rows[0] || {}).filter((header) => !allowed.has(normalizeHeader(header)));
 }
 
 function parseFlexibleDateTime(value) {
