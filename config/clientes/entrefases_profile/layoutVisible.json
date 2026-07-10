@@ -27,8 +27,8 @@
     "produccionTotal": "Flujo Total",
     "estadoConsolidado": "Estado consolidado de planta"
   },
-  "ordenEquiposMapa": ["PLANTA", "Piscina PLS", "BBA 110", "BBA 100", "Dump Mercedes", "BBA Flotante PLS", "Piscina ILS", "Drops PLS/ILS"],
-  "equiposResumenMovil": ["BBA 110", "BBA 100", "Piscina PLS", "Piscina ILS"],
-  "variablesTendencia": ["bba110Flujo", "bba100Flujo", "piscinaPlsNivel", "piscinaIlsNivel", "bba110Vdf", "bba110Amp", "bba110Hz", "bbaFlotantePlsVdf", "bbaFlotantePlsAmp", "drop3PlsPorcentaje", "drop3IlsPorcentaje"],
-  "variablesHistorial": ["bba110Flujo", "bba100Flujo", "piscinaPlsNivel", "piscinaIlsNivel", "bba110Vdf", "bba110Amp", "bba110Hz", "bbaFlotantePlsVdf", "bbaFlotantePlsAmp", "drop3PlsPorcentaje", "drop3IlsPorcentaje"]
+  "ordenEquiposMapa": ["PLANTA", "Piscina PLS", "BBA 110", "BBA 100", "BBA Flotante PLS", "Piscina ILS", "Drops PLS/ILS"],
+  "equiposResumenMovil": ["BBA 110", "Piscina PLS", "Piscina ILS", "BBA 100"],
+  "variablesTendencia": ["bba110Flujo", "bba100Flujo", "bba110Vdf", "bba110Hz", "bba110Amp", "bbaFlotantePlsVdf", "bbaFlotantePlsAmp", "piscinaPlsNivel", "piscinaIlsNivel", "drop3PlsPorcentaje", "drop3IlsPorcentaje"],
+  "variablesHistorial": ["bba110Estado", "bba110Flujo", "bba100Estado", "bba100Flujo", "piscinaPlsNivel", "piscinaIlsNivel", "bba110Vdf", "bba110Amp", "bba110Hz", "bbaFlotantePlsVdf", "bbaFlotantePlsAmp", "drop1Pls", "drop3PlsPorcentaje", "drop3IlsPorcentaje"]
 }
