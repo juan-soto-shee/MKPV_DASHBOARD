@@ -98,6 +98,8 @@ Las rutas antiguas bajo `config/clientes/` y `config/activeClient.json` se conse
 
 El proyecto usa rutas relativas y no necesita un proceso de compilación, por lo que puede publicarse directamente en GitHub Pages.
 
+GitHub Pages está configurado para publicar únicamente la rama `main` desde la raíz (`/`). Subir cambios a una rama de trabajo no actualiza el sitio público: la publicación se considera terminada solo después de integrar el pull request en `main` y comprobar que el despliegue de Pages finalizó correctamente.
+
 ```powershell
 python -m http.server 8080
 ```

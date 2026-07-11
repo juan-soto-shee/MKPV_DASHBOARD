@@ -1,7 +1,8 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { getAlarmConfig } from "./alarmAdmin.js?v=20260710-3";
-import { insertImportedRecords } from "./firestoreService.js?v=20260710-2";
+import { insertImportedRecords } from "./firestoreService.js?v=20260711-2";
 import { clientConfig } from "./clientConfig.js";
+import { normalizeDateTime } from "./dateTime.js?v=20260711-2";
 
 const ENTREFASES_PROFILE_ID = "entrefases";
 const ENTREFASES_AREA = "Planta Entrefases";
@@ -98,12 +99,18 @@ async function prepareFile(elements) {
     updateProgress(elements, 100, preparedImport.errors.length
       ? "Validación finalizada con errores."
       : "Validación finalizada. Confirme para importar.");
-    if (preparedImport.errors.length) {
-      elements.fileInfo.textContent = "No se importará porque existen errores de estructura o datos.";
+    if (!preparedImport.validRecords.length) {
+      elements.fileInfo.textContent = "No hay registros válidos para importar. Revise el detalle de errores.";
       return;
     }
 
-    elements.fileInfo.textContent = `${preparedImport.validRecords.length} registros preparados para ${clientConfig.clientProfile.cliente}.`;
+    const futureErrors = preparedImport.errors.filter((error) => error.type === "future").length;
+    elements.fileInfo.textContent = futureErrors
+      ? `Archivo rechazado: contiene ${futureErrors} fila(s) con fechas futuras. Corrija las fechas antes de importar.`
+      : preparedImport.errors.length
+      ? `${preparedImport.validRecords.length} registros preparados y ${preparedImport.errors.length} filas omitidas por error.`
+      : `${preparedImport.validRecords.length} registros preparados para ${clientConfig.clientProfile.cliente}.`;
+    if (futureErrors) return;
     openConfirm(elements, preparedImport);
   } catch (error) {
     console.error("Error preparando importación masiva:", error);
@@ -122,7 +129,7 @@ async function prepareFile(elements) {
 }
 
 async function importPreparedRecords(elements) {
-  if (!preparedImport || preparedImport.errors.length || !preparedImport.validRecords.length) return;
+  if (!preparedImport || !preparedImport.validRecords.length) return;
 
   closeConfirm(elements);
   setBusy(elements, true);
@@ -152,15 +159,31 @@ async function importPreparedRecords(elements) {
 async function readWorkbookData(file) {
   const data = await file.arrayBuffer();
   const workbook = window.XLSX.read(data, { type: "array", cellDates: true });
-  const sheetName = workbook.SheetNames.includes(ENTREFASES_PREFERRED_SHEET)
-    ? ENTREFASES_PREFERRED_SHEET
-    : workbook.SheetNames[0];
+  const sheetName = selectDataSheet(workbook);
   const sheet = workbook.Sheets[sheetName];
   if (!sheet) return { sheetName: "--", rows: [] };
+  const rows = window.XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true, dateNF: "yyyy-mm-dd hh:mm:ss" });
   return {
     sheetName,
-    rows: window.XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true, dateNF: "yyyy-mm-dd hh:mm:ss" })
+    rows
   };
+}
+
+function selectDataSheet(workbook) {
+  if (workbook.SheetNames.includes(ENTREFASES_PREFERRED_SHEET)) return ENTREFASES_PREFERRED_SHEET;
+
+  const requiredColumns = clientConfig.profileId === ENTREFASES_PROFILE_ID
+    ? ENTREFASES_COLUMNS
+    : REQUIRED_COLUMNS;
+  return workbook.SheetNames.find((name) => {
+    const matrix = window.XLSX.utils.sheet_to_json(workbook.Sheets[name], {
+      header: 1,
+      blankrows: false,
+      defval: ""
+    });
+    const headers = (matrix[0] || []).map(normalizeHeader);
+    return requiredColumns.every((column) => headers.includes(normalizeHeader(column)));
+  }) || workbook.SheetNames[0];
 }
 
 function prepareEntrefasesRecords(workbookData, config) {
@@ -170,9 +193,6 @@ function prepareEntrefasesRecords(workbookData, config) {
 
   const missing = ENTREFASES_COLUMNS.filter((column) => !hasColumn(workbookData.rows, column));
   if (missing.length) throw new Error(`Faltan columnas obligatorias: ${missing.join(", ")}.`);
-  const unknown = getUnknownColumns(workbookData.rows, ENTREFASES_COLUMNS);
-  if (unknown.length) throw new Error(`Columnas desconocidas para Entrefases: ${unknown.join(", ")}.`);
-
   const validRecords = [];
   const errors = [];
 
@@ -182,7 +202,7 @@ function prepareEntrefasesRecords(workbookData, config) {
       const row = normalizeSourceRow(sourceRow);
       validRecords.push(buildEntrefasesRecord(row, config));
     } catch (error) {
-      errors.push({ row: rowNumber, detail: error.message });
+      errors.push(toRowError(rowNumber, error, "FECHA_HORA"));
     }
     updateProgress(getElements(), Math.round(((index + 1) / workbookData.rows.length) * 70), `Validando fila ${index + 1} de ${workbookData.rows.length}...`);
   });
@@ -199,9 +219,6 @@ function prepareEntrefasesRecords(workbookData, config) {
 function prepareGenericRecords(workbookData, config) {
   const missing = REQUIRED_COLUMNS.filter((column) => !hasColumn(workbookData.rows, column));
   if (missing.length) throw new Error(`Faltan columnas obligatorias: ${missing.join(", ")}.`);
-  const unknown = getUnknownColumns(workbookData.rows, EXPECTED_COLUMNS);
-  if (unknown.length) throw new Error(`Columnas desconocidas para ${clientConfig.profileId}: ${unknown.join(", ")}.`);
-
   const validRecords = [];
   const errors = [];
 
@@ -211,7 +228,7 @@ function prepareGenericRecords(workbookData, config) {
       const normalized = normalizeGenericRow(sourceRow);
       validRecords.push(buildGenericRecord(normalized, config));
     } catch (error) {
-      errors.push({ row: rowNumber, detail: error.message });
+      errors.push(toRowError(rowNumber, error, "fecha/hora"));
     }
     updateProgress(getElements(), Math.round(((index + 1) / workbookData.rows.length) * 70), `Validando fila ${index + 1} de ${workbookData.rows.length}...`);
   });
@@ -225,8 +242,20 @@ function prepareGenericRecords(workbookData, config) {
   };
 }
 
+function toRowError(row, error, dateColumn) {
+  const detail = String(error?.message || "Dato inválido");
+  const isFuture = detail.startsWith("Fecha futura no permitida");
+  const isDateError = isFuture || detail.startsWith("Fecha u hora");
+  return {
+    row,
+    type: isFuture ? "future" : "validation",
+    detail: isDateError ? `${dateColumn}: ${detail}.` : detail
+  };
+}
+
 function buildEntrefasesRecord(row, config) {
-  const date = parseFlexibleDateTime(row.FECHA_HORA);
+  const normalizedDateTime = normalizeDateTime(row.FECHA_HORA);
+  const date = new Date(normalizedDateTime.timestampCreacion);
   const values = {};
 
   Object.entries(ENTREFASES_MAPPING).forEach(([sourceKey, targetKey]) => {
@@ -249,10 +278,10 @@ function buildEntrefasesRecord(row, config) {
     area: ENTREFASES_AREA,
     subarea: ENTREFASES_SUBAREA,
     proceso: ENTREFASES_AREA,
-    fecha: formatDate(date),
-    hora: formatTime(date),
+    fecha: normalizedDateTime.fecha,
+    hora: normalizedDateTime.hora,
     turno: isShiftA(date) ? "A" : "B",
-    timestampCreacion: Timestamp.fromDate(date),
+    timestampCreacion: Timestamp.fromMillis(normalizedDateTime.timestampCreacion),
     ...values,
     estado,
     alarmasActivas
@@ -260,7 +289,8 @@ function buildEntrefasesRecord(row, config) {
 }
 
 function buildGenericRecord(row, config) {
-  const date = parseDateTime(row.fecha, row.hora);
+  const normalizedDateTime = normalizeDateTime(row.fecha, row.hora);
+  const date = new Date(normalizedDateTime.timestampCreacion);
   const subarea = VALID_SUBAREAS.get(normalizeText(row.subarea));
   if (!subarea) throw new Error(`Subárea inválida. Use: ${[...new Set(VALID_SUBAREAS.values())].join(", ")}.`);
 
@@ -281,15 +311,15 @@ function buildGenericRecord(row, config) {
     clientName: clientConfig.clientName,
     siteName: clientConfig.siteName,
     processName: clientConfig.processName,
-    fecha: formatDate(date),
-    hora: formatTime(date),
+    fecha: normalizedDateTime.fecha,
+    hora: normalizedDateTime.hora,
     turno: cleanText(row.turno) || getOperationalShift(date),
     area: cleanText(row.area) || clientConfig.identity.proceso,
     subarea,
     operador: cleanText(row.operador),
     ...values,
     observacion: cleanText(row.observacion),
-    timestampCreacion: Timestamp.fromDate(date),
+    timestampCreacion: Timestamp.fromMillis(normalizedDateTime.timestampCreacion),
     estado,
     alarmasActivas
   };
@@ -418,32 +448,6 @@ function getUnknownColumns(rows, allowedColumns) {
   return Object.keys(rows[0] || {}).filter((header) => !allowed.has(normalizeHeader(header)));
 }
 
-function parseFlexibleDateTime(value) {
-  if (value instanceof Date) return assertValidDate(value);
-  if (typeof value === "number") {
-    const parsed = window.XLSX.SSF.parse_date_code(value);
-    if (!parsed) throw new Error("FECHA_HORA inválida.");
-    return assertValidDate(new Date(parsed.y, parsed.m - 1, parsed.d, parsed.H, parsed.M, Math.floor(parsed.S)));
-  }
-  const text = cleanText(value);
-  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/)
-    || text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) throw new Error("FECHA_HORA inválida.");
-  const date = match[1].length === 4
-    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6] || 0))
-    : new Date(Number(match[3]) < 100 ? Number(match[3]) + 2000 : Number(match[3]), Number(match[2]) - 1, Number(match[1]), Number(match[4]), Number(match[5]), Number(match[6] || 0));
-  return assertValidDate(date);
-}
-
-function parseDateTime(dateValue, timeValue) {
-  return parseFlexibleDateTime(`${cleanText(dateValue)} ${cleanText(timeValue)}`);
-}
-
-function assertValidDate(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) throw new Error("Fecha u hora fuera de rango.");
-  return date;
-}
-
 function parseNumber(value, column) {
   if (typeof value === "number") {
     if (Number.isFinite(value)) return value;
@@ -471,7 +475,10 @@ function getOperationalShift(date) {
 
 function openConfirm(elements, preparation) {
   if (!elements.confirmOverlay) return;
-  elements.confirmMessage.textContent = `Se importarán ${preparation.validRecords.length} registros validados desde la hoja ${preparation.sheetName}. No se borrarán datos existentes y los duplicados se omitirán por clienteId + timestampCreacion.`;
+  const omitted = preparation.errors.length
+    ? ` Se omitirán ${preparation.errors.length} filas con error mostradas en el resumen.`
+    : "";
+  elements.confirmMessage.textContent = `Se importarán ${preparation.validRecords.length} registros validados desde la hoja ${preparation.sheetName}.${omitted} No se borrarán datos existentes y los duplicados se omitirán por clienteId + timestampCreacion.`;
   elements.confirmOverlay.classList.remove("is-hidden");
   elements.confirmOverlay.setAttribute("aria-hidden", "false");
 }

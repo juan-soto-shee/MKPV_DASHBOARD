@@ -21,10 +21,10 @@ export function getWorstState(records, alarmConfig = null) {
 
 export function buildPlantRecords(records) {
   if (!pileAreas.length) {
-    return [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
+    return [...records].sort((a, b) => a.timestampCreacion - b.timestampCreacion);
   }
 
-  const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
+  const chronological = [...records].sort((a, b) => a.timestampCreacion - b.timestampCreacion);
   const groups = groupRecordsByComparableTime(chronological);
   const latestPileRecords = new Map();
   const latestValues = new Map();
@@ -259,7 +259,7 @@ function findLatestRecordWithFiniteValue(records, field) {
     if (!Number.isFinite(record[field])) return latest;
     if (!latest) return record;
 
-    return new Date(record.timestampCreacion) > new Date(latest.timestampCreacion) ? record : latest;
+    return record.timestampCreacion > latest.timestampCreacion ? record : latest;
   }, null);
 }
 
