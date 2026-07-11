@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260711-5">
+    <link rel="stylesheet" href="css/style.css?v=20260711-6">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script type="module" src="js/app.js?v=20260711-5"></script>
@@ -23,7 +23,6 @@
           </div>
         </div>
         <div class="operations-status">
-          <button id="adminAccessButton" class="admin-access-button" type="button">Administracion</button>
           <div class="plant-status">
             <span id="plantStatusDot" class="status-dot normal"></span>
             <div>
@@ -266,6 +265,11 @@
         </section>
       </main>
     </div>
+
+    <button id="adminAccessButton" class="admin-access-button admin-access-discreet" type="button" aria-label="Administraci&oacute;n" title="Administraci&oacute;n">
+      <span aria-hidden="true">&#8942;</span>
+      <span class="sr-only">Administraci&oacute;n</span>
+    </button>
 
     <div id="webAccessOverlay" class="admin-overlay web-access-overlay" aria-hidden="false">
       <section class="admin-password-panel web-access-panel" role="dialog" aria-modal="true" aria-labelledby="webAccessTitle">
