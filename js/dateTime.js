@@ -31,8 +31,8 @@ function parseValue(value, timeValue) {
   const time = String(timeValue ?? "").trim();
   if (/^\d+(?:\.\d+)?$/.test(text)) return numeric(Number(text), timeValue);
   if (/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/.test(text)) return valid(new Date(text));
-  const match = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](.*))?$/)
-    || text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2}|\d{4})(?:[ T](.*))?$/);
+  const match = text.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})(?:[ T](.*))?$/)
+    || text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})(?:[ T](.*))?$/);
   if (match) {
     const yearFirst = match[1].length === 4;
     const rawYear = Number(yearFirst ? match[1] : match[3]);

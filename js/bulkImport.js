@@ -159,14 +159,14 @@ async function readWorkbookData(file) {
   const sheet = workbook.Sheets[sheetName];
   if (!sheet) return { sheetName: "--", rows: [] };
   const rows = window.XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true, dateNF: "yyyy-mm-dd hh:mm:ss" });
-  const firstRow = rows[0] || {};
-  const firstDate = firstRow.FECHA_HORA ?? firstRow.fecha ?? firstRow.FECHA ?? "";
-  const firstTime = firstRow.hora ?? firstRow.HORA ?? "";
-  console.log("Diagnóstico XLSX primera fila:", {
-    valorFecha: firstDate,
-    tipoFecha: typeof firstDate,
-    valorHora: firstTime,
-    tipoHora: typeof firstTime
+  const row = rows[0] || {};
+  console.log({
+    filaCompleta: row,
+    valorFecha: row.fecha,
+    tipoFecha: typeof row.fecha,
+    esDate: row.fecha instanceof Date,
+    valorHora: row.hora,
+    tipoHora: typeof row.hora
   });
   return {
     sheetName,
