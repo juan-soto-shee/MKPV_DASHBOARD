@@ -821,6 +821,10 @@ h3 {
   margin-bottom: 18px;
 }
 
+.charts-grid.is-entrefases {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .trend-group-title {
   grid-column: 1 / -1;
   margin-top: 6px;
@@ -1020,6 +1024,14 @@ td {
   .alarm-row p {
     grid-column: 1 / -1;
   }
+
+  .charts-grid.is-entrefases {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .charts-grid.is-entrefases > .panel:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 820px) {
@@ -1174,6 +1186,14 @@ td {
   .charts-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+
+  .charts-grid.is-entrefases {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-grid.is-entrefases > .panel:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 
   .trend-group-title {
