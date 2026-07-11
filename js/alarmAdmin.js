@@ -6,12 +6,8 @@ import {
 import { db } from "./firebaseConfig.js";
 import { deleteAllLeachRecords } from "./firestoreService.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
-
-const ADMIN_PASSWORD = "Met2026!";
-
-export function verifyAdminPassword(password) {
-  return password === ADMIN_PASSWORD;
-}
+export { verifyAdminPassword } from "./credentials.js?v=20260711-5";
+import { verifyAdminPassword } from "./credentials.js?v=20260711-5";
 const {
   coleccionConfiguracion: COLLECTION_NAME,
   coleccionConfiguracionLegacy: LEGACY_COLLECTION_NAME,
