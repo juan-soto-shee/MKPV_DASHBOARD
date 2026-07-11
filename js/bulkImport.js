@@ -2,6 +2,7 @@ import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-f
 import { getAlarmConfig } from "./alarmAdmin.js?v=20260710-3";
 import { insertImportedRecords } from "./firestoreService.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
+import { normalizeDateTime } from "./dateTime.js";
 
 const ENTREFASES_PROFILE_ID = "entrefases";
 const ENTREFASES_AREA = "Planta Entrefases";
@@ -226,7 +227,8 @@ function prepareGenericRecords(workbookData, config) {
 }
 
 function buildEntrefasesRecord(row, config) {
-  const date = parseFlexibleDateTime(row.FECHA_HORA);
+  const normalizedDateTime = normalizeDateTime(row.FECHA_HORA);
+  const date = new Date(normalizedDateTime.timestampCreacion);
   const values = {};
 
   Object.entries(ENTREFASES_MAPPING).forEach(([sourceKey, targetKey]) => {
@@ -249,10 +251,10 @@ function buildEntrefasesRecord(row, config) {
     area: ENTREFASES_AREA,
     subarea: ENTREFASES_SUBAREA,
     proceso: ENTREFASES_AREA,
-    fecha: formatDate(date),
-    hora: formatTime(date),
+    fecha: normalizedDateTime.fecha,
+    hora: normalizedDateTime.hora,
     turno: isShiftA(date) ? "A" : "B",
-    timestampCreacion: Timestamp.fromDate(date),
+    timestampCreacion: Timestamp.fromMillis(normalizedDateTime.timestampCreacion),
     ...values,
     estado,
     alarmasActivas
@@ -260,7 +262,8 @@ function buildEntrefasesRecord(row, config) {
 }
 
 function buildGenericRecord(row, config) {
-  const date = parseDateTime(row.fecha, row.hora);
+  const normalizedDateTime = normalizeDateTime(row.fecha, row.hora);
+  const date = new Date(normalizedDateTime.timestampCreacion);
   const subarea = VALID_SUBAREAS.get(normalizeText(row.subarea));
   if (!subarea) throw new Error(`Subárea inválida. Use: ${[...new Set(VALID_SUBAREAS.values())].join(", ")}.`);
 
@@ -281,15 +284,15 @@ function buildGenericRecord(row, config) {
     clientName: clientConfig.clientName,
     siteName: clientConfig.siteName,
     processName: clientConfig.processName,
-    fecha: formatDate(date),
-    hora: formatTime(date),
+    fecha: normalizedDateTime.fecha,
+    hora: normalizedDateTime.hora,
     turno: cleanText(row.turno) || getOperationalShift(date),
     area: cleanText(row.area) || clientConfig.identity.proceso,
     subarea,
     operador: cleanText(row.operador),
     ...values,
     observacion: cleanText(row.observacion),
-    timestampCreacion: Timestamp.fromDate(date),
+    timestampCreacion: Timestamp.fromMillis(normalizedDateTime.timestampCreacion),
     estado,
     alarmasActivas
   };
@@ -416,32 +419,6 @@ function hasColumn(rows, expected) {
 function getUnknownColumns(rows, allowedColumns) {
   const allowed = new Set(allowedColumns.map(normalizeHeader));
   return Object.keys(rows[0] || {}).filter((header) => !allowed.has(normalizeHeader(header)));
-}
-
-function parseFlexibleDateTime(value) {
-  if (value instanceof Date) return assertValidDate(value);
-  if (typeof value === "number") {
-    const parsed = window.XLSX.SSF.parse_date_code(value);
-    if (!parsed) throw new Error("FECHA_HORA inválida.");
-    return assertValidDate(new Date(parsed.y, parsed.m - 1, parsed.d, parsed.H, parsed.M, Math.floor(parsed.S)));
-  }
-  const text = cleanText(value);
-  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/)
-    || text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) throw new Error("FECHA_HORA inválida.");
-  const date = match[1].length === 4
-    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6] || 0))
-    : new Date(Number(match[3]) < 100 ? Number(match[3]) + 2000 : Number(match[3]), Number(match[2]) - 1, Number(match[1]), Number(match[4]), Number(match[5]), Number(match[6] || 0));
-  return assertValidDate(date);
-}
-
-function parseDateTime(dateValue, timeValue) {
-  return parseFlexibleDateTime(`${cleanText(dateValue)} ${cleanText(timeValue)}`);
-}
-
-function assertValidDate(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) throw new Error("Fecha u hora fuera de rango.");
-  return date;
 }
 
 function parseNumber(value, column) {

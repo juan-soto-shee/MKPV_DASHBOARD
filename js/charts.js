@@ -33,7 +33,7 @@ export function updateCharts(records, context = {}) {
     return;
   }
 
-  const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
+  const chronological = [...records].sort((a, b) => a.timestampCreacion - b.timestampCreacion);
 
   chartDefinitions.forEach((definition) => {
     const configKey = definition.perEquipment && context.selectedArea !== PLANT_AREA
@@ -66,7 +66,7 @@ export function updateCharts(records, context = {}) {
 }
 
 function buildSplitSeries(records, field) {
-  const chronological = [...records].sort((a, b) => new Date(a.timestampCreacion) - new Date(b.timestampCreacion));
+  const chronological = [...records].sort((a, b) => a.timestampCreacion - b.timestampCreacion);
 
   return pileAreas.map((area, index) => ({
     label: area,
@@ -404,7 +404,7 @@ function renderAlarmPresentation(definition, series, alarmConfig) {
     if (!groupSeries.has(groupName)) groupSeries.set(groupName, []);
     groupSeries.get(groupName).push(point);
     const current = groups.get(groupName);
-    if (!current || new Date(point.record?.timestampCreacion) > new Date(current.record?.timestampCreacion)) {
+    if (!current || point.record?.timestampCreacion > current.record?.timestampCreacion) {
       groups.set(groupName, point);
     }
   });

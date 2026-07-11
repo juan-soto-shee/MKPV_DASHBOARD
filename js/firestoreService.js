@@ -10,6 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
+import { normalizeRecordDateTime, timestampMillis } from "./dateTime.js";
 
 const RECORDS_COLLECTION = clientConfig.identity.firebase.coleccionRegistros;
 const CLIENTE_ACTIVO = clientConfig.clienteId;
@@ -52,7 +53,7 @@ export function startRealtimeListener(callback, onConnectionChange = () => {}) {
 
   activeListenerClientId = CLIENTE_ACTIVO;
   activeListener = onSnapshot(recordsQuery, (snapshot) => {
-    const records = snapshot.docs.map(toRecord).sort(compareRecordsNewestFirst);
+    const records = snapshot.docs.map(toRecord).filter(Boolean).sort(compareRecordsNewestFirst);
 
     lastRealtimeRecords = records;
     cacheRecords(realtimeCacheKey(), records);
@@ -108,7 +109,7 @@ export async function getRecordsForPeriod(hours) {
     where("clienteId", "==", CLIENTE_ACTIVO),
     limit(queryLimit)
   ));
-  const records = snapshot.docs.map(toRecord).sort(compareRecordsNewestFirst);
+  const records = snapshot.docs.map(toRecord).filter(Boolean).sort(compareRecordsNewestFirst);
   cacheRecords(cacheKey, records);
   return records;
 }
@@ -292,20 +293,17 @@ function realtimeCoversPeriod(records, hours) {
 }
 
 function timestampKey(value) {
-  if (!value) return "";
-  if (value.toMillis) return String(value.toMillis());
-  if (value.toDate) return String(value.toDate().getTime());
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "" : String(parsed.getTime());
-}
-
-function timestampMillis(value) {
-  const key = timestampKey(value);
-  return key ? Number(key) : NaN;
+  const millis = timestampMillis(value);
+  return Number.isFinite(millis) ? String(millis) : "";
 }
 
 function toRecord(record) {
-  return { id: record.id, ...record.data() };
+  const data = { id: record.id, ...record.data() };
+  try { return { ...data, ...normalizeRecordDateTime(data) }; }
+  catch (error) {
+    debugLog("registro omitido por fecha inválida o futura", { id: record.id, reason: error.message });
+    return null;
+  }
 }
 
 function compareRecordsNewestFirst(left, right) {
@@ -313,13 +311,5 @@ function compareRecordsNewestFirst(left, right) {
 }
 
 function recordTimestampMillis(record) {
-  const directTimestamp = timestampMillis(record.timestampCreacion ?? record.timestamp);
-  if (Number.isFinite(directTimestamp)) return directTimestamp;
-  if (!record.fecha) return 0;
-  const dateText = String(record.fecha).trim();
-  const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(dateText)
-    ? dateText
-    : dateText.replace(/^(\d{2})[-/](\d{2})[-/](\d{4})$/, "$3-$2-$1");
-  const parsed = new Date(`${isoDate}T${record.hora || "00:00"}`);
-  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  return Number(record?.timestampCreacion) || 0;
 }

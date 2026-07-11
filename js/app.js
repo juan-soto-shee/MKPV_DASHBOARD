@@ -5,6 +5,7 @@ import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats }
 import { initBulkImport } from "./bulkImport.js?v=20260710-4";
 import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
+import { normalizeRecordDateTime } from "./dateTime.js";
 
 applyClientConfiguration();
 
@@ -245,17 +246,17 @@ function getEquipmentRecords(records, area) {
 
 function filterByPeriod(records, hours) {
   const timestamps = records
-    .map((record) => new Date(record.timestampCreacion).getTime())
+    .map((record) => record.timestampCreacion)
     .filter(Number.isFinite);
   if (!timestamps.length) return [];
 
   // El histórico se recorre desde el último registro disponible. Esto permite
   // explorar correctamente datos importados o demo aunque estén adelantados
   // respecto del reloj del dispositivo.
-  const latestTimestamp = Math.max(...timestamps);
+  const latestTimestamp = Date.now();
   const cutoff = latestTimestamp - hours * 60 * 60 * 1000;
   return records.filter((record) => {
-    const timestamp = new Date(record.timestampCreacion).getTime();
+    const timestamp = record.timestampCreacion;
     return Number.isFinite(timestamp) && timestamp >= cutoff && timestamp <= latestTimestamp;
   });
 }
@@ -269,14 +270,20 @@ function updateMobilePeriodTitle() {
 function normalizeRecords(records) {
   return records
     .map((record) => {
-      const timestampCreacion = normalizeTimestamp(record.timestampCreacion ?? record.timestamp, record.fecha, record.hora);
+      let normalizedDateTime;
+      try { normalizedDateTime = normalizeRecordDateTime(record); }
+      catch (error) {
+        console.warn("Registro excluido por fecha inválida o futura:", record.id || "sin id", error.message);
+        return null;
+      }
+      const timestampCreacion = normalizedDateTime.timestampCreacion;
       const subarea = normalizeSubarea(record.subarea || record.area);
 
       const normalizedRecord = {
         ...record,
         timestampCreacion,
-        fecha: record.fecha || formatDate(timestampCreacion),
-        hora: record.hora || formatTime(timestampCreacion),
+        fecha: normalizedDateTime.fecha,
+        hora: normalizedDateTime.hora,
         area: record.area || clientConfig.identity.proceso,
         subarea,
         operador: record.operador || "--",
@@ -294,24 +301,8 @@ function normalizeRecords(records) {
       });
       return normalizedRecord;
     })
-    .sort((a, b) => new Date(b.timestampCreacion) - new Date(a.timestampCreacion));
-}
-
-function normalizeTimestamp(value, fecha, hora) {
-  if (value?.toDate) return value.toDate().toISOString();
-  if (value) {
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
-  }
-  if (fecha && hora) {
-    const dateText = String(fecha).trim();
-    const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(dateText)
-      ? dateText
-      : dateText.replace(/^(\d{2})[-/](\d{2})[-/](\d{4})$/, "$3-$2-$1");
-    const parsed = new Date(`${isoDate}T${hora}`);
-    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
-  }
-  return new Date().toISOString();
+    .filter(Boolean)
+    .sort((a, b) => b.timestampCreacion - a.timestampCreacion);
 }
 
 function normalizeSubarea(value) {
