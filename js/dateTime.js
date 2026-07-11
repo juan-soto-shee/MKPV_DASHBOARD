@@ -3,7 +3,9 @@ const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30);
 export function normalizeDateTime(valueFecha, valueHora = "", { rejectFuture = true, now = Date.now() } = {}) {
   const date = parseValue(valueFecha, valueHora);
   const timestampCreacion = date.getTime();
-  if (rejectFuture && timestampCreacion > now + 1000) throw new Error("Fecha futura no permitida");
+  if (rejectFuture && timestampCreacion > now + 60000) {
+    throw new Error(`Fecha futura no permitida: ${localDate(date)} ${localTime(date)}`);
+  }
   return { fecha: localDate(date), hora: localTime(date), timestampCreacion };
 }
 
@@ -27,20 +29,29 @@ function parseValue(value, timeValue) {
     return hasTimeValue(timeValue) ? withTime(date, timeValue) : date;
   }
   if (typeof value === "number") return numeric(value, timeValue);
-  const text = String(value ?? "").trim();
-  const time = String(timeValue ?? "").trim();
-  if (/^\d+(?:\.\d+)?$/.test(text)) return numeric(Number(text), timeValue);
+  const text = normalizeDateText(value);
+  const time = normalizeDateText(timeValue);
+  if (/^\d+(?:[.,]\d+)?$/.test(text)) return numeric(Number(text.replace(",", ".")), timeValue);
   if (/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/.test(text)) return valid(new Date(text));
-  const match = text.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})(?:[ T](.*))?$/)
-    || text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})(?:[ T](.*))?$/);
+  const match = text.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})(?:[ T]+(.*))?$/)
+    || text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})(?:[ T]+(.*))?$/);
   if (match) {
     const yearFirst = match[1].length === 4;
     const rawYear = Number(yearFirst ? match[1] : match[3]);
     const year = rawYear < 100 ? 2000 + rawYear : rawYear;
-    return local(year, Number(match[2]),
-      Number(yearFirst ? match[3] : match[1]), match[4] || time);
+    const date = local(year, Number(match[2]), Number(yearFirst ? match[3] : match[1]), match[4] || "");
+    return !match[4] && hasTimeValue(timeValue) ? withTime(date, timeValue) : date;
   }
   throw new Error("Fecha u hora inválida");
+}
+
+function normalizeDateText(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b(a\.?\s*m\.?|am)\b/gi, "AM")
+    .replace(/\b(p\.?\s*m\.?|pm)\b/gi, "PM");
 }
 
 function hasTimeValue(value) {
@@ -58,7 +69,14 @@ function withTime(date, value) {
     return local(date.getFullYear(), date.getMonth() + 1, date.getDate(),
       `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}`);
   }
-  return local(date.getFullYear(), date.getMonth() + 1, date.getDate(), String(value).trim());
+  const text = normalizeDateText(value);
+  if (/^0?[.,]\d+$/.test(text)) {
+    const fraction = Number(text.replace(",", "."));
+    const seconds = Math.round(fraction * 86400) % 86400;
+    return local(date.getFullYear(), date.getMonth() + 1, date.getDate(),
+      `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}`);
+  }
+  return local(date.getFullYear(), date.getMonth() + 1, date.getDate(), text);
 }
 
 function numeric(value, timeValue = "") {
@@ -76,11 +94,21 @@ function numeric(value, timeValue = "") {
 }
 
 function local(year, month, day, time = "") {
-  const parts = String(time || "00:00:00").trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/);
+  const parts = normalizeDateText(time || "00:00:00").match(/^(\d{1,2})(?::(\d{1,2}))?(?::(\d{1,2}))?(?:[.,]\d+)?\s*(AM|PM)?$/i);
   if (!parts) throw new Error("Fecha u hora inválida");
-  const date = new Date(year, month - 1, day, +parts[1], +parts[2], +(parts[3] || 0));
+  let hours = Number(parts[1]);
+  const minutes = Number(parts[2] || 0);
+  const seconds = Number(parts[3] || 0);
+  const meridiem = parts[4]?.toUpperCase();
+  if (meridiem) {
+    if (hours < 1 || hours > 12) throw new Error("Fecha u hora fuera de rango");
+    hours = hours % 12 + (meridiem === "PM" ? 12 : 0);
+  }
+  const date = new Date(year, month - 1, day, hours, minutes, seconds);
   if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day
-      || date.getHours() !== +parts[1] || date.getMinutes() !== +parts[2]) throw new Error("Fecha u hora fuera de rango");
+      || date.getHours() !== hours || date.getMinutes() !== minutes || date.getSeconds() !== seconds) {
+    throw new Error("Fecha u hora fuera de rango");
+  }
   return date;
 }
 

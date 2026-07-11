@@ -1,11 +1,11 @@
-import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260710-3";
+import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260711-2";
 import { updateCharts } from "./charts.js?v=20260709-1";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260710-3";
-import { initBulkImport } from "./bulkImport.js?v=20260711-1";
+import { initBulkImport } from "./bulkImport.js?v=20260711-2";
 import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
-import { normalizeRecordDateTime } from "./dateTime.js";
+import { normalizeRecordDateTime } from "./dateTime.js?v=20260711-2";
 
 applyClientConfiguration();
 
@@ -250,10 +250,9 @@ function filterByPeriod(records, hours) {
     .filter(Number.isFinite);
   if (!timestamps.length) return [];
 
-  // El histórico se recorre desde el último registro disponible. Esto permite
-  // explorar correctamente datos importados o demo aunque estén adelantados
-  // respecto del reloj del dispositivo.
-  const latestTimestamp = Date.now();
+  // Anclar el período al último dato disponible permite graficar archivos
+  // históricos aunque su carga ocurra días o meses después de la medición.
+  const latestTimestamp = Math.max(...timestamps);
   const cutoff = latestTimestamp - hours * 60 * 60 * 1000;
   return records.filter((record) => {
     const timestamp = record.timestampCreacion;

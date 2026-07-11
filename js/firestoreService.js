@@ -10,7 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
-import { normalizeRecordDateTime, timestampMillis } from "./dateTime.js";
+import { normalizeRecordDateTime, timestampMillis } from "./dateTime.js?v=20260711-2";
 
 const RECORDS_COLLECTION = clientConfig.identity.firebase.coleccionRegistros;
 const CLIENTE_ACTIVO = clientConfig.clienteId;

@@ -1,8 +1,8 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { getAlarmConfig } from "./alarmAdmin.js?v=20260710-3";
-import { insertImportedRecords } from "./firestoreService.js?v=20260710-2";
+import { insertImportedRecords } from "./firestoreService.js?v=20260711-2";
 import { clientConfig } from "./clientConfig.js";
-import { normalizeDateTime } from "./dateTime.js";
+import { normalizeDateTime } from "./dateTime.js?v=20260711-2";
 
 const ENTREFASES_PROFILE_ID = "entrefases";
 const ENTREFASES_AREA = "Planta Entrefases";
@@ -104,9 +104,13 @@ async function prepareFile(elements) {
       return;
     }
 
-    elements.fileInfo.textContent = preparedImport.errors.length
+    const futureErrors = preparedImport.errors.filter((error) => error.type === "future").length;
+    elements.fileInfo.textContent = futureErrors
+      ? `Archivo rechazado: contiene ${futureErrors} fila(s) con fechas futuras. Corrija las fechas antes de importar.`
+      : preparedImport.errors.length
       ? `${preparedImport.validRecords.length} registros preparados y ${preparedImport.errors.length} filas omitidas por error.`
       : `${preparedImport.validRecords.length} registros preparados para ${clientConfig.clientProfile.cliente}.`;
+    if (futureErrors) return;
     openConfirm(elements, preparedImport);
   } catch (error) {
     console.error("Error preparando importación masiva:", error);
@@ -198,7 +202,7 @@ function prepareEntrefasesRecords(workbookData, config) {
       const row = normalizeSourceRow(sourceRow);
       validRecords.push(buildEntrefasesRecord(row, config));
     } catch (error) {
-      errors.push({ row: rowNumber, detail: error.message });
+      errors.push(toRowError(rowNumber, error, "FECHA_HORA"));
     }
     updateProgress(getElements(), Math.round(((index + 1) / workbookData.rows.length) * 70), `Validando fila ${index + 1} de ${workbookData.rows.length}...`);
   });
@@ -224,7 +228,7 @@ function prepareGenericRecords(workbookData, config) {
       const normalized = normalizeGenericRow(sourceRow);
       validRecords.push(buildGenericRecord(normalized, config));
     } catch (error) {
-      errors.push({ row: rowNumber, detail: error.message });
+      errors.push(toRowError(rowNumber, error, "fecha/hora"));
     }
     updateProgress(getElements(), Math.round(((index + 1) / workbookData.rows.length) * 70), `Validando fila ${index + 1} de ${workbookData.rows.length}...`);
   });
@@ -235,6 +239,17 @@ function prepareGenericRecords(workbookData, config) {
     totalRows: workbookData.rows.length,
     validRecords,
     errors
+  };
+}
+
+function toRowError(row, error, dateColumn) {
+  const detail = String(error?.message || "Dato inválido");
+  const isFuture = detail.startsWith("Fecha futura no permitida");
+  const isDateError = isFuture || detail.startsWith("Fecha u hora");
+  return {
+    row,
+    type: isFuture ? "future" : "validation",
+    detail: isDateError ? `${dateColumn}: ${detail}.` : detail
   };
 }
 
