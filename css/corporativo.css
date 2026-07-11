@@ -77,6 +77,22 @@
   margin-top: 36px;
 }
 
+.demo-access-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.demo-access-note strong {
+  color: var(--cyan);
+  letter-spacing: 0.08em;
+}
+
+.solution-card .card-access-note {
+  margin-top: 14px;
+  font-size: 0.75rem;
+}
+
 .button {
   display: inline-flex;
   min-height: 50px;

@@ -6,8 +6,10 @@ import { initBulkImport } from "./bulkImport.js?v=20260711-2";
 import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 import { normalizeRecordDateTime } from "./dateTime.js?v=20260711-2";
+import { requireWebAccess } from "./webAccess.js?v=20260711-5";
 
 applyClientConfiguration();
+await requireWebAccess();
 
 const state = {
   records: [],
