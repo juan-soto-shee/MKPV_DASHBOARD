@@ -374,11 +374,13 @@ function applyClientConfiguration() {
   ).join("");
 
   const chartsGrid = document.getElementById("chartsGrid");
+  const compactTrendGrid = clientConfig.profileId === "entrefases";
+  chartsGrid.classList.toggle("is-entrefases", compactTrendGrid);
   let currentGroup = null;
   chartsGrid.innerHTML = layout.variablesTendencia.map((key) => clientConfig.variableMap[key])
     .filter(Boolean)
     .map((variable) => {
-      const group = variable.grupo !== currentGroup
+      const group = !compactTrendGrid && variable.grupo !== currentGroup
         ? `<div class="trend-group-title">${escapeHtml(variable.grupo)}</div>`
         : "";
       currentGroup = variable.grupo;
