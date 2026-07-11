@@ -1,6 +1,6 @@
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { getAlarmConfig } from "./alarmAdmin.js?v=20260710-3";
-import { insertImportedRecords } from "./firestoreService.js?v=20260711-2";
+import { insertImportedRecords } from "./firestoreService.js?v=20260711-3";
 import { clientConfig } from "./clientConfig.js";
 import { normalizeDateTime } from "./dateTime.js?v=20260711-2";
 

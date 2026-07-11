@@ -15,11 +15,6 @@ import { normalizeRecordDateTime, timestampMillis } from "./dateTime.js?v=202607
 const RECORDS_COLLECTION = clientConfig.identity.firebase.coleccionRegistros;
 const CLIENTE_ACTIVO = clientConfig.clienteId;
 const REALTIME_LIMIT = 200;
-const PERIOD_QUERY_LIMITS = Object.freeze({
-  24: 200,
-  168: 1000,
-  720: 3000
-});
 const IMPORT_DUPLICATE_CHUNK_SIZE = 30;
 const debugLog = (...args) => {
   if (clientConfig.debug !== false) console.info("[PlantViewData]", ...args);
@@ -84,30 +79,29 @@ export function closeRealtimeListener() {
 export async function getRecordsForPeriod(hours) {
   const normalizedHours = Number(hours);
   const cacheKey = periodCacheKey(normalizedHours);
+  // El listener ya contiene todos los documentos del cliente y está ordenado.
+  // Reutilizarlo evita que una consulta limitada y sin orderBy descarte el dato más reciente.
+  if (lastRealtimeRecords.length) {
+    debugLog("cache hit desde listener", { key: cacheKey, count: lastRealtimeRecords.length });
+    cacheRecords(cacheKey, lastRealtimeRecords);
+    return lastRealtimeRecords;
+  }
+
   const cached = recordsCache.get(cacheKey);
   if (cached) {
     debugLog("cache hit", { key: cacheKey, count: cached.records.length });
     return cached.records;
   }
 
-  if (realtimeCoversPeriod(lastRealtimeRecords, normalizedHours)) {
-    debugLog("cache hit desde listener", { key: cacheKey, count: lastRealtimeRecords.length });
-    cacheRecords(cacheKey, lastRealtimeRecords);
-    return lastRealtimeRecords;
-  }
-
-  const queryLimit = PERIOD_QUERY_LIMITS[normalizedHours] || REALTIME_LIMIT;
   debugLog("cache miss; consulta puntual", {
     key: cacheKey,
     collection: RECORDS_COLLECTION,
-    clienteId: CLIENTE_ACTIVO,
-    limit: queryLimit
+    clienteId: CLIENTE_ACTIVO
   });
 
   const snapshot = await getDocs(query(
     collection(db, RECORDS_COLLECTION),
-    where("clienteId", "==", CLIENTE_ACTIVO),
-    limit(queryLimit)
+    where("clienteId", "==", CLIENTE_ACTIVO)
   ));
   const records = snapshot.docs.map(toRecord).filter(Boolean).sort(compareRecordsNewestFirst);
   cacheRecords(cacheKey, records);
@@ -279,17 +273,6 @@ function realtimeCacheKey() {
 
 function periodCacheKey(hours) {
   return `${CLIENTE_ACTIVO}:${hours}h`;
-}
-
-function realtimeCoversPeriod(records, hours) {
-  if (!records.length) return true;
-  const timestamps = records
-    .map((record) => timestampMillis(record.timestampCreacion))
-    .filter(Number.isFinite);
-  if (!timestamps.length) return false;
-  const latest = Math.max(...timestamps);
-  const earliest = Math.min(...timestamps);
-  return earliest <= latest - hours * 60 * 60 * 1000 || records.length < REALTIME_LIMIT;
 }
 
 function timestampKey(value) {
