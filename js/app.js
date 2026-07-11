@@ -287,8 +287,10 @@ function normalizeRecords(records) {
       };
       clientConfig.variables.forEach((variable) => {
         const sourceKeys = [variable.key, ...(variable.aliases || [])];
-        const sourceKey = sourceKeys.find((key) => Object.hasOwn(record, key));
-        normalizedRecord[variable.key] = numeric(sourceKey ? record[sourceKey] : null);
+        const rootKey = sourceKeys.find((key) => Object.hasOwn(record, key));
+        const nestedKey = sourceKeys.find((key) => Object.hasOwn(record.variables || {}, key));
+        const value = rootKey ? record[rootKey] : nestedKey ? record.variables[nestedKey] : null;
+        normalizedRecord[variable.key] = numeric(value);
       });
       return normalizedRecord;
     })
