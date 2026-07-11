@@ -158,9 +158,19 @@ async function readWorkbookData(file) {
     : workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   if (!sheet) return { sheetName: "--", rows: [] };
+  const rows = window.XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true, dateNF: "yyyy-mm-dd hh:mm:ss" });
+  const firstRow = rows[0] || {};
+  const firstDate = firstRow.FECHA_HORA ?? firstRow.fecha ?? firstRow.FECHA ?? "";
+  const firstTime = firstRow.hora ?? firstRow.HORA ?? "";
+  console.log("Diagnóstico XLSX primera fila:", {
+    valorFecha: firstDate,
+    tipoFecha: typeof firstDate,
+    valorHora: firstTime,
+    tipoHora: typeof firstTime
+  });
   return {
     sheetName,
-    rows: window.XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true, dateNF: "yyyy-mm-dd hh:mm:ss" })
+    rows
   };
 }
 
