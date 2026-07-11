@@ -1,4 +1,4 @@
-import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260711-2";
+import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260711-3";
 import { updateCharts } from "./charts.js?v=20260709-1";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260710-3";
@@ -82,7 +82,7 @@ function bindControls() {
 async function loadPeriodRecords(hours) {
   try {
     const records = await getRecordsForPeriod(hours);
-    state.records = normalizeRecords(records);
+    state.records = mergeRecordSets(normalizeRecords(records), state.realtimeRecords);
     updateAdminStats({
       count: state.records.length,
       lastRecord: state.records[0]?.timestampCreacion || state.realtimeRecords[0]?.timestampCreacion || null,
@@ -93,6 +93,15 @@ async function loadPeriodRecords(hours) {
     console.warn("No se pudo cargar el rango solicitado; se usaran datos en memoria:", error.message);
     state.records = state.realtimeRecords;
   }
+}
+
+function mergeRecordSets(records, realtimeRecords) {
+  const merged = new Map();
+  [...records, ...realtimeRecords].forEach((record) => {
+    const key = record.id || `${record.clienteId || ""}:${record.timestampCreacion}`;
+    merged.set(key, record);
+  });
+  return [...merged.values()].sort((left, right) => right.timestampCreacion - left.timestampCreacion);
 }
 
 function setActiveButton(group, activeButton) {
