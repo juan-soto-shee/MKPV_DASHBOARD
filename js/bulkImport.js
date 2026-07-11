@@ -99,12 +99,14 @@ async function prepareFile(elements) {
     updateProgress(elements, 100, preparedImport.errors.length
       ? "Validación finalizada con errores."
       : "Validación finalizada. Confirme para importar.");
-    if (preparedImport.errors.length) {
-      elements.fileInfo.textContent = "No se importará porque existen errores de estructura o datos.";
+    if (!preparedImport.validRecords.length) {
+      elements.fileInfo.textContent = "No hay registros válidos para importar. Revise el detalle de errores.";
       return;
     }
 
-    elements.fileInfo.textContent = `${preparedImport.validRecords.length} registros preparados para ${clientConfig.clientProfile.cliente}.`;
+    elements.fileInfo.textContent = preparedImport.errors.length
+      ? `${preparedImport.validRecords.length} registros preparados y ${preparedImport.errors.length} filas omitidas por error.`
+      : `${preparedImport.validRecords.length} registros preparados para ${clientConfig.clientProfile.cliente}.`;
     openConfirm(elements, preparedImport);
   } catch (error) {
     console.error("Error preparando importación masiva:", error);
@@ -123,7 +125,7 @@ async function prepareFile(elements) {
 }
 
 async function importPreparedRecords(elements) {
-  if (!preparedImport || preparedImport.errors.length || !preparedImport.validRecords.length) return;
+  if (!preparedImport || !preparedImport.validRecords.length) return;
 
   closeConfirm(elements);
   setBusy(elements, true);
@@ -153,25 +155,31 @@ async function importPreparedRecords(elements) {
 async function readWorkbookData(file) {
   const data = await file.arrayBuffer();
   const workbook = window.XLSX.read(data, { type: "array", cellDates: true });
-  const sheetName = workbook.SheetNames.includes(ENTREFASES_PREFERRED_SHEET)
-    ? ENTREFASES_PREFERRED_SHEET
-    : workbook.SheetNames[0];
+  const sheetName = selectDataSheet(workbook);
   const sheet = workbook.Sheets[sheetName];
   if (!sheet) return { sheetName: "--", rows: [] };
   const rows = window.XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true, dateNF: "yyyy-mm-dd hh:mm:ss" });
-  const row = rows[0] || {};
-  console.log({
-    filaCompleta: row,
-    valorFecha: row.fecha,
-    tipoFecha: typeof row.fecha,
-    esDate: row.fecha instanceof Date,
-    valorHora: row.hora,
-    tipoHora: typeof row.hora
-  });
   return {
     sheetName,
     rows
   };
+}
+
+function selectDataSheet(workbook) {
+  if (workbook.SheetNames.includes(ENTREFASES_PREFERRED_SHEET)) return ENTREFASES_PREFERRED_SHEET;
+
+  const requiredColumns = clientConfig.profileId === ENTREFASES_PROFILE_ID
+    ? ENTREFASES_COLUMNS
+    : REQUIRED_COLUMNS;
+  return workbook.SheetNames.find((name) => {
+    const matrix = window.XLSX.utils.sheet_to_json(workbook.Sheets[name], {
+      header: 1,
+      blankrows: false,
+      defval: ""
+    });
+    const headers = (matrix[0] || []).map(normalizeHeader);
+    return requiredColumns.every((column) => headers.includes(normalizeHeader(column)));
+  }) || workbook.SheetNames[0];
 }
 
 function prepareEntrefasesRecords(workbookData, config) {
@@ -181,9 +189,6 @@ function prepareEntrefasesRecords(workbookData, config) {
 
   const missing = ENTREFASES_COLUMNS.filter((column) => !hasColumn(workbookData.rows, column));
   if (missing.length) throw new Error(`Faltan columnas obligatorias: ${missing.join(", ")}.`);
-  const unknown = getUnknownColumns(workbookData.rows, ENTREFASES_COLUMNS);
-  if (unknown.length) throw new Error(`Columnas desconocidas para Entrefases: ${unknown.join(", ")}.`);
-
   const validRecords = [];
   const errors = [];
 
@@ -210,9 +215,6 @@ function prepareEntrefasesRecords(workbookData, config) {
 function prepareGenericRecords(workbookData, config) {
   const missing = REQUIRED_COLUMNS.filter((column) => !hasColumn(workbookData.rows, column));
   if (missing.length) throw new Error(`Faltan columnas obligatorias: ${missing.join(", ")}.`);
-  const unknown = getUnknownColumns(workbookData.rows, EXPECTED_COLUMNS);
-  if (unknown.length) throw new Error(`Columnas desconocidas para ${clientConfig.profileId}: ${unknown.join(", ")}.`);
-
   const validRecords = [];
   const errors = [];
 
@@ -458,7 +460,10 @@ function getOperationalShift(date) {
 
 function openConfirm(elements, preparation) {
   if (!elements.confirmOverlay) return;
-  elements.confirmMessage.textContent = `Se importarán ${preparation.validRecords.length} registros validados desde la hoja ${preparation.sheetName}. No se borrarán datos existentes y los duplicados se omitirán por clienteId + timestampCreacion.`;
+  const omitted = preparation.errors.length
+    ? ` Se omitirán ${preparation.errors.length} filas con error mostradas en el resumen.`
+    : "";
+  elements.confirmMessage.textContent = `Se importarán ${preparation.validRecords.length} registros validados desde la hoja ${preparation.sheetName}.${omitted} No se borrarán datos existentes y los duplicados se omitirán por clienteId + timestampCreacion.`;
   elements.confirmOverlay.classList.remove("is-hidden");
   elements.confirmOverlay.setAttribute("aria-hidden", "false");
 }
