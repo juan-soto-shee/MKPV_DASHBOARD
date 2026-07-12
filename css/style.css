@@ -1355,6 +1355,9 @@ td {
   }
 }
 .client-admin-exclusive,
+.technical-system-information,
+.alarm-admin-section .active-profile-card,
+.alarm-admin-section .kpi-audit-toggle,
 #legacyCleanupSection,
 #resetDataOverlay,
 #bulkImportConfirmOverlay,
