@@ -105,12 +105,12 @@ async function prepareFile(elements) {
     }
 
     const futureErrors = preparedImport.errors.filter((error) => error.type === "future").length;
-    elements.fileInfo.textContent = futureErrors
-      ? `Archivo rechazado: contiene ${futureErrors} fila(s) con fechas futuras. Corrija las fechas antes de importar.`
-      : preparedImport.errors.length
+    elements.fileInfo.textContent = preparedImport.errors.length
       ? `${preparedImport.validRecords.length} registros preparados y ${preparedImport.errors.length} filas omitidas por error.`
       : `${preparedImport.validRecords.length} registros preparados para ${clientConfig.clientProfile.cliente}.`;
-    if (futureErrors) return;
+    if (futureErrors) {
+      elements.fileInfo.textContent += ` ${futureErrors} de las filas omitidas tienen fecha u hora futura.`;
+    }
     openConfirm(elements, preparedImport);
   } catch (error) {
     console.error("Error preparando importación masiva:", error);
@@ -136,16 +136,15 @@ async function importPreparedRecords(elements) {
   elements.confirmButton.disabled = true;
 
   try {
-    updateProgress(elements, 5, "Buscando duplicados existentes...");
-    const result = await insertImportedRecords(preparedImport.validRecords, (inserted, total, duplicates) => {
-      const percent = 10 + Math.round(((inserted + duplicates) / total) * 90);
-      updateProgress(elements, percent, `Subiendo ${inserted} registros; ${duplicates} duplicados omitidos...`);
+    updateProgress(elements, 5, "Preparando carga de registros...");
+    const result = await insertImportedRecords(preparedImport.validRecords, (inserted, total) => {
+      const percent = 10 + Math.round((inserted / total) * 90);
+      updateProgress(elements, percent, `Subiendo ${inserted} de ${total} registros...`);
     });
     preparedImport.inserted = result.inserted;
-    preparedImport.duplicates = result.duplicates;
     renderPreparedSummary(elements, preparedImport);
     updateProgress(elements, 100, "Importación finalizada.");
-    elements.fileInfo.textContent = `${result.inserted} registros importados. ${result.duplicates} duplicados omitidos.`;
+    elements.fileInfo.textContent = `${result.inserted} registros importados.`;
   } catch (error) {
     console.error("Error importando registros preparados:", error);
     elements.fileInfo.textContent = error.message || "No se pudo importar el archivo.";
@@ -478,7 +477,7 @@ function openConfirm(elements, preparation) {
   const omitted = preparation.errors.length
     ? ` Se omitirán ${preparation.errors.length} filas con error mostradas en el resumen.`
     : "";
-  elements.confirmMessage.textContent = `Se importarán ${preparation.validRecords.length} registros validados desde la hoja ${preparation.sheetName}.${omitted} No se borrarán datos existentes y los duplicados se omitirán por clienteId + timestampCreacion.`;
+  elements.confirmMessage.textContent = `Se importarán ${preparation.validRecords.length} registros validados desde la hoja ${preparation.sheetName}.${omitted} No se borrarán datos existentes. Las filas repetidas también serán importadas.`;
   elements.confirmOverlay.classList.remove("is-hidden");
   elements.confirmOverlay.setAttribute("aria-hidden", "false");
 }
@@ -494,7 +493,6 @@ function renderPreparedSummary(elements, preparation) {
   elements.total.textContent = preparation.totalRows || 0;
   elements.success.textContent = preparation.validRecords?.length || 0;
   elements.errorCount.textContent = preparation.errors?.length || 0;
-  elements.duplicates.textContent = preparation.duplicates ?? "--";
   elements.inserted.textContent = preparation.inserted ?? "--";
   elements.elapsed.textContent = formatElapsed(preparation.elapsedMs || 0);
   elements.previewPanel.classList.toggle("is-hidden", !preparation.validRecords?.length);
@@ -596,7 +594,6 @@ function getElements() {
     total: document.getElementById("bulkImportTotal"),
     success: document.getElementById("bulkImportSuccess"),
     errorCount: document.getElementById("bulkImportErrorCount"),
-    duplicates: document.getElementById("bulkImportDuplicates"),
     inserted: document.getElementById("bulkImportInserted"),
     elapsed: document.getElementById("bulkImportElapsed"),
     previewPanel: document.getElementById("bulkImportPreviewPanel"),

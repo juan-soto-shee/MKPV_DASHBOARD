@@ -10,12 +10,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
-import { normalizeRecordDateTime, timestampMillis } from "./dateTime.js?v=20260711-2";
+import { normalizeRecordDateTime } from "./dateTime.js?v=20260711-2";
 
 const RECORDS_COLLECTION = clientConfig.identity.firebase.coleccionRegistros;
 const CLIENTE_ACTIVO = clientConfig.clienteId;
 const REALTIME_LIMIT = 200;
-const IMPORT_DUPLICATE_CHUNK_SIZE = 30;
 const debugLog = (...args) => {
   if (clientConfig.debug !== false) console.info("[PlantViewData]", ...args);
 };
@@ -157,26 +156,9 @@ export async function insertDemoRecords(records, onProgress = () => {}) {
 // Inserta registros validados en lotes bajo el limite de 500 escrituras de Firestore.
 export async function insertImportedRecords(records, onProgress = () => {}) {
   let inserted = 0;
-  let duplicates = 0;
-  const existingKeys = await getExistingTimestampKeys(records);
-  const uniqueRecords = records.filter((record) => {
-    const key = timestampKey(record.timestampCreacion);
-    if (existingKeys.has(key)) {
-      duplicates += 1;
-      return false;
-    }
-    existingKeys.add(key);
-    return true;
-  });
-
-  if (!uniqueRecords.length) {
-    onProgress(0, records.length, duplicates);
-    return { inserted, duplicates };
-  }
-
-  for (let start = 0; start < uniqueRecords.length; start += 400) {
+  for (let start = 0; start < records.length; start += 400) {
     const batch = writeBatch(db);
-    const chunk = uniqueRecords.slice(start, start + 400);
+    const chunk = records.slice(start, start + 400);
 
     chunk.forEach((record) => {
       batch.set(doc(collection(db, RECORDS_COLLECTION)), withActiveClient(record));
@@ -184,11 +166,11 @@ export async function insertImportedRecords(records, onProgress = () => {}) {
 
     await batch.commit();
     inserted += chunk.length;
-    onProgress(inserted, records.length, duplicates);
+    onProgress(inserted, records.length);
   }
 
   invalidateRecordsCache();
-  return { inserted, duplicates };
+  return { inserted };
 }
 
 // Elimina exclusivamente documentos marcados explícitamente como DEMO.
@@ -228,33 +210,6 @@ function withActiveClient(record) {
   return recordWithClient;
 }
 
-async function getExistingTimestampKeys(candidateRecords = []) {
-  const keys = new Set(lastRealtimeRecords
-    .map((record) => timestampKey(record.timestampCreacion))
-    .filter(Boolean));
-  const candidateTimestamps = [...new Map(candidateRecords
-    .map((record) => [timestampKey(record.timestampCreacion), record.timestampCreacion])
-    .filter(([key]) => key)).values()];
-
-  for (let start = 0; start < candidateTimestamps.length; start += IMPORT_DUPLICATE_CHUNK_SIZE) {
-    const chunk = candidateTimestamps.slice(start, start + IMPORT_DUPLICATE_CHUNK_SIZE);
-    debugLog("consulta puntual duplicados importacion", {
-      clienteId: CLIENTE_ACTIVO,
-      timestamps: chunk.length
-    });
-    const snapshot = await getDocs(query(
-      collection(db, RECORDS_COLLECTION),
-      where("clienteId", "==", CLIENTE_ACTIVO),
-      where("timestampCreacion", "in", chunk)
-    ));
-    snapshot.docs.forEach((record) => {
-      const key = timestampKey(record.data().timestampCreacion);
-      if (key) keys.add(key);
-    });
-  }
-  return keys;
-}
-
 export function invalidateRecordsCache() {
   recordsCache.clear();
   debugLog("cache invalidada", { clienteId: CLIENTE_ACTIVO });
@@ -273,11 +228,6 @@ function realtimeCacheKey() {
 
 function periodCacheKey(hours) {
   return `${CLIENTE_ACTIVO}:${hours}h`;
-}
-
-function timestampKey(value) {
-  const millis = timestampMillis(value);
-  return Number.isFinite(millis) ? String(millis) : "";
 }
 
 function toRecord(record) {

@@ -2,7 +2,7 @@ import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } fro
 import { updateCharts } from "./charts.js?v=20260709-1";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260710-3";
-import { initBulkImport } from "./bulkImport.js?v=20260711-2";
+import { initBulkImport } from "./bulkImport.js?v=20260711-3";
 import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 import { normalizeRecordDateTime } from "./dateTime.js?v=20260711-2";
