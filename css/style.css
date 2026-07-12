@@ -1354,3 +1354,13 @@ td {
     font-size: 0.8rem;
   }
 }
+.client-admin-exclusive,
+#legacyCleanupSection,
+#resetDataOverlay,
+#bulkImportConfirmOverlay,
+#legacyCleanupOverlay,
+.alarm-admin-section .admin-grid,
+.alarm-admin-section .bulk-import,
+.alarm-admin-section .future-options {
+  display: none !important;
+}
