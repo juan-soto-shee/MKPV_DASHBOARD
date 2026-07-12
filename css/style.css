@@ -688,7 +688,7 @@ h3 {
 .admin-access-discreet {
   position: fixed;
   z-index: 40;
-  right: 14px;
+  left: 14px;
   bottom: 14px;
   width: 34px;
   min-height: 34px;
