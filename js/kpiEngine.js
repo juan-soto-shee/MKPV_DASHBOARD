@@ -78,17 +78,24 @@ export function compliancePercent(value, target, comparison) {
   return (value / target) * 100;
 }
 
-export function evaluateKpiStatus(value, objective) {
-  const target = Number(objective?.target);
-  if (!Number.isFinite(value) || !Number.isFinite(target) || target <= 0) return "no-data";
-  if (objective.mode === "range") {
-    const deviation = Math.abs((value - target) / target) * 100;
-    if (deviation > Number(objective.criticalDeviationPercent ?? 20)) return "critical";
-    if (deviation > Number(objective.alertDeviationPercent ?? 10)) return "warning";
-    return "normal";
+export function evaluateTargetDeviation(currentValue, targetValue, warningPercent, criticalPercent) {
+  if (![currentValue, targetValue, warningPercent, criticalPercent].every(Number.isFinite)) {
+    return { state: "no-data", deviationPercent: null };
   }
-  const achievement = objective.comparison === "lower" ? (value === 0 ? 100 : (target / value) * 100) : (value / target) * 100;
-  if (achievement < Number(objective.criticalBelowPercent ?? 90)) return "critical";
-  if (achievement < Number(objective.alertBelowPercent ?? 100)) return "warning";
-  return "normal";
+  if (targetValue === 0 || warningPercent <= 0 || criticalPercent <= warningPercent) {
+    return { state: "invalid-config", deviationPercent: null };
+  }
+  const deviationPercent = Math.abs(currentValue - targetValue) / Math.abs(targetValue) * 100;
+  if (deviationPercent >= criticalPercent) return { state: "critical", deviationPercent };
+  if (deviationPercent >= warningPercent) return { state: "warning", deviationPercent };
+  return { state: "normal", deviationPercent };
+}
+
+export function evaluateKpiStatus(value, objective) {
+  return evaluateTargetDeviation(
+    value,
+    Number(objective?.target),
+    Number(objective?.warningDeviationPercent),
+    Number(objective?.criticalDeviationPercent)
+  );
 }
