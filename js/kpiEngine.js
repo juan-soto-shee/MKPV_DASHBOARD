@@ -77,3 +77,18 @@ export function compliancePercent(value, target, comparison) {
   if (comparison === "lower") return value === 0 ? 100 : (target / value) * 100;
   return (value / target) * 100;
 }
+
+export function evaluateKpiStatus(value, objective) {
+  const target = Number(objective?.target);
+  if (!Number.isFinite(value) || !Number.isFinite(target) || target <= 0) return "no-data";
+  if (objective.mode === "range") {
+    const deviation = Math.abs((value - target) / target) * 100;
+    if (deviation > Number(objective.criticalDeviationPercent ?? 20)) return "critical";
+    if (deviation > Number(objective.alertDeviationPercent ?? 10)) return "warning";
+    return "normal";
+  }
+  const achievement = objective.comparison === "lower" ? (value === 0 ? 100 : (target / value) * 100) : (value / target) * 100;
+  if (achievement < Number(objective.criticalBelowPercent ?? 90)) return "critical";
+  if (achievement < Number(objective.alertBelowPercent ?? 100)) return "warning";
+  return "normal";
+}

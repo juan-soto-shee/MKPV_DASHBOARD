@@ -6,7 +6,7 @@ import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
 import { requireWebAccess } from "./webAccess.js?v=20260712-10";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
-import { calculateOperationalKpis, compliancePercent, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-3";
+import { calculateOperationalKpis, compliancePercent, evaluateKpiStatus, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-11";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -154,8 +154,15 @@ function renderOperationalKpis(records) {
 function renderKpiRing(suffix, valueElement, value, decimals, objective) {
   valueElement.textContent = formatKpiValue(value, decimals);
   const compliance = compliancePercent(value, objective.target, objective.comparison);
+  const status = evaluateKpiStatus(value, objective);
+  const labels = { normal: "Normal", warning: "Alerta", critical: "Crítico", "no-data": "Sin datos" };
+  const ring = document.getElementById(`kpi${suffix}Ring`);
+  const statusElement = document.getElementById(`kpi${suffix}Compliance`);
   document.getElementById(`kpi${suffix}Compliance`).textContent = Number.isFinite(compliance) ? `${Math.round(compliance)} %` : "—";
-  document.getElementById(`kpi${suffix}Ring`).style.setProperty("--kpi-progress", `${Math.min(100, Math.max(0, compliance || 0)) * 3.6}deg`);
+  statusElement.textContent = Number.isFinite(compliance) ? `${Math.round(compliance)} % · ${labels[status]}` : `— · ${labels[status]}`;
+  statusElement.dataset.status = status;
+  ring.dataset.status = status;
+  ring.style.setProperty("--kpi-progress", `${Math.min(100, Math.max(0, compliance || 0)) * 3.6}deg`);
 }
 
 function initKpiControls() {
@@ -164,12 +171,25 @@ function initKpiControls() {
   ];
   const grid = document.getElementById("kpiAdminGrid");
   grid.innerHTML = definitions.map(([key, label]) => `<fieldset class="kpi-admin-card" data-kpi="${key}"><legend>${label}</legend><label>KPI Objetivo<input type="number" min="0.0001" step="any" value="${kpiPreferences[key].target}"></label><div class="kpi-comparison"><label><input type="radio" name="comparison-${key}" value="higher" ${kpiPreferences[key].comparison === "higher" ? "checked" : ""}> Mayor es mejor</label><label><input type="radio" name="comparison-${key}" value="lower" ${kpiPreferences[key].comparison === "lower" ? "checked" : ""}> Menor es mejor</label></div></fieldset>`).join("");
+  renderKpiConfigGrid(grid, definitions);
   document.getElementById("kpiAuditMode").checked = kpiPreferences.audit;
   document.getElementById("saveKpiConfigButton").addEventListener("click", () => {
     grid.querySelectorAll("[data-kpi]").forEach((card) => {
       const key = card.dataset.kpi;
-      kpiPreferences[key] = { target: Number(card.querySelector('input[type="number"]').value), comparison: card.querySelector('input[type="radio"]:checked').value };
+      const rangeMode = card.dataset.mode === "range";
+      kpiPreferences[key] = {
+        ...kpiPreferences[key],
+        target: Number(card.querySelector(".kpi-target-input").value),
+        mode: rangeMode ? "range" : "achievement",
+        ...(rangeMode
+          ? { alertDeviationPercent: Number(card.querySelector(".kpi-alert-threshold").value), criticalDeviationPercent: Number(card.querySelector(".kpi-critical-threshold").value) }
+          : { alertBelowPercent: Number(card.querySelector(".kpi-alert-threshold").value), criticalBelowPercent: Number(card.querySelector(".kpi-critical-threshold").value) })
+      };
     });
+    if (!validateKpiThresholds(kpiPreferences)) {
+      document.getElementById("kpiAdminMessage").textContent = "Revise los umbrales: crítico debe ser más exigente que alerta.";
+      return;
+    }
     kpiPreferences.audit = document.getElementById("kpiAuditMode").checked;
     localStorage.setItem(kpiStorageKey(), JSON.stringify(kpiPreferences));
     document.getElementById("kpiAdminMessage").textContent = "Indicadores guardados para esta implementación.";
@@ -180,9 +200,45 @@ function initKpiControls() {
   document.getElementById("closeMetallurgicalBalance").addEventListener("click", () => { overlay.classList.add("is-hidden"); overlay.setAttribute("aria-hidden", "true"); });
 }
 
+function validateKpiThresholds(preferences) {
+  return [preferences.copperToSx, preferences.recovery].every((objective) =>
+    Number.isFinite(objective.alertBelowPercent)
+    && Number.isFinite(objective.criticalBelowPercent)
+    && objective.criticalBelowPercent <= objective.alertBelowPercent
+  ) && Number.isFinite(preferences.specificAcidConsumption.alertDeviationPercent)
+    && Number.isFinite(preferences.specificAcidConsumption.criticalDeviationPercent)
+    && preferences.specificAcidConsumption.criticalDeviationPercent >= preferences.specificAcidConsumption.alertDeviationPercent;
+}
+
+function renderKpiConfigGrid(grid, definitions) {
+  grid.innerHTML = definitions.map(([key, label]) => {
+    const objective = kpiPreferences[key];
+    const rangeMode = key === "specificAcidConsumption";
+    return `<fieldset class="kpi-admin-card" data-kpi="${key}" data-mode="${rangeMode ? "range" : "achievement"}"><legend>${label}</legend>
+      <label>KPI Objetivo<input class="kpi-target-input" type="number" min="0.0001" step="any" value="${objective.target}"></label>
+      ${rangeMode
+        ? `<label>Alerta fuera de ± (%)<input class="kpi-alert-threshold" type="number" min="0" max="100" step="1" value="${objective.alertDeviationPercent}"></label><label>Crítico fuera de ± (%)<input class="kpi-critical-threshold" type="number" min="0" max="100" step="1" value="${objective.criticalDeviationPercent}"></label>`
+        : `<label>Alerta bajo cumplimiento (%)<input class="kpi-alert-threshold" type="number" min="0" max="100" step="1" value="${objective.alertBelowPercent}"></label><label>Crítico bajo cumplimiento (%)<input class="kpi-critical-threshold" type="number" min="0" max="100" step="1" value="${objective.criticalBelowPercent}"></label>`}
+    </fieldset>`;
+  }).join("");
+}
+
 function loadKpiPreferences() {
-  const defaults = { ...clientConfig.kpiObjectives, audit: false };
-  try { return { ...defaults, ...JSON.parse(localStorage.getItem(kpiStorageKey()) || "{}") }; } catch { return defaults; }
+  const defaults = {
+    copperToSx: { ...clientConfig.kpiObjectives.copperToSx, mode: "achievement", alertBelowPercent: 100, criticalBelowPercent: 90 },
+    specificAcidConsumption: { ...clientConfig.kpiObjectives.specificAcidConsumption, mode: "range", alertDeviationPercent: 10, criticalDeviationPercent: 20 },
+    recovery: { ...clientConfig.kpiObjectives.recovery, mode: "achievement", alertBelowPercent: 100, criticalBelowPercent: 90 },
+    audit: false
+  };
+  try {
+    const stored = JSON.parse(localStorage.getItem(kpiStorageKey()) || "{}");
+    return {
+      copperToSx: { ...defaults.copperToSx, ...stored.copperToSx },
+      specificAcidConsumption: { ...defaults.specificAcidConsumption, ...stored.specificAcidConsumption },
+      recovery: { ...defaults.recovery, ...stored.recovery },
+      audit: stored.audit ?? defaults.audit
+    };
+  } catch { return defaults; }
 }
 
 function kpiStorageKey() { return `plantview:kpi:${clientConfig.implementationId}`; }
