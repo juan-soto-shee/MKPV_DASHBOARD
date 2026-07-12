@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PlantView Admin | MetKinetics</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="admin.css?v=20260712-1">
-  <script type="module" src="admin.js?v=20260712-1"></script>
+  <link rel="stylesheet" href="admin.css?v=20260712-2">
+  <script type="module" src="admin.js?v=20260712-2"></script>
 </head>
 <body>
   <section id="authScreen" class="auth-screen" aria-live="polite">
@@ -35,7 +35,7 @@
       <h1>PlantView Admin</h1>
       <nav aria-label="Administración MetKinetics">
         <a href="#clientes">Clientes</a><a href="#implementaciones">Implementaciones</a>
-        <a href="#importacion">Importación Masiva</a><a href="#historico">Eliminar Histórico</a>
+        <a href="#importacion">Importación Masiva</a><a id="deleteHistoryNav" href="#historico">Eliminar Histórico</a>
         <a href="#variables">Variables</a><a href="#layout">Layout</a><a href="#usuarios">Usuarios</a>
         <a href="#licencias">Licencias</a><a href="#branding">Branding</a><a href="#respaldos">Respaldos</a>
         <a href="#versiones">Versiones</a><a href="#global">Configuración Global</a>
@@ -49,9 +49,19 @@
           <button id="signOutButton" type="button">Cerrar sesión</button>
         </div>
       </header>
-      <h2>Arquitectura preparada</h2>
-      <p>Los módulos administrativos se implementarán en la siguiente etapa. Esta consola no forma parte del Dashboard del Cliente.</p>
-      <section class="access-card"><strong>Acceso autorizado</strong><span>Administrador MetKinetics</span></section>
+      <section id="adminHome"><h2>Arquitectura preparada</h2><p>Los módulos administrativos se implementarán en la siguiente etapa. Esta consola no forma parte del Dashboard del Cliente.</p><section class="access-card"><strong>Acceso autorizado</strong><span>Administrador MetKinetics</span></section></section>
+      <section id="deleteHistorySection" class="module-section" hidden aria-labelledby="deleteHistoryTitle">
+        <p class="eyebrow">Administración de datos</p><h2 id="deleteHistoryTitle">Eliminar Histórico</h2><p>Busque y revise los registros antes de autorizar su eliminación definitiva.</p>
+        <form id="deleteHistorySearchForm" class="history-form" novalidate>
+          <label><span>Cliente / implementación</span><select id="historyClient"><option value="">Seleccione un cliente</option><option value="demo_lixiviacion">Demo Lixiviación</option><option value="solmin_mantos_blancos">Solmin Mantos Blancos</option></select></label>
+          <label><span>Fecha desde</span><input id="historyDateFrom" type="date"></label><label><span>Fecha hasta</span><input id="historyDateTo" type="date"></label>
+          <button id="searchHistoryButton" class="primary-button" type="submit">Buscar registros</button>
+        </form>
+        <p id="deleteHistoryMessage" class="module-message" role="status" aria-live="polite"></p>
+        <section id="deleteHistoryPreview" class="preview-card" hidden><h3>Vista previa</h3><dl><div><dt>Cliente</dt><dd id="previewClient">--</dd></div><div><dt>Fecha desde</dt><dd id="previewFrom">--</dd></div><div><dt>Fecha hasta</dt><dd id="previewTo">--</dd></div><div><dt>Registros encontrados</dt><dd id="previewCount">0</dd></div><div><dt>Registro más antiguo</dt><dd id="previewOldest">--</dd></div><div><dt>Registro más reciente</dt><dd id="previewNewest">--</dd></div></dl></section>
+        <button id="deleteHistoryButton" class="danger-button" type="button" disabled>Eliminar registros</button>
+        <section id="deleteHistoryConfirmation" class="confirmation-card" hidden><h3>Confirmación requerida</h3><p id="deleteHistorySummary"></p><label><span>Escriba <strong>ELIMINAR</strong> para continuar</span><input id="deleteHistoryConfirmationInput" type="text" autocomplete="off"></label><div class="confirmation-actions"><button id="cancelHistoryDeletion" type="button">Cancelar</button><button id="confirmHistoryDeletion" class="danger-button" type="button" disabled>Confirmar eliminación</button></div></section>
+      </section>
     </main>
   </div>
 </body>

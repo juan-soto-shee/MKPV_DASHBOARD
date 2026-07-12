@@ -7,6 +7,7 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { initializeDeleteHistory } from "./modules/deleteHistory.js";
 
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
@@ -25,6 +26,7 @@ const elements = {
 };
 
 let signingOutUnauthorizedUser = false;
+let deleteHistoryController = null;
 
 elements.googleSignInButton.addEventListener("click", async () => {
   setCheckingState("Abriendo Google...");
@@ -118,6 +120,14 @@ function showConsole(user, authorization) {
   elements.adminUserEmail.textContent = authorization.email || user.email || "--";
   elements.adminUserRole.textContent = authorization.rol;
   elements.adminConsole.hidden = false;
+  const activeAdmin = {
+    email: authorization.email || user.email || "",
+    nombre: authorization.nombre || user.displayName || "Administrador",
+    rol: authorization.rol
+  };
+  if (!deleteHistoryController) deleteHistoryController = initializeDeleteHistory(db, activeAdmin);
+  else deleteHistoryController.setAdmin(activeAdmin);
+  deleteHistoryController.showRequestedSection();
 }
 
 function hideConsole() {
