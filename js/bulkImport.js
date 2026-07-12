@@ -105,12 +105,12 @@ async function prepareFile(elements) {
     }
 
     const futureErrors = preparedImport.errors.filter((error) => error.type === "future").length;
-    elements.fileInfo.textContent = futureErrors
-      ? `Archivo rechazado: contiene ${futureErrors} fila(s) con fechas futuras. Corrija las fechas antes de importar.`
-      : preparedImport.errors.length
+    elements.fileInfo.textContent = preparedImport.errors.length
       ? `${preparedImport.validRecords.length} registros preparados y ${preparedImport.errors.length} filas omitidas por error.`
       : `${preparedImport.validRecords.length} registros preparados para ${clientConfig.clientProfile.cliente}.`;
-    if (futureErrors) return;
+    if (futureErrors) {
+      elements.fileInfo.textContent += ` ${futureErrors} de las filas omitidas tienen fecha u hora futura.`;
+    }
     openConfirm(elements, preparedImport);
   } catch (error) {
     console.error("Error preparando importación masiva:", error);
