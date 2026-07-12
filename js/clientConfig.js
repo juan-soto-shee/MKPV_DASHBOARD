@@ -84,6 +84,7 @@ async function loadClientConfig() {
     clientName: customer.clientName,
     siteName: customer.siteName,
     processName: customer.processName,
+    kpiObjectives: customer.kpiObjectives || {},
     profileId,
     clientProfile: buildClientProfile(customer),
     configStatus: buildConfigStatus(customerResult, profileResult, active.source),
@@ -173,6 +174,7 @@ function normalizeCustomer(customer, implementationId) {
     siteName: customer.siteName || customer.faena,
     processName: customer.processName || customer.proceso,
     profileId: customer.profileId || implementationId,
+    kpiObjectives: customer.kpiObjectives || {},
     version: customer.version || customer.versionConfiguracion || "1.0",
     enabled: customer.enabled !== false
   };
