@@ -7,6 +7,7 @@ import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 import { normalizeRecordDateTime } from "./dateTime.js?v=20260711-2";
 import { requireWebAccess } from "./webAccess.js?v=20260711-5";
+import { initDataExport } from "./dataExport.js?v=20260712-1";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -36,6 +37,7 @@ const elements = {
 bindControls();
 initAlarmAdmin();
 initBulkImport();
+initDataExport({ normalizeRecords });
 initLegacyCleanup({ refreshDashboard: restartRealtimeListener });
 onAlarmConfigChange(() => render());
 
@@ -277,7 +279,7 @@ function updateMobilePeriodTitle() {
   title.textContent = clientConfig.layout.periodos.find((period) => period.horas === state.selectedPeriodHours)?.titulo || "";
 }
 
-function normalizeRecords(records) {
+export function normalizeRecords(records) {
   return records
     .map((record) => {
       let normalizedDateTime;
