@@ -3,20 +3,26 @@ import { getReferenceTimestamp } from "./dateTime.js?v=20260712-3";
 
 export const KPI_WINDOW_HOURS = 24;
 
-// Valor temporal: reemplazar cuando el consumo diario provenga del área de ácido.
-export function getDailyAcidConsumption() { return 324; }
-
 export function calculateOperationalKpis(records, { windowHours = KPI_WINDOW_HOURS, referenceTimestamp = getReferenceTimestamp(records), audit = false } = {}) {
   const variablePair = resolveCopperVariables(clientConfig.variables);
   const pileNames = clientConfig.equipment.filter((item) => item.tipo === "pila").map((item) => item.nombre);
-  const integration = variablePair
+  const copperIntegration = variablePair
     ? integrateCopperByPile(records, pileNames, variablePair.flowKey, variablePair.concentrationKey, { windowHours, now: referenceTimestamp })
     : { total: null, intervals: [], subtotals: {} };
-  const copperToSx = integration.total;
-  const specificAcidConsumption = Number.isFinite(copperToSx) && copperToSx > 0
-    ? getDailyAcidConsumption() / copperToSx : null;
-  const result = { copperToSx, specificAcidConsumption, recovery: 72, metallurgicalBalance: null, audit: integration };
-  if (audit) printKpiAudit(integration, result);
+  const acidPair = resolveRefiningAcidVariables(clientConfig.variables);
+  const refiningAreas = clientConfig.equipment
+    .filter((item) => item.variablePrincipal === acidPair?.flowKey || /refino/i.test(`${item.id || ""} ${item.nombre || ""}`))
+    .map((item) => item.nombre);
+  const acidIntegration = acidPair
+    ? integrateMassByArea(records, refiningAreas, acidPair.flowKey, acidPair.concentrationKey, { windowHours, now: referenceTimestamp })
+    : { total: null, intervals: [], subtotals: {} };
+  const copperToSx = copperIntegration.total;
+  const acidUsedTonnes = acidIntegration.total;
+  const specificAcidConsumption = Number.isFinite(copperToSx) && copperToSx > 0 && Number.isFinite(acidUsedTonnes)
+    ? acidUsedTonnes * 1000 / copperToSx : null;
+  const auditData = { copper: copperIntegration, acid: acidIntegration };
+  const result = { copperToSx, acidUsedTonnes, specificAcidConsumption, recovery: 72, metallurgicalBalance: null, audit: auditData };
+  if (audit) printKpiAudit(auditData, result);
   return result;
 }
 
@@ -26,49 +32,70 @@ export function resolveCopperVariables(variables) {
   return flow ? { flowKey: flow.key, concentrationKey: concentration.key } : null;
 }
 
+export function resolveRefiningAcidVariables(variables) {
+  const refiningVariables = (variables || []).filter((variable) => /refino/i.test(`${variable.grupo || ""} ${variable.nombre || ""} ${variable.key || ""}`));
+  const flow = refiningVariables.find((variable) => variable.unidad === "m3/h" || /flujo/i.test(variable.nombre || ""));
+  const concentration = refiningVariables.find((variable) => variable.unidad === "g/L" && /acid|ácid/i.test(`${variable.nombre || ""} ${variable.key || ""}`));
+  return flow && concentration ? { flowKey: flow.key, concentrationKey: concentration.key } : null;
+}
+
 export function integrateCopperByPile(records, pileNames, flowKey, concentrationKey, { windowHours = KPI_WINDOW_HOURS, now = Date.now() } = {}) {
+  return integrateMassByArea(records, pileNames, flowKey, concentrationKey, { windowHours, now });
+}
+
+export function integrateMassByArea(records, areaNames, flowKey, concentrationKey, { windowHours = KPI_WINDOW_HOURS, now = Date.now() } = {}) {
   const windowStart = now - windowHours * 3600000;
   const intervals = [];
   const subtotals = {};
 
-  pileNames.forEach((pile) => {
-    const pileRecords = (records || []).filter((record) =>
-      record.clienteId === clientConfig.clienteId && record.subarea === pile
+  areaNames.forEach((area) => {
+    const areaRecords = (records || []).filter((record) =>
+      record.clienteId === clientConfig.clienteId && record.subarea === area
       && Number.isFinite(record.timestampCreacion) && record.timestampCreacion >= windowStart && record.timestampCreacion <= now
       && Number.isFinite(record[flowKey]) && record[flowKey] >= 0
       && Number.isFinite(record[concentrationKey]) && record[concentrationKey] >= 0
     ).sort((left, right) => left.timestampCreacion - right.timestampCreacion);
 
     let subtotal = 0;
-    if (pileRecords.length >= 2) {
-      pileRecords.forEach((record, index) => {
-        const end = index + 1 < pileRecords.length ? pileRecords[index + 1].timestampCreacion : now;
+    if (areaRecords.length >= 2) {
+      areaRecords.forEach((record, index) => {
+        const end = index + 1 < areaRecords.length ? areaRecords[index + 1].timestampCreacion : now;
         const durationHours = Math.max(0, (end - record.timestampCreacion) / 3600000);
         if (!durationHours) return;
         const instantaneous = record[flowKey] * record[concentrationKey] / 1000;
         const tonnes = instantaneous * durationHours;
         subtotal += tonnes;
-        intervals.push({ pile, start: record.timestampCreacion, end, durationHours, flow: record[flowKey], concentration: record[concentrationKey], instantaneous, tonnes });
+        intervals.push({ area, start: record.timestampCreacion, end, durationHours, flow: record[flowKey], concentration: record[concentrationKey], instantaneous, tonnes });
       });
     }
-    subtotals[pile] = subtotal;
+    subtotals[area] = subtotal;
   });
 
-  const total = pileNames.length && Object.values(subtotals).some((value) => value > 0)
+  const total = areaNames.length && Object.values(subtotals).some((value) => value > 0)
     ? Object.values(subtotals).reduce((sum, value) => sum + value, 0) : null;
   return { total, intervals, subtotals, windowStart, windowEnd: now };
 }
 
-export function printKpiAudit(integration, result) {
+export function printKpiAudit(auditData, result) {
+  const integration = auditData.copper;
   console.groupCollapsed("[PlantView KPI] Auditoría Cobre a SX — últimas 24 h");
   console.table(integration.intervals.map((item) => ({
-    Pila: item.pile, "Hora inicial": new Date(item.start).toLocaleString("es-CL"),
+    Pila: item.area, "Hora inicial": new Date(item.start).toLocaleString("es-CL"),
     "Hora final": new Date(item.end).toLocaleString("es-CL"), "Δt (h)": item.durationHours,
     "Flujo (m3/h)": item.flow, "Cu2+ (g/L)": item.concentration,
     "Producción instantánea (t/h)": item.instantaneous, "Toneladas intervalo": item.tonnes
   })));
   console.table(Object.entries(integration.subtotals).map(([pile, subtotal]) => ({ Pila: pile, "Subtotal (t)": subtotal })));
   console.info("Total Planta (t):", integration.total, "Resultado mostrado:", result.copperToSx);
+  console.groupEnd();
+  console.groupCollapsed("[PlantView KPI] Auditoría Ácido de Refino — últimas 24 h");
+  console.table(auditData.acid.intervals.map((item) => ({
+    Área: item.area, "Hora inicial": new Date(item.start).toLocaleString("es-CL"),
+    "Hora final": new Date(item.end).toLocaleString("es-CL"), "Δt (h)": item.durationHours,
+    "Flujo Refino (m3/h)": item.flow, "Acidez Refino (g/L)": item.concentration,
+    "Ácido instantáneo (t/h)": item.instantaneous, "Ácido intervalo (t)": item.tonnes
+  })));
+  console.info("Ácido total (t):", result.acidUsedTonnes, "Consumo específico (kg/t Cu):", result.specificAcidConsumption);
   console.groupEnd();
 }
 
