@@ -1,5 +1,5 @@
 export const ADMIN_PASSWORD = "Met2026!";
-export const TECHNICAL_PROFILE_PASSWORD = "PVTech2026!";
+export const TECHNICAL_PROFILE_PASSWORD = "Techdemo#";
 export const DEMO_WEB_PASSWORD = "DEMO";
 
 export function verifyAdminPassword(password) {
