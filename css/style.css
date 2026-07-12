@@ -696,7 +696,14 @@ h3 {
 .kpi-admin-card { padding: 14px; border: 1px solid rgba(147, 185, 197, .16); border-radius: 8px; }
 .kpi-admin-card legend { padding: 0 6px; color: var(--cyan); font-weight: 850; }
 .kpi-admin-card > label { display: grid; gap: 7px; color: var(--muted); font-size: .8rem; font-weight: 800; }
-.kpi-admin-card input[type="number"] { min-height: 40px; padding: 8px 10px; border: 1px solid rgba(147, 185, 197, .22); border-radius: 7px; background: rgba(3, 13, 18, .44); color: var(--text); }
+.kpi-admin-card input[type="number"], .kpi-admin-card select { min-height: 40px; padding: 8px 10px; border: 1px solid rgba(147, 185, 197, .22); border-radius: 7px; background: rgba(3, 13, 18, .88); color: var(--text); }
+.kpi-admin-unit { margin: 0 0 12px; color: var(--muted); font-size: .8rem; }
+.kpi-percentage-fields, .kpi-range-fields { display: grid; gap: 10px; margin-top: 10px; }
+.kpi-range-fields { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.kpi-admin-card.is-range-mode .kpi-percentage-fields { display: none; }
+.kpi-admin-card.is-range-mode .kpi-range-fields { display: grid; }
+.kpi-percentage-fields label, .kpi-range-fields label { display: grid; gap: 5px; color: var(--muted); font-size: .76rem; font-weight: 750; }
+.kpi-limit-preview { min-height: 72px; margin-top: 12px; padding: 10px; border-radius: 7px; background: rgba(50, 213, 232, .06); color: rgba(234, 248, 250, .78); font-size: .74rem; line-height: 1.45; }
 .kpi-comparison { display: grid; gap: 8px; margin-top: 12px; color: var(--muted); font-size: .82rem; }
 .kpi-audit-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--muted); font-size: .82rem; }
 
