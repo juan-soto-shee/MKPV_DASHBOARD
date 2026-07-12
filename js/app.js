@@ -153,6 +153,8 @@ function renderOperationalKpis(records) {
 
 function renderKpiRing(suffix, valueElement, value, decimals, objective) {
   valueElement.textContent = formatKpiValue(value, decimals);
+  const targetUnits = { Copper: "t", Acid: "", Recovery: "%" };
+  document.getElementById(`kpi${suffix}Target`).textContent = `Objetivo ${formatKpiValue(Number(objective.target), decimals)}${targetUnits[suffix] ? ` ${targetUnits[suffix]}` : ""}`;
   const compliance = compliancePercent(value, objective.target, objective.comparison);
   const status = evaluateKpiStatus(value, objective);
   const labels = { normal: "Normal", warning: "Alerta", critical: "Crítico", "no-data": "Sin datos" };
