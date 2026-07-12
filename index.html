@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260712-2">
+    <link rel="stylesheet" href="css/style.css?v=20260712-3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260712-1"></script>
+    <script type="module" src="js/app.js?v=20260712-2"></script>
   </head>
   <body>
     <div class="shell">
@@ -220,6 +220,22 @@
           <div id="processMap" class="process-map"></div>
         </section>
 
+        <section class="kpi-section" aria-label="Indicadores operacionales">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Desempe&ntilde;o de proceso</p>
+              <h2>Indicadores Operacionales</h2>
+            </div>
+            <span class="data-source">Ventana 24 h</span>
+          </div>
+          <div class="kpi-grid">
+            <article class="kpi-card"><h3>Cobre Disuelto</h3><div class="kpi-reading"><strong id="kpiDissolvedCopper">&mdash;</strong><span>t/d&iacute;a</span></div></article>
+            <article class="kpi-card"><h3>Consumo Espec&iacute;fico de &Aacute;cido</h3><div class="kpi-reading"><strong id="kpiSpecificAcid">&mdash;</strong><span>t &aacute;cido / t Cu</span></div></article>
+            <article class="kpi-card"><div class="kpi-card-heading"><h3>Recuperaci&oacute;n</h3><span class="kpi-estimate">Estimado</span></div><div class="kpi-reading"><strong id="kpiRecovery">72,0</strong><span>%</span></div></article>
+            <article class="kpi-card kpi-card-available"><h3>Balance Metal&uacute;rgico</h3><strong>A solicitud del cliente</strong></article>
+          </div>
+        </section>
+
         <section class="charts-section" aria-label="Tendencias operacionales">
           <div class="section-heading desktop-heading">
             <div>
@@ -245,7 +261,7 @@
           <div class="collapsible-content"><div id="alarmsList" class="alarms-list"></div></div>
         </details>
 
-        <details class="history-section desktop-only collapsible-section" aria-label="Historial operacional">
+        <details class="history-section collapsible-section" aria-label="Historial operacional">
           <summary class="section-heading collapsible-summary">
             <div>
               <p id="historyEyebrow" class="eyebrow"></p>

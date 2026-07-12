@@ -8,6 +8,7 @@ import { clientConfig } from "./clientConfig.js";
 import { normalizeRecordDateTime } from "./dateTime.js?v=20260711-2";
 import { requireWebAccess } from "./webAccess.js?v=20260711-5";
 import { initDataExport } from "./dataExport.js?v=20260712-1";
+import { calculateOperationalKpis, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-1";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -31,7 +32,9 @@ const elements = {
   alarmsList: document.getElementById("alarmsList"),
   alarmCount: document.getElementById("alarmCount"),
   periodFilter: document.getElementById("periodFilter"),
-  mobileCounts: document.getElementById("mobileCounts")
+  mobileCounts: document.getElementById("mobileCounts"),
+  kpiDissolvedCopper: document.getElementById("kpiDissolvedCopper"),
+  kpiSpecificAcid: document.getElementById("kpiSpecificAcid")
 };
 
 bindControls();
@@ -131,12 +134,25 @@ function render() {
   renderAlarms(selectedRecords);
   renderHistoryTable(selectedRecords.slice(0, 30));
   renderMobileSummary(recentRecords);
+  renderOperationalKpis(state.records);
   updateMobilePeriodTitle();
   updateCharts(chartRecords, {
     selectedArea: state.selectedArea,
     sourceRecords: recentRecords,
     alarmConfig
   });
+}
+
+function renderOperationalKpis(records) {
+  const kpis = calculateOperationalKpis(records, { windowHours: KPI_WINDOW_HOURS });
+  elements.kpiDissolvedCopper.textContent = formatKpiValue(kpis.dissolvedCopper, 1);
+  elements.kpiSpecificAcid.textContent = formatKpiValue(kpis.specificAcidConsumption, 2);
+}
+
+function formatKpiValue(value, decimals) {
+  return Number.isFinite(value) ? value.toLocaleString(clientConfig.identity.locale, {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals
+  }) : "—";
 }
 
 function handleProcessSelection(area) {
