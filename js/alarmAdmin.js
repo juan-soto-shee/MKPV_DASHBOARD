@@ -4,7 +4,6 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
-import { deleteAllLeachRecords } from "./firestoreService.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 export { verifyAdminPassword } from "./credentials.js?v=20260711-5";
 import { verifyAdminPassword } from "./credentials.js?v=20260711-5";
@@ -71,64 +70,6 @@ function bindAlarmAdminControls(elements) {
     elements.alarmAdminSection.classList.add("is-hidden");
   });
   elements.saveAlarmConfigButton.addEventListener("click", () => saveAlarmConfig(elements));
-  elements.resetOperationDataButton?.addEventListener("click", () => openResetDialog(elements));
-  elements.cancelResetButton?.addEventListener("click", () => closeResetDialog(elements));
-  elements.continueResetButton?.addEventListener("click", () => continueReset(elements));
-}
-
-function openResetDialog(elements) {
-  elements.resetDataOverlay.classList.remove("is-hidden");
-  elements.resetDataOverlay.setAttribute("aria-hidden", "false");
-  elements.resetPasswordField.classList.add("is-hidden");
-  elements.resetPasswordInput.value = "";
-  elements.resetDialogMessage.textContent = "";
-  elements.continueResetButton.textContent = "Continuar";
-  elements.continueResetButton.dataset.stage = "warning";
-  if (elements.resetTargetClient) elements.resetTargetClient.textContent = clientConfig.clientProfile.cliente;
-  if (elements.resetTargetClientId) elements.resetTargetClientId.textContent = clientConfig.clientProfile.clienteId;
-  if (elements.resetTargetCount) elements.resetTargetCount.textContent = String(adminStats.count);
-}
-
-function closeResetDialog(elements) {
-  elements.resetDataOverlay.classList.add("is-hidden");
-  elements.resetDataOverlay.setAttribute("aria-hidden", "true");
-}
-
-async function continueReset(elements) {
-  if (elements.continueResetButton.dataset.stage === "warning") {
-    elements.resetPasswordField.classList.remove("is-hidden");
-    elements.continueResetButton.dataset.stage = "password";
-    elements.continueResetButton.textContent = "Eliminar registros";
-    elements.resetPasswordInput.focus();
-    return;
-  }
-
-  if (!verifyAdminPassword(elements.resetPasswordInput.value)) {
-    elements.resetDialogMessage.textContent = "Contrasena incorrecta. Operacion cancelada.";
-    elements.continueResetButton.disabled = true;
-    window.setTimeout(() => {
-      elements.continueResetButton.disabled = false;
-      closeResetDialog(elements);
-    }, 1600);
-    return;
-  }
-
-  elements.continueResetButton.disabled = true;
-  elements.cancelResetButton.disabled = true;
-    elements.resetDialogMessage.textContent = `Eliminando documentos de ${clientConfig.identity.firebase.coleccionRegistros} para ${clientConfig.clienteId}...`;
-  try {
-    await deleteAllLeachRecords((deleted) => {
-      elements.resetDialogMessage.textContent = `${deleted} registros eliminados...`;
-    });
-    elements.resetDataMessage.textContent = "Datos de operacion reiniciados correctamente.";
-    closeResetDialog(elements);
-  } catch (error) {
-    console.error("No se pudieron reiniciar los datos:", error);
-    elements.resetDialogMessage.textContent = "No se pudieron eliminar los registros.";
-  } finally {
-    elements.continueResetButton.disabled = false;
-    elements.cancelResetButton.disabled = false;
-  }
 }
 
 function openPasswordPanel(elements) {

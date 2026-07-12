@@ -2,8 +2,6 @@ import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } fro
 import { updateCharts } from "./charts.js?v=20260709-1";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260710-3";
-import { initBulkImport } from "./bulkImport.js?v=20260711-3";
-import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
 import { requireWebAccess } from "./webAccess.js?v=20260711-5";
@@ -42,10 +40,8 @@ let kpiPreferences = loadKpiPreferences();
 
 bindControls();
 initAlarmAdmin();
-initBulkImport();
 initDataExport({ normalizeRecords });
 initKpiControls();
-initLegacyCleanup({ refreshDashboard: restartRealtimeListener });
 initAdminCollapsibles();
 onAlarmConfigChange(() => render());
 

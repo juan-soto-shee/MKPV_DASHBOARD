@@ -38,11 +38,11 @@
       </header>
 
       <main>
-        <section id="alarmAdminSection" class="alarm-admin-section is-hidden" aria-label="Administracion del sistema">
+        <section id="alarmAdminSection" class="alarm-admin-section is-hidden" aria-label="Configuraci&oacute;n t&eacute;cnica">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Administracion operacional</p>
-              <h2>ADMINISTRACI&Oacute;N DEL SISTEMA</h2>
+              <p class="eyebrow">Perfil T&eacute;cnico</p>
+              <h2>CONFIGURACI&Oacute;N T&Eacute;CNICA</h2>
             </div>
             <button id="closeAlarmAdminButton" class="secondary-action" type="button">Volver al monitoreo</button>
           </div>
@@ -65,7 +65,7 @@
               <div><dt>Versi&oacute;n</dt><dd id="activeProfileConfigVersion">--</dd></div>
             </dl>
           </section>
-          <section id="legacyCleanupSection" class="admin-subsection is-hidden">
+          <section id="legacyCleanupSection" class="admin-subsection is-hidden" hidden>
             <p class="eyebrow">Administraci&oacute;n de Datos</p>
             <h3>LIMPIAR DATOS LEGACY DEMO</h3>
             <p class="admin-note">Esta operaci&oacute;n elimina exclusivamente registros artificiales antiguos de la demo que no tienen <strong>clienteId</strong>. No afecta datos asociados a ninguna implementaci&oacute;n.</p>
@@ -132,7 +132,7 @@
           </div>
           </div>
 
-          <div class="admin-grid">
+          <div class="admin-grid" hidden>
             <section class="admin-subsection">
               <h3>ADMINISTRACI&Oacute;N DE DATOS</h3>
               <dl class="system-facts">
@@ -145,7 +145,7 @@
               <p id="resetDataMessage" class="admin-message" role="status"></p>
             </section>
           </div>
-          <section class="admin-subsection bulk-import">
+          <section class="admin-subsection bulk-import" hidden>
             <h3>IMPORTACI&Oacute;N MASIVA</h3>
             <p class="admin-note">Cargue registros operacionales desde Excel (.xlsx) o CSV. La primera fila de la hoja de datos debe contener los nombres de las columnas. Las filas con error se informar&aacute;n y se omitir&aacute;n.</p>
             <div class="operation-target">
@@ -199,7 +199,7 @@
               </div>
             </div>
           </section>
-          <section class="admin-subsection">
+          <section class="admin-subsection client-admin-exclusive" hidden>
             <h3>OPCIONES FUTURAS</h3>
             <div class="future-options">
               <button type="button" disabled>Usuarios <span>Pr&oacute;ximamente</span></button>
@@ -302,9 +302,9 @@
       </main>
     </div>
 
-    <button id="adminAccessButton" class="admin-access-button admin-access-discreet" type="button" aria-label="Administraci&oacute;n" title="Administraci&oacute;n">
+    <button id="adminAccessButton" class="admin-access-button admin-access-discreet" type="button" aria-label="Configuraci&oacute;n t&eacute;cnica" title="Configuraci&oacute;n t&eacute;cnica">
       <span aria-hidden="true">&#8942;</span>
-      <span class="sr-only">Administraci&oacute;n</span>
+      <span class="sr-only">Configuraci&oacute;n t&eacute;cnica</span>
     </button>
 
     <div id="webAccessOverlay" class="admin-overlay web-access-overlay" aria-hidden="false">
@@ -328,14 +328,14 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">Acceso restringido</p>
-            <h2 id="adminPasswordTitle">Administracion</h2>
+            <h2 id="adminPasswordTitle">Configuraci&oacute;n T&eacute;cnica</h2>
           </div>
           <button id="cancelAdminAccessButton" class="icon-close-button" type="button" aria-label="Cerrar">X</button>
         </div>
         <form id="adminPasswordForm" class="admin-password-form">
           <input class="sr-only" type="text" name="username" autocomplete="username" value="admin" aria-hidden="true" tabindex="-1">
           <label class="admin-password-field">
-            <span>Contrasena de administrador</span>
+            <span>Contrase&ntilde;a de Perfil T&eacute;cnico</span>
             <input id="adminPasswordInput" type="password" autocomplete="current-password">
           </label>
           <p id="adminPasswordMessage" class="admin-message" role="alert"></p>
@@ -345,7 +345,7 @@
         </form>
       </section>
     </div>
-    <div id="resetDataOverlay" class="admin-overlay is-hidden" aria-hidden="true">
+    <div id="resetDataOverlay" class="admin-overlay is-hidden" aria-hidden="true" hidden>
       <section class="admin-password-panel" role="dialog" aria-modal="true" aria-labelledby="resetDataTitle">
         <h2 id="resetDataTitle">&iquest;Desea eliminar todos los registros operacionales?</h2>
         <p>Se eliminar&aacute;n &uacute;nicamente los documentos de <strong id="resetRecordsCollection"></strong>. No se eliminar&aacute;n la configuraci&oacute;n de alarmas, usuarios ni otros datos del sistema.</p>
@@ -369,7 +369,7 @@
         </div>
       </section>
     </div>
-    <div id="bulkImportConfirmOverlay" class="admin-overlay is-hidden" aria-hidden="true">
+    <div id="bulkImportConfirmOverlay" class="admin-overlay is-hidden" aria-hidden="true" hidden>
       <section class="admin-password-panel" role="dialog" aria-modal="true" aria-labelledby="bulkImportConfirmTitle">
         <h2 id="bulkImportConfirmTitle">Confirmar importaci&oacute;n masiva</h2>
         <div class="operation-target">
@@ -387,7 +387,7 @@
         </div>
       </section>
     </div>
-    <div id="legacyCleanupOverlay" class="admin-overlay is-hidden" aria-hidden="true">
+    <div id="legacyCleanupOverlay" class="admin-overlay is-hidden" aria-hidden="true" hidden>
       <section class="admin-password-panel" role="dialog" aria-modal="true" aria-labelledby="legacyCleanupTitle">
         <h2 id="legacyCleanupTitle">Limpiar Datos Legacy Demo</h2>
         <p>Se eliminar&aacute;n &uacute;nicamente documentos artificiales de la demo sin clienteId identificados de forma segura.</p>
