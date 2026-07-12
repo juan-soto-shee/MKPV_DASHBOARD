@@ -192,20 +192,6 @@
               </div>
             </div>
           </section>
-          <section class="admin-subsection data-export">
-            <h3>EXPORTAR DATOS HIST&Oacute;RICOS</h3>
-            <p class="admin-note">La exportaci&oacute;n incluye exclusivamente los registros y variables de la implementaci&oacute;n activa.</p>
-            <div class="export-controls">
-              <label><span>Per&iacute;odo</span><select id="exportPeriod"><option value="24">&Uacute;ltimas 24 horas</option><option value="168">&Uacute;ltimos 7 d&iacute;as</option><option value="720">&Uacute;ltimos 30 d&iacute;as</option><option value="custom">Rango personalizado</option></select></label>
-              <label><span>Formato</span><select id="exportFormat"><option value="csv">CSV</option><option value="xlsx">XLSX</option></select></label>
-              <div id="exportCustomDates" class="export-custom-dates is-hidden">
-                <label><span>Fecha inicial</span><input id="exportStartDate" type="date"></label>
-                <label><span>Fecha final</span><input id="exportEndDate" type="date"></label>
-              </div>
-              <button id="exportDataButton" class="primary-action" type="button">Exportar datos</button>
-            </div>
-            <p id="exportDataMessage" class="admin-message" role="status"></p>
-          </section>
           <section class="admin-subsection">
             <h3>OPCIONES FUTURAS</h3>
             <div class="future-options">
@@ -222,6 +208,21 @@
             <button type="button" data-period="168">7 dias</button>
             <button type="button" data-period="720">30 dias</button>
           </div>
+        </section>
+
+        <section class="admin-subsection data-export" aria-label="Exportar datos hist&oacute;ricos">
+          <h3>EXPORTAR DATOS HIST&Oacute;RICOS</h3>
+          <p class="admin-note">Descargue exclusivamente los registros y variables de su implementaci&oacute;n activa.</p>
+          <div class="export-controls">
+            <label><span>Per&iacute;odo</span><select id="exportPeriod"><option value="24">&Uacute;ltimas 24 horas</option><option value="168">&Uacute;ltimos 7 d&iacute;as</option><option value="720">&Uacute;ltimos 30 d&iacute;as</option><option value="custom">Rango personalizado</option></select></label>
+            <label><span>Formato</span><select id="exportFormat"><option value="csv">CSV</option><option value="xlsx">XLSX</option></select></label>
+            <div id="exportCustomDates" class="export-custom-dates is-hidden">
+              <label><span>Fecha inicial</span><input id="exportStartDate" type="date"></label>
+              <label><span>Fecha final</span><input id="exportEndDate" type="date"></label>
+            </div>
+            <button id="exportDataButton" class="primary-action" type="button">Exportar datos</button>
+          </div>
+          <p id="exportDataMessage" class="admin-message" role="status"></p>
         </section>
 
         <section class="process-section" aria-label="Vista operacional de la planta">
