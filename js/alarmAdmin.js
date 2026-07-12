@@ -5,8 +5,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
-export { verifyAdminPassword } from "./credentials.js?v=20260712-6";
-import { verifyTechnicalProfilePassword } from "./credentials.js?v=20260712-6";
+export { verifyAdminPassword } from "./credentials.js?v=20260712-7";
+import { verifyTechnicalProfilePassword } from "./credentials.js?v=20260712-7";
 const {
   coleccionConfiguracion: COLLECTION_NAME,
   coleccionConfiguracionLegacy: LEGACY_COLLECTION_NAME,
