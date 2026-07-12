@@ -1,15 +1,16 @@
 import { clientConfig } from "./clientConfig.js";
+import { getReferenceTimestamp } from "./dateTime.js?v=20260712-3";
 
 export const KPI_WINDOW_HOURS = 24;
 
 // Valor temporal: reemplazar cuando el consumo diario provenga del área de ácido.
 export function getDailyAcidConsumption() { return 324; }
 
-export function calculateOperationalKpis(records, { windowHours = KPI_WINDOW_HOURS, now = Date.now(), audit = false } = {}) {
+export function calculateOperationalKpis(records, { windowHours = KPI_WINDOW_HOURS, referenceTimestamp = getReferenceTimestamp(records), audit = false } = {}) {
   const variablePair = resolveCopperVariables(clientConfig.variables);
   const pileNames = clientConfig.equipment.filter((item) => item.tipo === "pila").map((item) => item.nombre);
   const integration = variablePair
-    ? integrateCopperByPile(records, pileNames, variablePair.flowKey, variablePair.concentrationKey, { windowHours, now })
+    ? integrateCopperByPile(records, pileNames, variablePair.flowKey, variablePair.concentrationKey, { windowHours, now: referenceTimestamp })
     : { total: null, intervals: [], subtotals: {} };
   const copperToSx = integration.total;
   const specificAcidConsumption = Number.isFinite(copperToSx) && copperToSx > 0
