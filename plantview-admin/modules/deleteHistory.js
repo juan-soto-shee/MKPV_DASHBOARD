@@ -6,6 +6,12 @@ const byId = (id) => document.getElementById(id);
 export function initializeDeleteHistory(db, admin) {
   const el = Object.fromEntries(["adminHome", "deleteHistorySection", "deleteHistoryNav", "deleteHistorySearchForm", "historyClient", "historyDateFrom", "historyDateTo", "searchHistoryButton", "deleteHistoryMessage", "deleteHistoryPreview", "previewClient", "previewFrom", "previewTo", "previewCount", "previewOldest", "previewNewest", "deleteHistoryButton", "deleteHistoryConfirmation", "deleteHistorySummary", "deleteHistoryConfirmationInput", "cancelHistoryDeletion", "confirmHistoryDeletion"].map((id) => [id, byId(id)]));
   let matches = [], range = null, busy = false;
+  const createIndexButton = document.createElement("button");
+  createIndexButton.type = "button";
+  createIndexButton.textContent = "Crear índice en Firebase";
+  createIndexButton.hidden = true;
+  createIndexButton.addEventListener("click", () => window.open(createIndexButton.dataset.url, "_blank", "noopener,noreferrer"));
+  el.deleteHistoryMessage.insertAdjacentElement("afterend", createIndexButton);
 
   const showRequestedSection = () => { const active = location.hash === "#historico"; el.adminHome.hidden = active; el.deleteHistorySection.hidden = !active; };
   el.deleteHistoryNav.addEventListener("click", () => setTimeout(showRequestedSection));
@@ -32,7 +38,18 @@ export function initializeDeleteHistory(db, admin) {
       matches = snapshot.docs; range = { clientId, fromValue, toValue };
       preview();
       message(matches.length ? `Se encontraron ${matches.length} registros. Revise la vista previa antes de eliminar.` : "No se encontraron registros para el rango seleccionado.");
-    } catch (error) { console.error("Error al consultar leach_records:", error); message(errorText(error, "consulta"), true); }
+    } catch (error) {
+      console.error("Error al consultar leach_records:", error);
+      if (error?.code === "failed-precondition") {
+        console.error(error);
+        console.error(error.message);
+        const indexUrl = firebaseIndexUrl(error.message);
+        createIndexButton.dataset.url = indexUrl || "";
+        createIndexButton.hidden = !indexUrl;
+        el.deleteHistoryButton.disabled = true;
+      }
+      message(errorText(error, "consulta"), true);
+    }
     finally { setBusy(false); }
   }
 
@@ -72,11 +89,12 @@ export function initializeDeleteHistory(db, admin) {
     resetResult(); setBusy(false); message(`Se eliminaron correctamente ${deleted} registros.${warning}`, Boolean(warning));
   }
 
-  function resetResult() { matches = []; range = null; el.deleteHistoryPreview.hidden = true; el.deleteHistoryButton.disabled = true; closeConfirmation(); }
+  function resetResult() { matches = []; range = null; el.deleteHistoryPreview.hidden = true; el.deleteHistoryButton.disabled = true; createIndexButton.hidden = true; createIndexButton.dataset.url = ""; closeConfirmation(); }
   function setBusy(value) { busy = value; el.searchHistoryButton.disabled = value; el.historyClient.disabled = value; el.historyDateFrom.disabled = value; el.historyDateTo.disabled = value; el.deleteHistoryButton.disabled = value || !matches.length; el.cancelHistoryDeletion.disabled = value; updateConfirmation(); }
   function message(text, error = false) { el.deleteHistoryMessage.textContent = text; el.deleteHistoryMessage.classList.toggle("is-error", error); }
   function boundary(value, end) { const [y, m, d] = value.split("-").map(Number); return new Date(y, m - 1, d, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0); }
   function dateLabel(value) { return boundary(value, false).toLocaleDateString("es-CL"); }
+  function firebaseIndexUrl(text = "") { const match = text.match(/https:\/\/console\.firebase\.google\.com\/[^\s]+/); return match?.[0] || ""; }
   function errorText(error, operation) { if (error?.code === "permission-denied") return `No tiene permisos para realizar esta ${operation}.`; if (["unavailable", "deadline-exceeded"].includes(error?.code)) return "No fue posible conectar con Firestore. Revise la red e intente nuevamente."; if (error?.code === "failed-precondition") return "La consulta requiere un índice de Firestore. Contacte al administrador del sistema."; return `Ocurrió un error durante la ${operation}. Intente nuevamente.`; }
   return { showRequestedSection, setAdmin(value) { admin = value; } };
 }
