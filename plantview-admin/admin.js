@@ -1,4 +1,4 @@
-import { db } from "../js/firebaseConfig.js";
+import { app, db } from "../js/firebaseConfig.js";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-const auth = getAuth(db.app);
+const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const elements = {
   authScreen: document.getElementById("authScreen"),
