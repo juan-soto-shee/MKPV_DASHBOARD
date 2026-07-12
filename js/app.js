@@ -6,7 +6,7 @@ import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
 import { requireWebAccess } from "./webAccess.js?v=20260712-10";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
-import { calculateOperationalKpis, compliancePercent, evaluateKpiStatus, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-11";
+import { calculateOperationalKpis, evaluarEstadoKpi, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-14";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -153,31 +153,27 @@ function renderOperationalKpis(records) {
 
 function renderKpiRing(suffix, valueElement, value, decimals, objective) {
   valueElement.textContent = formatKpiValue(value, decimals);
-  const targetUnits = { Copper: "t", Acid: "", Recovery: "%" };
-  document.getElementById(`kpi${suffix}Target`).textContent = `Objetivo ${formatKpiValue(Number(objective.target), decimals)}${targetUnits[suffix] ? ` ${targetUnits[suffix]}` : ""}`;
-  const compliance = compliancePercent(value, objective.target, objective.comparison);
-  const evaluation = evaluateKpiStatus(value, objective);
-  const status = evaluation.state;
+  const unit = objective.unit || { Copper: "t", Acid: "kg/t", Recovery: "%" }[suffix];
+  const evaluation = evaluarEstadoKpi(value, objective);
+  const status = evaluation.estado;
   const labels = { normal: "Normal", warning: "Alerta", critical: "Crítico", "no-data": "Sin datos", "invalid-config": "Configuración inválida" };
   const ring = document.getElementById(`kpi${suffix}Ring`);
   const statusElement = document.getElementById(`kpi${suffix}Compliance`);
-  document.getElementById(`kpi${suffix}Compliance`).textContent = Number.isFinite(compliance) ? `${Math.round(compliance)} %` : "—";
-  statusElement.textContent = Number.isFinite(compliance) ? `${Math.round(compliance)} % · ${labels[status]}` : `— · ${labels[status]}`;
+  document.getElementById(`kpi${suffix}Target`).textContent = formatKpiTarget(objective, decimals, unit);
+  statusElement.textContent = evaluation.mensaje;
   statusElement.dataset.status = status;
   ring.dataset.status = status;
-  ring.querySelector(".kpi-ring-unit").textContent = targetUnits[suffix];
-  ring.querySelector(".kpi-ring-state").textContent = labels[status].toUpperCase();
-  const difference = Number.isFinite(value) ? Math.abs(value - Number(objective.target)) : null;
-  ring.title = [
-    `Valor actual: ${formatKpiValue(value, decimals)} ${targetUnits[suffix]}`,
-    `Valor objetivo: ${formatKpiValue(Number(objective.target), decimals)} ${targetUnits[suffix]}`,
-    `Diferencia absoluta: ${formatKpiValue(difference, decimals)} ${targetUnits[suffix]}`,
-    `Desviación: ${Number.isFinite(evaluation.deviationPercent) ? `${evaluation.deviationPercent.toFixed(1)} %` : "—"}`,
-    `Alerta: ${objective.warningDeviationPercent} %`,
-    `Crítico: ${objective.criticalDeviationPercent} %`,
-    `Estado: ${labels[status]}`
-  ].join("\n");
-  ring.style.setProperty("--kpi-progress", `${Math.min(100, Math.max(0, compliance || 0)) * 3.6}deg`);
+  ring.querySelector(".kpi-ring-unit").textContent = unit;
+  ring.querySelector(".kpi-ring-state").textContent = labels[status];
+  ring.title = `${formatKpiTarget(objective, decimals, unit)}\nEstado: ${labels[status]}\n${evaluation.mensaje}`;
+  const progress = Number.isFinite(value) && Number(objective.target) ? value / Number(objective.target) * 100 : 0;
+  ring.style.setProperty("--kpi-progress", `${Math.min(100, Math.max(0, progress)) * 3.6}deg`);
+}
+
+function formatKpiTarget(config, decimals, unit) {
+  if (config.alarmMode === "operating_range") return `Rango normal ${formatKpiValue(config.normalMin, decimals)}–${formatKpiValue(config.normalMax, decimals)} ${unit}`;
+  const prefix = config.alarmMode === "higher_is_better" ? "Objetivo mínimo" : config.alarmMode === "lower_is_better" ? "Objetivo máximo" : "Objetivo";
+  return `${prefix} ${formatKpiValue(Number(config.target), decimals)} ${unit}`;
 }
 
 function initKpiControls() {
@@ -185,23 +181,20 @@ function initKpiControls() {
     ["copperToSx", "Cobre a SX"], ["specificAcidConsumption", "Consumo Específico de Ácido"], ["recovery", "Recuperación"]
   ];
   const grid = document.getElementById("kpiAdminGrid");
-  grid.innerHTML = definitions.map(([key, label]) => `<fieldset class="kpi-admin-card" data-kpi="${key}"><legend>${label}</legend><label>KPI Objetivo<input type="number" min="0.0001" step="any" value="${kpiPreferences[key].target}"></label><div class="kpi-comparison"><label><input type="radio" name="comparison-${key}" value="higher" ${kpiPreferences[key].comparison === "higher" ? "checked" : ""}> Mayor es mejor</label><label><input type="radio" name="comparison-${key}" value="lower" ${kpiPreferences[key].comparison === "lower" ? "checked" : ""}> Menor es mejor</label></div></fieldset>`).join("");
   renderKpiConfigGrid(grid, definitions);
+  grid.addEventListener("input", () => updateKpiAdminPreviews(grid, definitions));
+  grid.addEventListener("change", () => updateKpiAdminPreviews(grid, definitions));
+  updateKpiAdminPreviews(grid, definitions);
   document.getElementById("kpiAuditMode").checked = kpiPreferences.audit;
   document.getElementById("saveKpiConfigButton").addEventListener("click", () => {
-    grid.querySelectorAll("[data-kpi]").forEach((card) => {
-      const key = card.dataset.kpi;
-      kpiPreferences[key] = {
-        ...kpiPreferences[key],
-        target: Number(card.querySelector(".kpi-target-input").value),
-        warningDeviationPercent: Number(card.querySelector(".kpi-alert-threshold").value),
-        criticalDeviationPercent: Number(card.querySelector(".kpi-critical-threshold").value)
-      };
-    });
-    if (!validateKpiThresholds(kpiPreferences)) {
-      document.getElementById("kpiAdminMessage").textContent = "El porcentaje crítico debe ser mayor que el porcentaje de alerta, porque representa una desviación más alejada del valor objetivo. El objetivo debe ser distinto de cero.";
+    const candidate = { ...kpiPreferences };
+    for (const card of grid.querySelectorAll("[data-kpi]")) candidate[card.dataset.kpi] = readKpiCard(card, candidate[card.dataset.kpi]);
+    const error = validateKpiPreferences(candidate, definitions);
+    if (error) {
+      document.getElementById("kpiAdminMessage").textContent = error;
       return;
     }
+    kpiPreferences = candidate;
     kpiPreferences.audit = document.getElementById("kpiAuditMode").checked;
     localStorage.setItem(kpiStorageKey(), JSON.stringify(kpiPreferences));
     document.getElementById("kpiAdminMessage").textContent = "Indicadores guardados para esta implementación.";
@@ -212,31 +205,69 @@ function initKpiControls() {
   document.getElementById("closeMetallurgicalBalance").addEventListener("click", () => { overlay.classList.add("is-hidden"); overlay.setAttribute("aria-hidden", "true"); });
 }
 
-function validateKpiThresholds(preferences) {
-  return [preferences.copperToSx, preferences.specificAcidConsumption, preferences.recovery].every((objective) =>
-    Number.isFinite(objective.target) && objective.target !== 0
-    && Number.isFinite(objective.warningDeviationPercent) && objective.warningDeviationPercent > 0
-    && Number.isFinite(objective.criticalDeviationPercent)
-    && objective.criticalDeviationPercent > objective.warningDeviationPercent
-  );
-}
-
 function renderKpiConfigGrid(grid, definitions) {
   grid.innerHTML = definitions.map(([key, label]) => {
     const objective = kpiPreferences[key];
-    return `<fieldset class="kpi-admin-card" data-kpi="${key}"><legend>${label}</legend>
-      <label>KPI Objetivo<input class="kpi-target-input" type="number" min="0.0001" step="any" value="${objective.target}"></label>
-      <label>Alerta desde desviación (%)<input class="kpi-alert-threshold" type="number" min="0.1" step="0.1" value="${objective.warningDeviationPercent}"></label>
-      <label>Crítico desde desviación (%)<input class="kpi-critical-threshold" type="number" min="0.1" step="0.1" value="${objective.criticalDeviationPercent}"></label>
+    return `<fieldset class="kpi-admin-card" data-kpi="${key}"><legend>${label}</legend><p class="kpi-admin-unit">Unidad: <strong>${objective.unit}</strong></p>
+      <label>Comportamiento de la variable<select class="kpi-alarm-mode"><option value="target_range">Mantener cerca del objetivo</option><option value="higher_is_better">Mientras más alto, mejor</option><option value="lower_is_better">Mientras más bajo, mejor</option><option value="operating_range">Mantener dentro de un rango</option></select></label>
+      <div class="kpi-percentage-fields"><label>Valor objetivo<input class="kpi-target-input" type="number" step="any" value="${objective.target}"></label><label>Porcentaje de alerta<input class="kpi-alert-threshold" type="number" step="0.1" value="${objective.warningDeviationPercent}"></label><label>Porcentaje crítico<input class="kpi-critical-threshold" type="number" step="0.1" value="${objective.criticalDeviationPercent}"></label></div>
+      <div class="kpi-range-fields">${[["criticalMin","Mínimo crítico"],["warningMin","Mínimo de alerta"],["normalMin","Mínimo normal"],["normalMax","Máximo normal"],["warningMax","Máximo de alerta"],["criticalMax","Máximo crítico"]].map(([field,text]) => `<label>${text}<input data-range="${field}" type="number" step="any" value="${objective[field] ?? ""}"></label>`).join("")}</div>
+      <div class="kpi-limit-preview" role="status"></div>
     </fieldset>`;
   }).join("");
+  definitions.forEach(([key]) => { grid.querySelector(`[data-kpi="${key}"] .kpi-alarm-mode`).value = kpiPreferences[key].alarmMode; });
+}
+
+function readKpiCard(card, previous) {
+  const numericValue = (input) => input.value.trim() === "" ? NaN : Number(input.value);
+  const result = { ...previous, alarmMode: card.querySelector(".kpi-alarm-mode").value, target: numericValue(card.querySelector(".kpi-target-input")), warningDeviationPercent: numericValue(card.querySelector(".kpi-alert-threshold")), criticalDeviationPercent: numericValue(card.querySelector(".kpi-critical-threshold")) };
+  card.querySelectorAll("[data-range]").forEach((input) => { result[input.dataset.range] = numericValue(input); });
+  return result;
+}
+
+function validateKpiPreferences(preferences, definitions) {
+  for (const [key, label] of definitions) {
+    const c = preferences[key];
+    let message = "";
+    if (c.alarmMode === "operating_range") {
+      const v = [c.criticalMin,c.warningMin,c.normalMin,c.normalMax,c.warningMax,c.criticalMax];
+      if (!v.every(Number.isFinite)) message = "Revise la configuración. Todos los valores deben ser numéricos.";
+      else if (!(v[0] < v[1] && v[1] < v[2] && v[2] < v[3] && v[3] < v[4] && v[4] < v[5])) message = "Los límites críticos deben estar más alejados del rango normal que los límites de alerta.";
+    } else if (!Number.isFinite(c.target)) message = "Debe ingresar un valor objetivo válido.";
+    else if (c.target === 0) message = "No es posible calcular desviaciones porcentuales con un objetivo igual a cero. Utilice el modo “Mantener dentro de un rango”.";
+    else if (!Number.isFinite(c.warningDeviationPercent) || !Number.isFinite(c.criticalDeviationPercent)) message = "Revise la configuración. Todos los valores deben ser numéricos.";
+    else if (c.warningDeviationPercent <= 0) message = "El porcentaje de alerta debe ser mayor que cero.";
+    else if (c.criticalDeviationPercent <= 0) message = "El porcentaje crítico debe ser mayor que cero.";
+    else if (c.criticalDeviationPercent === c.warningDeviationPercent) message = "El porcentaje crítico no puede ser igual al porcentaje de alerta.";
+    else if (c.criticalDeviationPercent < c.warningDeviationPercent) message = "El porcentaje crítico debe ser mayor que el porcentaje de alerta, porque representa una desviación más alejada del valor objetivo.";
+    if (message) return `No se pudo guardar “${label}”: ${message.charAt(0).toLowerCase()}${message.slice(1)}`;
+  }
+  return "";
+}
+
+function updateKpiAdminPreviews(grid, definitions) {
+  let firstError = "";
+  definitions.forEach(([key, label]) => {
+    const card = grid.querySelector(`[data-kpi="${key}"]`), c = readKpiCard(card, kpiPreferences[key]);
+    card.classList.toggle("is-range-mode", c.alarmMode === "operating_range");
+    const error = validateKpiPreferences({ [key]: c }, [[key, label]]);
+    const f = (v) => Number(v).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), u = c.unit || "";
+    let text = error ? error.replace(/^No se pudo guardar “[^”]+”: /, "") : "";
+    if (!text && c.alarmMode === "operating_range") text = `Normal entre ${f(c.normalMin)} ${u} y ${f(c.normalMax)} ${u}. Alerta desde ${f(c.warningMin)} o ${f(c.warningMax)} ${u}. Crítico desde ${f(c.criticalMin)} o ${f(c.criticalMax)} ${u}.`;
+    if (!text && c.alarmMode === "target_range") text = `Normal entre ${f(c.target * (1-c.warningDeviationPercent/100))} ${u} y ${f(c.target * (1+c.warningDeviationPercent/100))} ${u}. Crítico desde ${f(c.target * (1-c.criticalDeviationPercent/100))} ${u} o ${f(c.target * (1+c.criticalDeviationPercent/100))} ${u}.`;
+    if (!text && c.alarmMode === "higher_is_better") text = `Alerta cuando sea igual o menor que ${f(c.target * (1-c.warningDeviationPercent/100))} ${u}. Crítico cuando sea igual o menor que ${f(c.target * (1-c.criticalDeviationPercent/100))} ${u}. Los valores superiores al objetivo se consideran favorables.`;
+    if (!text && c.alarmMode === "lower_is_better") text = `Alerta cuando sea igual o mayor que ${f(c.target * (1+c.warningDeviationPercent/100))} ${u}. Crítico cuando sea igual o mayor que ${f(c.target * (1+c.criticalDeviationPercent/100))} ${u}. Los valores inferiores al objetivo se consideran favorables.`;
+    card.querySelector(".kpi-limit-preview").textContent = text;
+    if (!firstError && error) firstError = error;
+  });
+  document.getElementById("kpiAdminMessage").textContent = firstError;
 }
 
 function loadKpiPreferences() {
   const defaults = {
-    copperToSx: { ...clientConfig.kpiObjectives.copperToSx, warningDeviationPercent: 10, criticalDeviationPercent: 20 },
-    specificAcidConsumption: { ...clientConfig.kpiObjectives.specificAcidConsumption, warningDeviationPercent: 10, criticalDeviationPercent: 20 },
-    recovery: { ...clientConfig.kpiObjectives.recovery, warningDeviationPercent: 10, criticalDeviationPercent: 20 },
+    copperToSx: { unit: "t", ...clientConfig.kpiObjectives.copperToSx, alarmMode: "higher_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
+    specificAcidConsumption: { unit: "kg/t", ...clientConfig.kpiObjectives.specificAcidConsumption, alarmMode: "lower_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
+    recovery: { unit: "%", ...clientConfig.kpiObjectives.recovery, alarmMode: "higher_is_better", warningDeviationPercent: 5, criticalDeviationPercent: 10 },
     audit: false
   };
   try {
@@ -254,6 +285,7 @@ function migrateKpiObjective(defaults, stored = {}) {
   return {
     ...defaults,
     ...stored,
+    alarmMode: stored.alarmMode || (stored.comparison === "lower" ? "lower_is_better" : stored.comparison === "higher" ? "higher_is_better" : defaults.alarmMode),
     warningDeviationPercent: Number(stored.warningDeviationPercent ?? stored.alertDeviationPercent ?? 10),
     criticalDeviationPercent: Number(stored.criticalDeviationPercent ?? 20)
   };

@@ -78,24 +78,48 @@ export function compliancePercent(value, target, comparison) {
   return (value / target) * 100;
 }
 
-export function evaluateTargetDeviation(currentValue, targetValue, warningPercent, criticalPercent) {
-  if (![currentValue, targetValue, warningPercent, criticalPercent].every(Number.isFinite)) {
-    return { state: "no-data", deviationPercent: null };
+export function evaluarEstadoKpi(valorActual, configuracion = {}) {
+  if (valorActual === null || valorActual === undefined || !Number.isFinite(Number(valorActual))) {
+    return { estado: "no-data", state: "no-data", desviacionPorcentual: null, mensaje: "Sin datos" };
   }
-  if (targetValue === 0 || warningPercent <= 0 || criticalPercent <= warningPercent) {
-    return { state: "invalid-config", deviationPercent: null };
+  const value = Number(valorActual);
+  const mode = configuracion.alarmMode;
+  if (mode === "operating_range") {
+    const limits = ["criticalMin", "warningMin", "normalMin", "normalMax", "warningMax", "criticalMax"].map((key) => Number(configuracion[key]));
+    if (!limits.every(Number.isFinite) || !(limits[0] < limits[1] && limits[1] < limits[2] && limits[2] < limits[3] && limits[3] < limits[4] && limits[4] < limits[5])) {
+      return { estado: "invalid-config", state: "invalid-config", desviacionPorcentual: null, mensaje: "Configuración inválida" };
+    }
+    const [criticalMin, warningMin, normalMin, normalMax, warningMax, criticalMax] = limits;
+    const estado = value <= criticalMin || value >= criticalMax ? "critical" : value <= warningMin || value >= warningMax ? "warning" : "normal";
+    const mensaje = estado === "critical" ? "Valor fuera de límites críticos" : estado === "warning" ? "Valor fuera del rango aceptable" : "Dentro del rango aceptable";
+    return { estado, state: estado, desviacionPorcentual: null, mensaje };
   }
-  const deviationPercent = Math.abs(currentValue - targetValue) / Math.abs(targetValue) * 100;
-  if (deviationPercent >= criticalPercent) return { state: "critical", deviationPercent };
-  if (deviationPercent >= warningPercent) return { state: "warning", deviationPercent };
-  return { state: "normal", deviationPercent };
+  if (!["target_range", "higher_is_better", "lower_is_better"].includes(mode)) {
+    return { estado: "invalid-config", state: "invalid-config", desviacionPorcentual: null, mensaje: "Configuración inválida" };
+  }
+  const target = Number(configuracion.target);
+  const warning = Number(configuracion.warningDeviationPercent);
+  const critical = Number(configuracion.criticalDeviationPercent);
+  if (!Number.isFinite(target) || target === 0 || !Number.isFinite(warning) || warning <= 0 || !Number.isFinite(critical) || critical <= warning) {
+    return { estado: "invalid-config", state: "invalid-config", desviacionPorcentual: null, mensaje: "Configuración inválida" };
+  }
+  const signedDifference = value - target;
+  const deviation = mode === "higher_is_better" ? Math.max(0, -signedDifference) / Math.abs(target) * 100
+    : mode === "lower_is_better" ? Math.max(0, signedDifference) / Math.abs(target) * 100
+      : Math.abs(signedDifference) / Math.abs(target) * 100;
+  const tolerance = 1e-9;
+  const estado = deviation + tolerance >= critical ? "critical" : deviation + tolerance >= warning ? "warning" : "normal";
+  const direction = signedDifference > 0 ? "sobre-objetivo" : signedDifference < 0 ? "bajo-objetivo" : "objetivo";
+  let mensaje = "Dentro del rango aceptable";
+  if (!signedDifference) mensaje = "Objetivo alcanzado";
+  else if (mode === "higher_is_better" && signedDifference > 0) mensaje = "Sobre el objetivo";
+  else if (mode === "lower_is_better" && signedDifference < 0) mensaje = "Bajo el objetivo";
+  else if (estado === "critical") mensaje = signedDifference < 0 ? "Valor críticamente bajo" : "Valor críticamente alto";
+  else if (estado !== "normal") mensaje = `${deviation.toLocaleString("es-CL", { maximumFractionDigits: 1 })} % ${signedDifference < 0 ? "bajo" : "sobre"} el objetivo`;
+  const factor = warning / 100, criticalFactor = critical / 100;
+  return { estado, state: estado, desviacionPorcentual: deviation, deviationPercent: deviation, direccion: direction, mensaje,
+    limiteAlerta: mode === "lower_is_better" ? target * (1 + factor) : target * (1 - factor),
+    limiteCritico: mode === "lower_is_better" ? target * (1 + criticalFactor) : target * (1 - criticalFactor) };
 }
 
-export function evaluateKpiStatus(value, objective) {
-  return evaluateTargetDeviation(
-    value,
-    Number(objective?.target),
-    Number(objective?.warningDeviationPercent),
-    Number(objective?.criticalDeviationPercent)
-  );
-}
+export const evaluateKpiStatus = evaluarEstadoKpi;
