@@ -5,10 +5,10 @@ import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats }
 import { initBulkImport } from "./bulkImport.js?v=20260711-3";
 import { initLegacyCleanup } from "./legacyCleanup.js?v=20260710-2";
 import { clientConfig } from "./clientConfig.js";
-import { normalizeRecordDateTime } from "./dateTime.js?v=20260711-2";
+import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
 import { requireWebAccess } from "./webAccess.js?v=20260711-5";
-import { initDataExport } from "./dataExport.js?v=20260712-1";
-import { calculateOperationalKpis, compliancePercent, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-2";
+import { initDataExport } from "./dataExport.js?v=20260712-2";
+import { calculateOperationalKpis, compliancePercent, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-3";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -46,6 +46,7 @@ initBulkImport();
 initDataExport({ normalizeRecords });
 initKpiControls();
 initLegacyCleanup({ refreshDashboard: restartRealtimeListener });
+initAdminCollapsibles();
 onAlarmConfigChange(() => render());
 
 startDashboardListener();
@@ -190,6 +191,33 @@ function loadKpiPreferences() {
 
 function kpiStorageKey() { return `plantview:kpi:${clientConfig.implementationId}`; }
 
+function initAdminCollapsibles() {
+  document.querySelectorAll("#alarmAdminSection .admin-subsection").forEach((panel, index) => {
+    const heading = panel.querySelector("h3");
+    if (!heading) return;
+    const content = document.createElement("div");
+    content.className = "admin-collapsible-content";
+    content.id = `adminPanelContent${index}`;
+    while (panel.firstChild) content.appendChild(panel.firstChild);
+    heading.classList.add("is-hidden");
+
+    const toggle = document.createElement("button");
+    toggle.className = "admin-collapse-toggle";
+    toggle.type = "button";
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-controls", content.id);
+    toggle.innerHTML = `<span>${escapeHtml(heading.textContent)}</span><span class="collapse-chevron" aria-hidden="true"></span>`;
+    content.hidden = true;
+    toggle.addEventListener("click", () => {
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      toggle.setAttribute("aria-expanded", String(!expanded));
+      content.hidden = !expanded;
+      panel.classList.toggle("is-expanded", !expanded);
+    });
+    panel.append(toggle, content);
+  });
+}
+
 function formatKpiValue(value, decimals) {
   return Number.isFinite(value) ? value.toLocaleString(clientConfig.identity.locale, {
     minimumFractionDigits: decimals, maximumFractionDigits: decimals
@@ -315,19 +343,7 @@ function getEquipmentRecords(records, area) {
 }
 
 function filterByPeriod(records, hours) {
-  const timestamps = records
-    .map((record) => record.timestampCreacion)
-    .filter(Number.isFinite);
-  if (!timestamps.length) return [];
-
-  // Anclar el período al último dato disponible permite graficar archivos
-  // históricos aunque su carga ocurra días o meses después de la medición.
-  const latestTimestamp = Math.max(...timestamps);
-  const cutoff = latestTimestamp - hours * 60 * 60 * 1000;
-  return records.filter((record) => {
-    const timestamp = record.timestampCreacion;
-    return Number.isFinite(timestamp) && timestamp >= cutoff && timestamp <= latestTimestamp;
-  });
+  return filterRecordsByPeriod(records, hours);
 }
 
 function updateMobilePeriodTitle() {

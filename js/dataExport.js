@@ -1,5 +1,6 @@
 import { getRecordsForPeriod } from "./firestoreService.js?v=20260712-1";
 import { clientConfig } from "./clientConfig.js";
+import { getReferenceTimestamp } from "./dateTime.js?v=20260712-3";
 
 const BASE_COLUMNS = [
   ["fecha", "Fecha"], ["hora", "Hora"], ["turno", "Turno"], ["implementationId", "Implementation ID"],
@@ -46,7 +47,8 @@ export function validateRange(period, start, end, now = new Date()) {
 
 export function filterExportPeriod(records, range) {
   if (range.from !== undefined) return records.filter((r) => r.timestampCreacion >= range.from && r.timestampCreacion <= range.to);
-  const latest = Math.max(...records.map((r) => r.timestampCreacion).filter(Number.isFinite));
+  const latest = getReferenceTimestamp(records);
+  if (!Number.isFinite(latest)) return [];
   const cutoff = latest - range.hours * 3600000;
   return records.filter((r) => r.timestampCreacion >= cutoff && r.timestampCreacion <= latest);
 }

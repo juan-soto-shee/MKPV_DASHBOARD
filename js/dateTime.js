@@ -21,6 +21,19 @@ export function timestampMillis(value) {
   catch { return NaN; }
 }
 
+export function getReferenceTimestamp(records) {
+  const timestamps = (records || []).map((record) => record?.timestampCreacion).filter(Number.isFinite);
+  return timestamps.length ? Math.max(...timestamps) : null;
+}
+
+export function filterRecordsByPeriod(records, hours) {
+  const referenceTimestamp = getReferenceTimestamp(records);
+  if (!Number.isFinite(referenceTimestamp)) return [];
+  const windowStart = referenceTimestamp - Number(hours) * 3600000;
+  return records.filter((record) => Number.isFinite(record.timestampCreacion)
+    && record.timestampCreacion >= windowStart && record.timestampCreacion <= referenceTimestamp);
+}
+
 function parseValue(value, timeValue) {
   if (value?.toMillis) return valid(new Date(value.toMillis()));
   if (value?.toDate) return valid(value.toDate());
