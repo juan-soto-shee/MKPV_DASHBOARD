@@ -6,5 +6,10 @@
   "processName": "Lixiviacion",
   "profileId": "lixiviacion",
   "version": "1.0",
-  "enabled": true
+  "enabled": true,
+  "kpiObjectives": {
+    "copperToSx": { "target": 610, "comparison": "higher" },
+    "specificAcidConsumption": { "target": 0.8, "comparison": "lower" },
+    "recovery": { "target": 80, "comparison": "higher" }
+  }
 }

@@ -8,7 +8,7 @@ import { clientConfig } from "./clientConfig.js";
 import { normalizeRecordDateTime } from "./dateTime.js?v=20260711-2";
 import { requireWebAccess } from "./webAccess.js?v=20260711-5";
 import { initDataExport } from "./dataExport.js?v=20260712-1";
-import { calculateOperationalKpis, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-1";
+import { calculateOperationalKpis, compliancePercent, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260712-2";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -33,14 +33,18 @@ const elements = {
   alarmCount: document.getElementById("alarmCount"),
   periodFilter: document.getElementById("periodFilter"),
   mobileCounts: document.getElementById("mobileCounts"),
-  kpiDissolvedCopper: document.getElementById("kpiDissolvedCopper"),
-  kpiSpecificAcid: document.getElementById("kpiSpecificAcid")
+  kpiCopperToSx: document.getElementById("kpiCopperToSx"),
+  kpiSpecificAcid: document.getElementById("kpiSpecificAcid"),
+  kpiRecovery: document.getElementById("kpiRecovery")
 };
+
+let kpiPreferences = loadKpiPreferences();
 
 bindControls();
 initAlarmAdmin();
 initBulkImport();
 initDataExport({ normalizeRecords });
+initKpiControls();
 initLegacyCleanup({ refreshDashboard: restartRealtimeListener });
 onAlarmConfigChange(() => render());
 
@@ -144,10 +148,47 @@ function render() {
 }
 
 function renderOperationalKpis(records) {
-  const kpis = calculateOperationalKpis(records, { windowHours: KPI_WINDOW_HOURS });
-  elements.kpiDissolvedCopper.textContent = formatKpiValue(kpis.dissolvedCopper, 1);
-  elements.kpiSpecificAcid.textContent = formatKpiValue(kpis.specificAcidConsumption, 2);
+  const kpis = calculateOperationalKpis(records, { windowHours: KPI_WINDOW_HOURS, audit: kpiPreferences.audit });
+  renderKpiRing("Copper", elements.kpiCopperToSx, kpis.copperToSx, 1, kpiPreferences.copperToSx);
+  renderKpiRing("Acid", elements.kpiSpecificAcid, kpis.specificAcidConsumption, 2, kpiPreferences.specificAcidConsumption);
+  renderKpiRing("Recovery", elements.kpiRecovery, kpis.recovery, 1, kpiPreferences.recovery);
 }
+
+function renderKpiRing(suffix, valueElement, value, decimals, objective) {
+  valueElement.textContent = formatKpiValue(value, decimals);
+  const compliance = compliancePercent(value, objective.target, objective.comparison);
+  document.getElementById(`kpi${suffix}Compliance`).textContent = Number.isFinite(compliance) ? `${Math.round(compliance)} %` : "—";
+  document.getElementById(`kpi${suffix}Ring`).style.setProperty("--kpi-progress", `${Math.min(100, Math.max(0, compliance || 0)) * 3.6}deg`);
+}
+
+function initKpiControls() {
+  const definitions = [
+    ["copperToSx", "Cobre a SX"], ["specificAcidConsumption", "Consumo Específico de Ácido"], ["recovery", "Recuperación"]
+  ];
+  const grid = document.getElementById("kpiAdminGrid");
+  grid.innerHTML = definitions.map(([key, label]) => `<fieldset class="kpi-admin-card" data-kpi="${key}"><legend>${label}</legend><label>KPI Objetivo<input type="number" min="0.0001" step="any" value="${kpiPreferences[key].target}"></label><div class="kpi-comparison"><label><input type="radio" name="comparison-${key}" value="higher" ${kpiPreferences[key].comparison === "higher" ? "checked" : ""}> Mayor es mejor</label><label><input type="radio" name="comparison-${key}" value="lower" ${kpiPreferences[key].comparison === "lower" ? "checked" : ""}> Menor es mejor</label></div></fieldset>`).join("");
+  document.getElementById("kpiAuditMode").checked = kpiPreferences.audit;
+  document.getElementById("saveKpiConfigButton").addEventListener("click", () => {
+    grid.querySelectorAll("[data-kpi]").forEach((card) => {
+      const key = card.dataset.kpi;
+      kpiPreferences[key] = { target: Number(card.querySelector('input[type="number"]').value), comparison: card.querySelector('input[type="radio"]:checked').value };
+    });
+    kpiPreferences.audit = document.getElementById("kpiAuditMode").checked;
+    localStorage.setItem(kpiStorageKey(), JSON.stringify(kpiPreferences));
+    document.getElementById("kpiAdminMessage").textContent = "Indicadores guardados para esta implementación.";
+    render();
+  });
+  const overlay = document.getElementById("metallurgicalBalanceOverlay");
+  document.getElementById("metallurgicalBalanceButton").addEventListener("click", () => { overlay.classList.remove("is-hidden"); overlay.setAttribute("aria-hidden", "false"); });
+  document.getElementById("closeMetallurgicalBalance").addEventListener("click", () => { overlay.classList.add("is-hidden"); overlay.setAttribute("aria-hidden", "true"); });
+}
+
+function loadKpiPreferences() {
+  const defaults = { ...clientConfig.kpiObjectives, audit: false };
+  try { return { ...defaults, ...JSON.parse(localStorage.getItem(kpiStorageKey()) || "{}") }; } catch { return defaults; }
+}
+
+function kpiStorageKey() { return `plantview:kpi:${clientConfig.implementationId}`; }
 
 function formatKpiValue(value, decimals) {
   return Number.isFinite(value) ? value.toLocaleString(clientConfig.identity.locale, {
