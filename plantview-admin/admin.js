@@ -33,7 +33,11 @@ elements.googleSignInButton.addEventListener("click", async () => {
   try {
     await signInWithPopup(auth, provider);
   } catch (error) {
-    showLogin(authErrorMessage(error));
+    console.error("====== FIREBASE AUTH ======");
+    console.error(error);
+    console.error("code:", error.code);
+    console.error("message:", error.message);
+    showLogin(`${error.code}\n${error.message}`);
   } finally {
     elements.googleSignInButton.disabled = false;
   }
