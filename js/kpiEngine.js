@@ -13,8 +13,12 @@ export function calculateOperationalKpis(records, { windowHours = KPI_WINDOW_HOU
   const refiningAreas = clientConfig.equipment
     .filter((item) => item.variablePrincipal === acidPair?.flowKey || /refino/i.test(`${item.id || ""} ${item.nombre || ""}`))
     .map((item) => item.nombre);
+  const refiningAreasWithData = acidPair ? [...new Set((records || [])
+    .filter((record) => record.clienteId === clientConfig.clienteId && record.subarea
+      && Number.isFinite(record[acidPair.flowKey]) && Number.isFinite(record[acidPair.concentrationKey]))
+    .map((record) => record.subarea))] : [];
   const acidIntegration = acidPair
-    ? integrateMassByArea(records, refiningAreas, acidPair.flowKey, acidPair.concentrationKey, { windowHours, now: referenceTimestamp })
+    ? integrateMassByArea(records, refiningAreasWithData.length ? refiningAreasWithData : refiningAreas, acidPair.flowKey, acidPair.concentrationKey, { windowHours, now: referenceTimestamp })
     : { total: null, intervals: [], subtotals: {} };
   const copperToSx = copperIntegration.total;
   const acidUsedTonnes = acidIntegration.total;
