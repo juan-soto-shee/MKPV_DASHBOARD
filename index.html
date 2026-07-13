@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260713-19">
+    <link rel="stylesheet" href="css/style.css?v=20260713-20">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260713-22"></script>
+    <script type="module" src="js/app.js?v=20260713-23"></script>
   </head>
   <body>
     <div class="shell">
@@ -224,6 +224,34 @@
             <button id="metallurgicalBalanceButton" class="kpi-card kpi-card-premium" type="button"><h3>Balance Metal&uacute;rgico</h3><strong>A solicitud del cliente</strong></button>
           </div>
         </section>
+
+        <details class="operational-analysis collapsible-section" aria-label="Análisis Operacional Inteligente">
+          <summary class="section-heading collapsible-summary">
+            <div>
+              <p class="eyebrow">Interpretación del período seleccionado</p>
+              <h2>Análisis Operacional Inteligente</h2>
+            </div>
+            <span class="collapse-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="collapsible-content operational-analysis-content">
+            <section class="analysis-block analysis-general" aria-labelledby="operationalStateTitle">
+              <h3 id="operationalStateTitle">Estado General</h3>
+              <p id="operationalState" class="operational-state neutral">Sin datos suficientes</p>
+            </section>
+            <section class="analysis-block" aria-labelledby="operationalTrendsTitle">
+              <h3 id="operationalTrendsTitle">Tendencias detectadas</h3>
+              <ul id="operationalTrends" class="analysis-list"></ul>
+            </section>
+            <section class="analysis-block" aria-labelledby="operationalEventsTitle">
+              <h3 id="operationalEventsTitle">Eventos detectados</h3>
+              <ul id="operationalEvents" class="analysis-list"></ul>
+            </section>
+            <details class="analysis-methodology">
+              <summary>Metodología de análisis</summary>
+              <p>El análisis operacional utiliza herramientas estadísticas ampliamente empleadas en ingeniería de procesos para evaluar el comportamiento de las variables durante el período seleccionado. Se consideran tendencias temporales, estabilidad operacional, variabilidad relativa, permanencia dentro de rangos operacionales, cobertura de datos y detección de cambios relevantes.</p>
+            </details>
+          </div>
+        </details>
 
         <section class="process-section" aria-label="Vista operacional de la planta">
           <div class="section-heading">

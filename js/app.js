@@ -7,6 +7,7 @@ import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=
 import { requireWebAccess } from "./webAccess.js?v=20260712-10";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
 import { calculateOperationalKpis, evaluarEstadoKpi, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260713-17";
+import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-1";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -135,6 +136,7 @@ function render() {
   renderAlarms(selectedRecords);
   renderHistoryTable(selectedRecords.slice(0, 30));
   renderMobileSummary(recentRecords, alarmConfig);
+  renderOperationalAnalysis(recentRecords, alarmConfig);
   renderOperationalKpis(state.records);
   updateMobilePeriodTitle();
   updateCharts(chartRecords, {
@@ -142,6 +144,29 @@ function render() {
     sourceRecords: recentRecords,
     alarmConfig
   });
+}
+
+function renderOperationalAnalysis(records, alarmConfig) {
+  const analysisVariables = clientConfig.layout.variablesTendencia
+    .map((key) => clientConfig.variableMap[key])
+    .filter(Boolean);
+  const analysis = analyzeOperationalPeriod(records, analysisVariables, alarmConfig);
+  const stateElement = document.getElementById("operationalState");
+  const stateIcons = { stable: "🟢", moderate: "🟡", unstable: "🔴" };
+  stateElement.textContent = analysis.hasData
+    ? `${stateIcons[analysis.state]} ${analysis.stateLabel}`
+    : "Sin datos suficientes para analizar el período.";
+  stateElement.className = `operational-state ${analysis.hasData ? analysis.state : "neutral"}`;
+  renderAnalysisList("operationalTrends", analysis.hasData
+    ? analysis.trends
+    : [{ text: "No hay tendencias disponibles para el período.", tone: "neutral" }]);
+  renderAnalysisList("operationalEvents", analysis.events);
+}
+
+function renderAnalysisList(elementId, items) {
+  document.getElementById(elementId).innerHTML = items.map((item) =>
+    `<li class="${escapeHtml(item.tone)}">${escapeHtml(item.text)}</li>`
+  ).join("");
 }
 
 function renderOperationalKpis(records) {
