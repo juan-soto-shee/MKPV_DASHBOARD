@@ -8,6 +8,7 @@ export function initializeDeleteHistory(db, admin) {
   let matches = [], range = null, busy = false;
   const createIndexButton = document.createElement("button");
   createIndexButton.type = "button";
+  createIndexButton.className = "primary-button";
   createIndexButton.textContent = "Crear índice en Firebase";
   createIndexButton.hidden = true;
   createIndexButton.addEventListener("click", () => window.open(createIndexButton.dataset.url, "_blank", "noopener,noreferrer"));
