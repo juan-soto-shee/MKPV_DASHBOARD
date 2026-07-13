@@ -5,7 +5,8 @@ const NUMERIC_FIELDS = ["flujoPLS", "flujoRefino", "acidezRefino", "cuPls", "niv
 const FIELD_ALIASES = {
   fecha: "fecha", hora: "hora", turno: "turno", area: "area", subarea: "subarea", operador: "operador",
   flujopls: "flujoPLS", flujorefino: "flujoRefino", acidezrefino: "acidezRefino", cupls: "cuPls",
-  nivelpiscinorefino: "nivelPiscinaRefino", nivelpiscinapls: "nivelPiscinaPLS", observacion: "observacion",
+  nivelpiscinarefino: "nivelPiscinaRefino", nivelpiscinorefino: "nivelPiscinaRefino",
+  nivelpiscinapls: "nivelPiscinaPLS", observacion: "observacion",
   estado: "estado", timestampcreacion: "timestampCreacion", clienteid: "clienteId", implementacionid: "implementacionId"
 };
 const IDS = ["adminHome","deleteHistorySection","bulkImportSection","bulkImportNav","bulkImportClient","bulkImportFile","validateBulkImportButton","bulkImportMessage","bulkImportPreview","importFileName","importClientName","importTotalRows","importValidRows","importErrorRows","importWarningRows","importOldestDate","importNewestDate","bulkImportPreviewBody","bulkImportCountCard","countClientName","currentFirestoreCount","validImportCount","expectedFirestoreCount","bulkImportCountMessage","importRecordsButton","downloadImportReportButton","bulkImportResult","resultImported","resultRejected","resultWarnings","resultBatches","resultClient","resultDate"];
