@@ -703,7 +703,7 @@ h3 {
 .kpi-range-axis { position: relative; width: 154px; height: 142px; margin: 2px auto 4px; }
 .kpi-range-track { position: absolute; top: 14px; bottom: 14px; left: 43px; width: 30px; border: 1px solid rgba(147, 185, 197, .24); border-radius: 4px; background: linear-gradient(180deg, rgba(147, 185, 197, .08), rgba(3, 13, 18, .5)); box-shadow: inset 0 0 15px rgba(3, 13, 18, .55); }
 .kpi-range-band { position: absolute; right: 4px; bottom: var(--range-start); left: 4px; height: var(--range-size); border-radius: 3px; background: var(--range-color); box-shadow: 0 0 16px var(--range-glow); opacity: .38; transition: bottom 220ms ease, height 220ms ease, background 220ms ease; }
-.kpi-range-limit { position: absolute; right: -8px; left: -8px; border-top: 1px dashed var(--range-color); opacity: .9; }
+.kpi-range-limit { position: absolute; right: -14px; left: 5px; border-top: 1px dashed var(--range-color); opacity: .9; }
 .kpi-range-limit-upper { bottom: calc(var(--range-start) + var(--range-size)); }
 .kpi-range-limit-lower { bottom: var(--range-start); }
 .kpi-range-marker { position: absolute; bottom: var(--marker-position); left: 78px; display: flex; align-items: center; gap: 8px; transform: translateY(50%); transition: bottom 220ms ease; }
@@ -1211,6 +1211,17 @@ h3 {
 .analysis-trends { min-height: 132px; }
 .analysis-evidence,
 .analysis-events { grid-column: 1 / -1; }
+
+.analysis-evidence summary {
+  color: var(--cyan);
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.analysis-evidence[open] summary { margin-bottom: 12px; }
 
 .analysis-table-wrap { overflow-x: auto; }
 
