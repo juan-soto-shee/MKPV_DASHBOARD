@@ -107,6 +107,11 @@ h1 {
   letter-spacing: 0;
 }
 
+.brand-block h1 {
+  font-size: clamp(1.75rem, 3vw, 3.2rem);
+  white-space: nowrap;
+}
+
 h2 {
   margin-bottom: 0;
   font-size: 1.15rem;
@@ -1195,6 +1200,10 @@ td {
   h1 {
     font-size: 1.08rem;
     line-height: 1.08;
+  }
+
+  .brand-block h1 {
+    font-size: clamp(.88rem, 4.6vw, 1.08rem);
   }
 
   .operations-status {
