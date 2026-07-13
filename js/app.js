@@ -858,6 +858,7 @@ function setText(id, value) {
 }
 
 function numeric(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
 }

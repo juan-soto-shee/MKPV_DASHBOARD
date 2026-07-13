@@ -76,7 +76,7 @@
       "analysisId": "refinoLevelTrendAnalysis",
       "grupo": "NIVELES DE PISCINAS",
       "agregacion": "ultimo",
-      "aliases": ["nivelPiscinaRefino", "Nivel Refino"]
+      "aliases": ["nivelPiscinaRefino", "nivelPiscinoRefino", "Nivel Refino"]
     }
   ]
 }
