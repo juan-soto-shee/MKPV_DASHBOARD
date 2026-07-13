@@ -8,6 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { initializeDeleteHistory } from "./modules/deleteHistory.js";
+import { initializeBulkImport } from "./modules/bulkImport.js";
 
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
@@ -27,6 +28,7 @@ const elements = {
 
 let signingOutUnauthorizedUser = false;
 let deleteHistoryController = null;
+let bulkImportController = null;
 
 elements.googleSignInButton.addEventListener("click", async () => {
   setCheckingState("Abriendo Google...");
@@ -128,6 +130,9 @@ function showConsole(user, authorization) {
   if (!deleteHistoryController) deleteHistoryController = initializeDeleteHistory(db, activeAdmin);
   else deleteHistoryController.setAdmin(activeAdmin);
   deleteHistoryController.showRequestedSection();
+  if (!bulkImportController) bulkImportController = initializeBulkImport(db, activeAdmin);
+  else bulkImportController.setAdmin(activeAdmin);
+  bulkImportController.showRequestedSection();
 }
 
 function hideConsole() {
