@@ -346,7 +346,11 @@ function initKpiControls() {
     render();
   });
   bindFeatureOverlay("metallurgicalBalanceButton", "metallurgicalBalanceOverlay", "closeMetallurgicalBalance");
-  bindFeatureOverlay("mathematicalModelingButton", "mathematicalModelingOverlay", "closeMathematicalModeling");
+  document.getElementById("mathematicalModelingButton")?.addEventListener("click", () => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("implementation")) params.set("implementation", clientConfig.implementationId);
+    window.location.href = `modelos-matematicos.html?${params.toString()}`;
+  });
 }
 
 function bindFeatureOverlay(buttonId, overlayId, closeButtonId) {
