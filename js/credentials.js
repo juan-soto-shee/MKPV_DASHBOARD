@@ -12,10 +12,14 @@ export function verifyTechnicalProfilePassword(password) {
 }
 
 export function verifyWebPassword(implementationId, password) {
-  const expected = implementationId === "demo_lixiviacion"
-    ? DEMO_WEB_PASSWORD
-    : implementationId === "solmin_mantos_blancos"
-      ? MANTOS_BLANCOS_WEB_PASSWORD
-      : ADMIN_PASSWORD;
-  return String(password || "") === expected;
+  const enteredPassword = String(password || "").trim();
+
+  if (implementationId === "demo_lixiviacion") {
+    return enteredPassword.toUpperCase() === DEMO_WEB_PASSWORD;
+  }
+
+  const expected = implementationId === "solmin_mantos_blancos"
+    ? MANTOS_BLANCOS_WEB_PASSWORD
+    : ADMIN_PASSWORD;
+  return enteredPassword === expected;
 }
