@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/style.css?v=20260713-20">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260713-23"></script>
+    <script type="module" src="js/app.js?v=20260713-24"></script>
   </head>
   <body>
     <div class="shell">
@@ -225,6 +225,16 @@
           </div>
         </section>
 
+        <section class="process-section" aria-label="Vista operacional de la planta">
+          <div class="section-heading">
+            <div>
+              <p id="processEyebrow" class="eyebrow"></p>
+              <h2 id="processTitle"></h2>
+            </div>
+          </div>
+          <div id="processMap" class="process-map"></div>
+        </section>
+
         <details class="operational-analysis collapsible-section" aria-label="Análisis Operacional Inteligente">
           <summary class="section-heading collapsible-summary">
             <div>
@@ -252,16 +262,6 @@
             </details>
           </div>
         </details>
-
-        <section class="process-section" aria-label="Vista operacional de la planta">
-          <div class="section-heading">
-            <div>
-              <p id="processEyebrow" class="eyebrow"></p>
-              <h2 id="processTitle"></h2>
-            </div>
-          </div>
-          <div id="processMap" class="process-map"></div>
-        </section>
 
         <section class="mobile-controls" aria-label="Filtro de comportamiento temporal">
           <div class="segmented" id="periodFilter">
