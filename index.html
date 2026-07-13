@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260713-21">
+    <link rel="stylesheet" href="css/style.css?v=20260713-22">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260713-26"></script>
+    <script type="module" src="js/app.js?v=20260713-27"></script>
   </head>
   <body>
     <div class="shell">
@@ -226,6 +226,47 @@
           </div>
         </section>
 
+        <details class="operational-analysis collapsible-section" aria-label="Análisis Operacional">
+          <summary class="section-heading collapsible-summary">
+            <div>
+              <p class="eyebrow">Interpretación estadística del proceso</p>
+              <h2>Análisis Operacional</h2>
+            </div>
+            <span class="collapse-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="collapsible-content operational-analysis-content">
+            <dl class="analysis-context" aria-label="Contexto del análisis">
+              <div><dt>Unidad analizada</dt><dd id="operationalAnalysisUnit">Planta</dd></div>
+              <div><dt>Período analizado</dt><dd id="operationalAnalysisPeriod">Últimas 24 horas</dd></div>
+            </dl>
+            <section class="analysis-block analysis-general" aria-labelledby="operationalStateTitle">
+              <h3 id="operationalStateTitle">Estado General</h3>
+              <p id="operationalState" class="operational-state neutral">Sin datos suficientes</p>
+            </section>
+            <section class="analysis-block analysis-trends" aria-labelledby="operationalTrendsTitle">
+              <h3 id="operationalTrendsTitle">Tendencias detectadas</h3>
+              <ul id="operationalTrends" class="analysis-list"></ul>
+            </section>
+            <section class="analysis-block analysis-evidence" aria-labelledby="operationalEvidenceTitle">
+              <h3 id="operationalEvidenceTitle">Evidencia del Análisis</h3>
+              <div class="analysis-table-wrap">
+                <table class="analysis-evidence-table">
+                  <thead><tr><th>Variable</th><th>Diagnóstico</th><th>Evidencia</th></tr></thead>
+                  <tbody id="operationalEvidenceBody"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="analysis-block analysis-events" aria-labelledby="operationalEventsTitle">
+              <h3 id="operationalEventsTitle">Eventos detectados</h3>
+              <ul id="operationalEvents" class="analysis-list"></ul>
+            </section>
+            <details class="analysis-methodology">
+              <summary>Metodología de análisis</summary>
+              <p>El análisis utiliza estadística descriptiva, variabilidad relativa, tendencia temporal, permanencia en rangos operacionales, cambios bruscos y cobertura de datos para interpretar el comportamiento de la unidad y período seleccionados.</p>
+            </details>
+          </div>
+        </details>
+
         <section class="process-section" aria-label="Vista operacional de la planta">
           <div class="section-heading">
             <div>
@@ -235,34 +276,6 @@
           </div>
           <div id="processMap" class="process-map"></div>
         </section>
-
-        <details class="operational-analysis collapsible-section" aria-label="Análisis Operacional Inteligente">
-          <summary class="section-heading collapsible-summary">
-            <div>
-              <p class="eyebrow">Interpretación del período seleccionado</p>
-              <h2>Análisis Operacional Inteligente</h2>
-            </div>
-            <span class="collapse-chevron" aria-hidden="true"></span>
-          </summary>
-          <div class="collapsible-content operational-analysis-content">
-            <section class="analysis-block analysis-general" aria-labelledby="operationalStateTitle">
-              <h3 id="operationalStateTitle">Estado General</h3>
-              <p id="operationalState" class="operational-state neutral">Sin datos suficientes</p>
-            </section>
-            <section class="analysis-block" aria-labelledby="operationalTrendsTitle">
-              <h3 id="operationalTrendsTitle">Tendencias detectadas</h3>
-              <ul id="operationalTrends" class="analysis-list"></ul>
-            </section>
-            <section class="analysis-block" aria-labelledby="operationalEventsTitle">
-              <h3 id="operationalEventsTitle">Eventos detectados</h3>
-              <ul id="operationalEvents" class="analysis-list"></ul>
-            </section>
-            <details class="analysis-methodology">
-              <summary>Metodología de análisis</summary>
-              <p>El análisis operacional utiliza herramientas estadísticas ampliamente empleadas en ingeniería de procesos para evaluar el comportamiento de las variables durante el período seleccionado. Se consideran tendencias temporales, estabilidad operacional, variabilidad relativa, permanencia dentro de rangos operacionales, cobertura de datos y detección de cambios relevantes.</p>
-            </details>
-          </div>
-        </details>
 
         <section class="mobile-controls" aria-label="Filtro de comportamiento temporal">
           <div class="segmented" id="periodFilter">

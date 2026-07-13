@@ -7,7 +7,7 @@ import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=
 import { requireWebAccess } from "./webAccess.js?v=20260713-1";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
 import { calculateOperationalKpis, evaluarEstadoKpi, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260713-17";
-import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-1";
+import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-2";
 import { saveRemoteKpiConfig, startKpiConfigListener } from "./kpiConfigService.js?v=20260713-1";
 
 applyClientConfiguration();
@@ -138,7 +138,7 @@ function render() {
   renderAlarms(selectedRecords);
   renderHistoryTable(selectedRecords.slice(0, 30));
   renderMobileSummary(recentRecords, alarmConfig);
-  renderOperationalAnalysis(recentRecords, alarmConfig);
+  renderOperationalAnalysis(recentRecords, selectedRecords, chartRecords, alarmConfig);
   renderOperationalKpis(state.records);
   updateMobilePeriodTitle();
   updateCharts(chartRecords, {
@@ -148,11 +148,20 @@ function render() {
   });
 }
 
-function renderOperationalAnalysis(records, alarmConfig) {
+function renderOperationalAnalysis(periodRecords, selectedRecords, consolidatedRecords, alarmConfig) {
   const analysisVariables = clientConfig.layout.variablesTendencia
     .map((key) => clientConfig.variableMap[key])
     .filter(Boolean);
-  const analysis = analyzeOperationalPeriod(records, analysisVariables, alarmConfig);
+  const periodEnd = Date.now();
+  const periodStart = periodEnd - state.selectedPeriodHours * 60 * 60 * 1000;
+  const analysis = analyzeOperationalPeriod(consolidatedRecords, analysisVariables, alarmConfig, {
+    area: state.selectedArea,
+    eventRecords: state.selectedArea === PLANT_AREA ? periodRecords : selectedRecords,
+    periodStart,
+    periodEnd
+  });
+  document.getElementById("operationalAnalysisUnit").textContent = formatAnalysisUnit(state.selectedArea);
+  document.getElementById("operationalAnalysisPeriod").textContent = getSelectedPeriodLabel();
   const stateElement = document.getElementById("operationalState");
   const stateIcons = { stable: "🟢", moderate: "🟡", unstable: "🔴" };
   stateElement.textContent = analysis.hasData
@@ -162,7 +171,36 @@ function renderOperationalAnalysis(records, alarmConfig) {
   renderAnalysisList("operationalTrends", analysis.hasData
     ? analysis.trends
     : [{ text: "No hay tendencias disponibles para el período.", tone: "neutral" }]);
-  renderAnalysisList("operationalEvents", analysis.events);
+  renderOperationalEvidence(analysis.evidence);
+  renderAnalysisList("operationalEvents", analysis.hasData
+    ? analysis.events
+    : [{ text: "No hay datos suficientes para detectar eventos.", tone: "neutral" }]);
+}
+
+function renderOperationalEvidence(evidence) {
+  const body = document.getElementById("operationalEvidenceBody");
+  if (!evidence.length) {
+    body.innerHTML = `<tr><td colspan="3" class="analysis-empty">Sin evidencia disponible para la selección actual.</td></tr>`;
+    return;
+  }
+  body.innerHTML = evidence.map((item) => `
+    <tr>
+      <th scope="row">${escapeHtml(item.variable)}</th>
+      <td><span class="analysis-diagnosis ${escapeHtml(item.severity)}">${escapeHtml(item.diagnosis)}</span></td>
+      <td><ul>${item.evidence.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul></td>
+    </tr>
+  `).join("");
+}
+
+function formatAnalysisUnit(area) {
+  if (area !== PLANT_AREA) return area;
+  return PLANT_AREA.toLowerCase() === "planta" ? "Planta" : PLANT_AREA;
+}
+
+function getSelectedPeriodLabel() {
+  return clientConfig.layout.periodos
+    .find((period) => period.horas === state.selectedPeriodHours)?.titulo
+    || `${state.selectedPeriodHours} horas`;
 }
 
 function renderAnalysisList(elementId, items) {

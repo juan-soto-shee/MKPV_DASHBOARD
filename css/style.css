@@ -1127,8 +1127,39 @@ h3 {
 
 .operational-analysis-content {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.28fr);
   gap: 12px;
+}
+
+.analysis-context {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.analysis-context div {
+  padding: 12px 14px;
+  border: 1px solid rgba(50, 213, 232, 0.16);
+  border-radius: 8px;
+  background: rgba(17, 56, 68, 0.34);
+}
+
+.analysis-context dt {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.analysis-context dd {
+  margin: 0;
+  color: #e8fbff;
+  font-size: 0.92rem;
+  font-weight: 850;
 }
 
 .analysis-block {
@@ -1157,6 +1188,56 @@ h3 {
 .operational-state.moderate { color: var(--amber); }
 .operational-state.unstable { color: var(--red); }
 .operational-state.neutral { color: var(--muted); }
+
+.analysis-trends { min-height: 132px; }
+.analysis-evidence,
+.analysis-events { grid-column: 1 / -1; }
+
+.analysis-table-wrap { overflow-x: auto; }
+
+.analysis-evidence-table {
+  min-width: 720px;
+  table-layout: fixed;
+}
+
+.analysis-evidence-table th:first-child { width: 24%; }
+.analysis-evidence-table th:nth-child(2) { width: 22%; }
+
+.analysis-evidence-table tbody th {
+  color: #e8f8fc;
+  font-size: 0.82rem;
+  text-transform: none;
+}
+
+.analysis-evidence-table td,
+.analysis-evidence-table th { vertical-align: top; }
+
+.analysis-evidence-table ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.analysis-evidence-table li {
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.analysis-diagnosis {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 850;
+  background: rgba(117, 139, 146, 0.12);
+}
+
+.analysis-diagnosis.stable { color: var(--green); background: rgba(56, 217, 150, 0.1); }
+.analysis-diagnosis.moderate { color: var(--amber); background: rgba(255, 181, 71, 0.1); }
+.analysis-diagnosis.unstable { color: var(--red); background: rgba(255, 82, 99, 0.1); }
+.analysis-empty { color: var(--muted); text-align: center; }
 
 .analysis-list {
   display: grid;
@@ -1290,7 +1371,10 @@ td {
   .kpi-grid { grid-template-columns: 1fr; gap: 9px; }
   .kpi-admin-grid { grid-template-columns: 1fr; }
   .kpi-card { min-height: 104px; padding: 14px; }
-  .operational-analysis-content { grid-template-columns: 1fr; }
+  .operational-analysis-content,
+  .analysis-context { grid-template-columns: 1fr; }
+  .analysis-general,
+  .analysis-trends { grid-column: 1; }
   .kpi-reading { margin-top: 18px; }
   .export-controls, .export-custom-dates { grid-template-columns: 1fr; }
   body::before {
