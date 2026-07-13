@@ -1085,10 +1085,35 @@ h3 {
   border: 1px solid rgba(147, 185, 197, 0.16);
   border-radius: 8px;
   color: var(--muted);
+  background: rgba(3, 13, 18, 0.22);
 }
 
 .mobile-counts strong {
-  color: var(--text);
+  color: currentColor;
+}
+
+.mobile-counts span.normal {
+  border-color: rgba(34, 197, 94, 0.48);
+  color: var(--green);
+  background: rgba(34, 197, 94, 0.09);
+}
+
+.mobile-counts span.alerta,
+.mobile-counts span.advertencia,
+.mobile-counts span.warning {
+  border-color: rgba(245, 158, 11, 0.56);
+  color: var(--amber);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.mobile-counts span.critico {
+  border-color: rgba(239, 68, 68, 0.58);
+  color: var(--red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.mobile-counts span.sin-datos {
+  color: var(--muted);
 }
 
 .table-wrap {
