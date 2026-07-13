@@ -1,5 +1,5 @@
 import { clientConfig } from "./clientConfig.js";
-import { verifyWebPassword } from "./credentials.js?v=20260712-10";
+import { verifyWebPassword } from "./credentials.js?v=20260713-1";
 
 const SESSION_DURATION_MS = 4 * 60 * 60 * 1000;
 const STORAGE_PREFIX = "mkpv:web-access:";
