@@ -157,12 +157,15 @@ function renderKpiRing(suffix, valueElement, value, decimals, objective) {
   const evaluation = evaluarEstadoKpi(value, objective);
   const status = evaluation.estado;
   const labels = { normal: "Normal", warning: "Alerta", critical: "Crítico", "no-data": "Sin datos", "invalid-config": "Configuración inválida" };
+  const statusColors = { normal: "#38d996", warning: "#ffb547", critical: "#ff5263", "no-data": "#758b92", "invalid-config": "#758b92" };
   const ring = document.getElementById(`kpi${suffix}Ring`);
   const statusElement = document.getElementById(`kpi${suffix}Compliance`);
   document.getElementById(`kpi${suffix}Target`).textContent = formatKpiTarget(objective, 0, unit);
   statusElement.textContent = evaluation.mensaje;
   statusElement.dataset.status = status;
   ring.dataset.status = status;
+  ring.style.setProperty("--kpi-color", statusColors[status]);
+  statusElement.style.color = statusColors[status];
   ring.querySelector(".kpi-ring-unit").textContent = unit;
   ring.querySelector(".kpi-ring-state").textContent = labels[status];
   ring.title = `${formatKpiTarget(objective, 0, unit)}\nEstado: ${labels[status]}\n${evaluation.mensaje}`;
