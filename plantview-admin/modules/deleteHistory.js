@@ -30,11 +30,13 @@ export function initializeDeleteHistory(db, admin) {
     const clientId = el.historyClient.value, fromValue = el.historyDateFrom.value, toValue = el.historyDateTo.value;
     if (!clientId) return message("Seleccione un cliente.", true);
     if (!fromValue || !toValue) return message("Ingrese la fecha desde y la fecha hasta.", true);
-    const from = boundary(fromValue, false), to = boundary(toValue, true);
-    if (from > to) return message("La fecha desde no puede ser posterior a la fecha hasta.", true);
+    const inicioDelDia = boundary(fromValue, false), finDelDia = boundary(toValue, true);
+    if (inicioDelDia > finDelDia) return message("La fecha desde no puede ser posterior a la fecha hasta.", true);
+    console.log("Inicio:", inicioDelDia);
+    console.log("Fin:", finDelDia);
     setBusy(true); message("Buscando registros...");
     try {
-      const safeQuery = query(collection(db, "leach_records"), where("clienteId", "==", clientId), where("timestampCreacion", ">=", Timestamp.fromDate(from)), where("timestampCreacion", "<=", Timestamp.fromDate(to)));
+      const safeQuery = query(collection(db, "leach_records"), where("clienteId", "==", clientId), where("timestampCreacion", ">=", Timestamp.fromDate(inicioDelDia)), where("timestampCreacion", "<=", Timestamp.fromDate(finDelDia)));
       const snapshot = await getDocs(safeQuery);
       matches = snapshot.docs; range = { clientId, fromValue, toValue };
       preview();
@@ -56,6 +58,8 @@ export function initializeDeleteHistory(db, admin) {
 
   function preview() {
     const dates = matches.map((item) => item.data().timestampCreacion?.toDate?.()).filter((date) => date instanceof Date && !Number.isNaN(date.valueOf())).sort((a, b) => a - b);
+    console.log("Primer timestamp encontrado:", dates[0]);
+    console.log("Último timestamp encontrado:", dates.at(-1));
     el.previewClient.textContent = CLIENTS[range.clientId]; el.previewFrom.textContent = dateLabel(range.fromValue); el.previewTo.textContent = dateLabel(range.toValue); el.previewCount.textContent = matches.length;
     el.previewOldest.textContent = dates.length ? dates[0].toLocaleString("es-CL") : "--"; el.previewNewest.textContent = dates.length ? dates.at(-1).toLocaleString("es-CL") : "--";
     el.deleteHistoryPreview.hidden = false; el.deleteHistoryButton.disabled = matches.length === 0;
@@ -93,7 +97,7 @@ export function initializeDeleteHistory(db, admin) {
   function resetResult() { matches = []; range = null; el.deleteHistoryPreview.hidden = true; el.deleteHistoryButton.disabled = true; createIndexButton.hidden = true; createIndexButton.dataset.url = ""; closeConfirmation(); }
   function setBusy(value) { busy = value; el.searchHistoryButton.disabled = value; el.historyClient.disabled = value; el.historyDateFrom.disabled = value; el.historyDateTo.disabled = value; el.deleteHistoryButton.disabled = value || !matches.length; el.cancelHistoryDeletion.disabled = value; updateConfirmation(); }
   function message(text, error = false) { el.deleteHistoryMessage.textContent = text; el.deleteHistoryMessage.classList.toggle("is-error", error); }
-  function boundary(value, end) { const [y, m, d] = value.split("-").map(Number); return new Date(y, m - 1, d, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0); }
+  function boundary(value, end) { const [y, m, d] = value.split("-").map(Number); const date = new Date(y, m - 1, d); date.setHours(end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0); return date; }
   function dateLabel(value) { return boundary(value, false).toLocaleDateString("es-CL"); }
   function firebaseIndexUrl(text = "") { const match = text.match(/https:\/\/console\.firebase\.google\.com\/[^\s]+/); return match?.[0] || ""; }
   function errorText(error, operation) { if (error?.code === "permission-denied") return `No tiene permisos para realizar esta ${operation}.`; if (["unavailable", "deadline-exceeded"].includes(error?.code)) return "No fue posible conectar con Firestore. Revise la red e intente nuevamente."; if (error?.code === "failed-precondition") return "La consulta requiere un índice de Firestore. Contacte al administrador del sistema."; return `Ocurrió un error durante la ${operation}. Intente nuevamente.`; }
