@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260713-22">
+    <link rel="stylesheet" href="css/style.css?v=20260713-23">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260713-27"></script>
+    <script type="module" src="js/app.js?v=20260713-28"></script>
   </head>
   <body>
     <div class="shell">
@@ -215,14 +215,29 @@
               <p class="eyebrow">Desempe&ntilde;o de proceso</p>
               <h2>Indicadores de Desempe&ntilde;o</h2>
             </div>
-            <span class="data-source">Ventana 24 h</span>
+            <span id="kpiWindowLabel" class="data-source">Ventana 24 h</span>
           </div>
           <div class="kpi-grid">
             <article class="kpi-card"><h3>Cobre a SX</h3><div id="kpiCopperRing" class="kpi-donut"><strong id="kpiCopperToSx">&mdash;</strong><small class="kpi-ring-unit"></small><small class="kpi-ring-state"></small></div><span id="kpiCopperTarget" class="kpi-target">Objetivo &mdash;</span><span id="kpiCopperCompliance" class="kpi-compliance">&mdash;</span></article>
-            <article class="kpi-card"><h3>Consumo Espec&iacute;fico de &Aacute;cido</h3><div id="kpiAcidRing" class="kpi-donut"><strong id="kpiSpecificAcid">&mdash;</strong><small class="kpi-ring-unit"></small><small class="kpi-ring-state"></small></div><span id="kpiAcidTarget" class="kpi-target">Objetivo &mdash;</span><span id="kpiAcidCompliance" class="kpi-compliance">&mdash;</span></article>
+            <article class="kpi-card kpi-range-card">
+              <h3>Ratio &Aacute;cido/Cobre</h3>
+              <p class="kpi-range-subtitle">Rango Operacional</p>
+              <div id="kpiAcidRange" class="kpi-range-chart" data-status="no-data">
+                <div class="kpi-range-axis">
+                  <span id="kpiAcidScaleMax" class="kpi-range-scale-label kpi-range-scale-max">&mdash;</span>
+                  <div class="kpi-range-track" aria-hidden="true">
+                    <span class="kpi-range-band"></span>
+                    <span class="kpi-range-limit kpi-range-limit-upper"></span>
+                    <span class="kpi-range-limit kpi-range-limit-lower"></span>
+                  </div>
+                  <span id="kpiAcidScaleMin" class="kpi-range-scale-label kpi-range-scale-min">&mdash;</span>
+                  <div class="kpi-range-marker"><span class="kpi-range-arrow" aria-hidden="true"></span><strong id="kpiSpecificAcid">&mdash;</strong></div>
+                </div>
+              </div>
+              <p class="kpi-range-description">Muestra el rango operacional y el valor actual respecto al rango permitido.</p>
+            </article>
             <article class="kpi-card"><h3>Recuperaci&oacute;n</h3><div id="kpiRecoveryRing" class="kpi-donut"><strong id="kpiRecovery">72,0</strong><small class="kpi-ring-unit"></small><small class="kpi-ring-state"></small></div><span id="kpiRecoveryTarget" class="kpi-target">Objetivo &mdash;</span><span id="kpiRecoveryCompliance" class="kpi-compliance">&mdash;</span></article>
-            <button id="metallurgicalBalanceButton" class="kpi-card kpi-card-premium" type="button" aria-controls="metallurgicalBalanceOverlay"><h3>Balance Metal&uacute;rgico</h3></button>
-            <button id="mathematicalModelingButton" class="kpi-card kpi-card-premium" type="button" aria-controls="mathematicalModelingOverlay"><h3>Modelamiento Matem&aacute;tico</h3></button>
+            <button id="metallurgicalBalanceButton" class="kpi-card kpi-card-premium" type="button" aria-controls="metallurgicalBalanceOverlay"><h3>Balance Metal&uacute;rgico</h3><strong>A solicitud del cliente</strong></button>
           </div>
         </section>
 
