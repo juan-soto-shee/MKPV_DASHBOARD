@@ -1667,6 +1667,7 @@ td {
 .modeling-main { display: grid; gap: 18px; margin-top: 18px; }
 .prediction-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .prediction-module, .modeling-section { min-width: 0; padding: 22px; border: 1px solid var(--line); border-radius: 8px; background: rgba(16, 42, 54, .94); box-shadow: var(--shadow); }
+.modeling-section.collapsible-section { padding: 0; }
 .prediction-module > .section-heading { align-items: flex-start; margin-bottom: 18px; }
 .sample-badge { padding: 5px 8px; border: 1px solid rgba(50, 213, 232, .3); border-radius: 999px; color: var(--cyan); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .model-indicators { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
