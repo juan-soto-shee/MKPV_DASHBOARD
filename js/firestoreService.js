@@ -50,6 +50,7 @@ export function startRealtimeListener(callback, onConnectionChange = () => {}) {
     const records = snapshot.docs.map(toRecord).filter(Boolean).sort(compareRecordsNewestFirst);
 
     lastRealtimeRecords = records;
+    recordsCache.clear();
     cacheRecords(realtimeCacheKey(), records);
     debugLog("documentos recibidos", {
       clienteId: CLIENTE_ACTIVO,
