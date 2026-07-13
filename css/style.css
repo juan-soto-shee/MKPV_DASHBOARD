@@ -1120,6 +1120,16 @@ td {
   padding: 5px 8px;
 }
 
+.alarm-row .state-pill.critico {
+  color: var(--red);
+  background: rgba(255, 85, 101, 0.12);
+}
+
+.alarm-row .state-pill.alerta {
+  color: var(--amber);
+  background: rgba(255, 190, 74, 0.12);
+}
+
 @media (max-width: 1180px) {
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .topbar {
