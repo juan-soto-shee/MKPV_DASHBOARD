@@ -6,7 +6,7 @@ import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
 import { requireWebAccess } from "./webAccess.js?v=20260713-1";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
-import { calculateOperationalKpis, evaluarEstadoKpi, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260713-17";
+import { calculateOperationalKpis, evaluarEstadoKpi } from "./kpiEngine.js?v=20260713-17";
 import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-2";
 import { saveRemoteKpiConfig, startKpiConfigListener } from "./kpiConfigService.js?v=20260713-1";
 
@@ -139,7 +139,7 @@ function render() {
   renderHistoryTable(selectedRecords.slice(0, 30));
   renderMobileSummary(recentRecords, alarmConfig);
   renderOperationalAnalysis(recentRecords, selectedRecords, chartRecords, alarmConfig);
-  renderOperationalKpis(state.records);
+  renderOperationalKpis(selectedRecords, state.selectedPeriodHours);
   updateMobilePeriodTitle();
   updateCharts(chartRecords, {
     selectedArea: state.selectedArea,
@@ -209,11 +209,76 @@ function renderAnalysisList(elementId, items) {
   ).join("");
 }
 
-function renderOperationalKpis(records) {
-  const kpis = calculateOperationalKpis(records, { windowHours: KPI_WINDOW_HOURS, audit: kpiPreferences.audit });
+function renderOperationalKpis(records, windowHours) {
+  const kpis = calculateOperationalKpis(records, { windowHours, audit: kpiPreferences.audit });
   renderKpiRing("Copper", elements.kpiCopperToSx, kpis.copperToSx, 1, kpiPreferences.copperToSx);
-  renderKpiRing("Acid", elements.kpiSpecificAcid, kpis.specificAcidConsumption, 1, kpiPreferences.specificAcidConsumption);
+  renderKpiRangeBox(kpis.specificAcidConsumption, kpiPreferences.specificAcidConsumption);
   renderKpiRing("Recovery", elements.kpiRecovery, kpis.recovery, 1, kpiPreferences.recovery);
+  document.getElementById("kpiWindowLabel").textContent = `Ventana ${formatPeriodShort(windowHours)} · ${formatAnalysisUnit(state.selectedArea)}`;
+}
+
+function renderKpiRangeBox(value, objective) {
+  const chart = document.getElementById("kpiAcidRange");
+  const evaluation = evaluarEstadoKpi(value, objective);
+  const range = resolveKpiRange(objective);
+  const hasValue = Number.isFinite(value);
+  const validRange = range && range.scaleMax > range.scaleMin && range.normalMax > range.normalMin;
+  const status = validRange ? evaluation.estado : "invalid-config";
+
+  elements.kpiSpecificAcid.textContent = hasValue ? formatKpiValue(value, 1) : "—";
+  chart.dataset.status = hasValue ? status : "no-data";
+  chart.title = hasValue ? evaluation.mensaje : "Sin datos";
+
+  if (!validRange) {
+    document.getElementById("kpiAcidScaleMin").textContent = "—";
+    document.getElementById("kpiAcidScaleMax").textContent = "—";
+    chart.style.setProperty("--range-start", "25%");
+    chart.style.setProperty("--range-size", "50%");
+    chart.style.setProperty("--marker-position", "71px");
+    chart.style.setProperty("--range-label-min", "42.5px");
+    chart.style.setProperty("--range-label-max", "99.5px");
+    return;
+  }
+
+  const span = range.scaleMax - range.scaleMin;
+  const toPercent = (candidate) => Math.min(100, Math.max(0, (candidate - range.scaleMin) / span * 100));
+  const rangeStart = toPercent(range.normalMin);
+  const rangeEnd = toPercent(range.normalMax);
+  chart.style.setProperty("--range-start", `${rangeStart}%`);
+  chart.style.setProperty("--range-size", `${Math.max(2, rangeEnd - rangeStart)}%`);
+  chart.style.setProperty("--marker-position", `${14 + (hasValue ? toPercent(value) : 50) * 1.14}px`);
+  chart.style.setProperty("--range-label-min", `${14 + rangeStart * 1.14}px`);
+  chart.style.setProperty("--range-label-max", `${14 + rangeEnd * 1.14}px`);
+  document.getElementById("kpiAcidScaleMin").textContent = formatKpiValue(range.normalMin, 1);
+  document.getElementById("kpiAcidScaleMax").textContent = formatKpiValue(range.normalMax, 1);
+}
+
+function resolveKpiRange(config) {
+  if (config.alarmMode === "operating_range") {
+    const values = [config.criticalMin, config.normalMin, config.normalMax, config.criticalMax].map(Number);
+    if (!values.every(Number.isFinite)) return null;
+    return { scaleMin: values[0], normalMin: values[1], normalMax: values[2], scaleMax: values[3] };
+  }
+  const target = Number(config.target);
+  const warning = Number(config.warningDeviationPercent) / 100;
+  const critical = Number(config.criticalDeviationPercent) / 100;
+  if (!Number.isFinite(target) || target === 0 || !Number.isFinite(warning) || !Number.isFinite(critical) || critical <= warning) return null;
+  const scaleMin = target * (1 - critical);
+  const scaleMax = target * (1 + critical);
+  if (config.alarmMode === "lower_is_better") {
+    return { scaleMin, normalMin: scaleMin, normalMax: target * (1 + warning), scaleMax };
+  }
+  if (config.alarmMode === "higher_is_better") {
+    return { scaleMin, normalMin: target * (1 - warning), normalMax: scaleMax, scaleMax };
+  }
+  return { scaleMin, normalMin: target * (1 - warning), normalMax: target * (1 + warning), scaleMax };
+}
+
+function formatPeriodShort(hours) {
+  if (hours === 24) return "24 h";
+  if (hours === 168) return "7 días";
+  if (hours === 720) return "30 días";
+  return `${hours} h`;
 }
 
 function renderKpiRing(suffix, valueElement, value, decimals, objective) {
@@ -246,7 +311,7 @@ function formatKpiTarget(config, decimals, unit) {
 
 function initKpiControls() {
   const definitions = [
-    ["copperToSx", "Cobre a SX"], ["specificAcidConsumption", "Consumo Específico de Ácido"], ["recovery", "Recuperación"]
+    ["copperToSx", "Cobre a SX"], ["specificAcidConsumption", "Ratio Ácido/Cobre"], ["recovery", "Recuperación"]
   ];
   const grid = document.getElementById("kpiAdminGrid");
   renderKpiConfigGrid(grid, definitions);
@@ -286,11 +351,14 @@ function initKpiControls() {
 
 function bindFeatureOverlay(buttonId, overlayId, closeButtonId) {
   const overlay = document.getElementById(overlayId);
-  document.getElementById(buttonId).addEventListener("click", () => {
+  const button = document.getElementById(buttonId);
+  const closeButton = document.getElementById(closeButtonId);
+  if (!button || !overlay || !closeButton) return;
+  button.addEventListener("click", () => {
     overlay.classList.remove("is-hidden");
     overlay.setAttribute("aria-hidden", "false");
   });
-  document.getElementById(closeButtonId).addEventListener("click", () => {
+  closeButton.addEventListener("click", () => {
     overlay.classList.add("is-hidden");
     overlay.setAttribute("aria-hidden", "true");
   });
@@ -435,7 +503,7 @@ function refreshKpiControls() {
   if (!grid) return;
   const definitions = [
     ["copperToSx", "Cobre a SX"],
-    ["specificAcidConsumption", "Consumo Específico de Ácido"],
+    ["specificAcidConsumption", "Ratio Ácido/Cobre"],
     ["recovery", "Recuperación"]
   ];
   renderKpiConfigGrid(grid, definitions);
