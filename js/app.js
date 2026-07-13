@@ -242,9 +242,20 @@ function initKpiControls() {
     document.getElementById("kpiAdminMessage").textContent = "Indicadores guardados y sincronizados para todos los dispositivos.";
     render();
   });
-  const overlay = document.getElementById("metallurgicalBalanceOverlay");
-  document.getElementById("metallurgicalBalanceButton").addEventListener("click", () => { overlay.classList.remove("is-hidden"); overlay.setAttribute("aria-hidden", "false"); });
-  document.getElementById("closeMetallurgicalBalance").addEventListener("click", () => { overlay.classList.add("is-hidden"); overlay.setAttribute("aria-hidden", "true"); });
+  bindFeatureOverlay("metallurgicalBalanceButton", "metallurgicalBalanceOverlay", "closeMetallurgicalBalance");
+  bindFeatureOverlay("mathematicalModelingButton", "mathematicalModelingOverlay", "closeMathematicalModeling");
+}
+
+function bindFeatureOverlay(buttonId, overlayId, closeButtonId) {
+  const overlay = document.getElementById(overlayId);
+  document.getElementById(buttonId).addEventListener("click", () => {
+    overlay.classList.remove("is-hidden");
+    overlay.setAttribute("aria-hidden", "false");
+  });
+  document.getElementById(closeButtonId).addEventListener("click", () => {
+    overlay.classList.add("is-hidden");
+    overlay.setAttribute("aria-hidden", "true");
+  });
 }
 
 function renderKpiConfigGrid(grid, definitions) {
