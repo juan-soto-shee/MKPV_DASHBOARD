@@ -8,6 +8,7 @@ import { requireWebAccess } from "./webAccess.js?v=20260712-10";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
 import { calculateOperationalKpis, evaluarEstadoKpi, KPI_WINDOW_HOURS } from "./kpiEngine.js?v=20260713-17";
 import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-1";
+import { saveRemoteKpiConfig, startKpiConfigListener } from "./kpiConfigService.js?v=20260713-1";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -43,6 +44,7 @@ bindControls();
 initAlarmAdmin();
 initDataExport({ normalizeRecords });
 initKpiControls();
+initKpiConfigSync();
 initAdminCollapsibles();
 onAlarmConfigChange(() => render());
 
@@ -214,7 +216,7 @@ function initKpiControls() {
   grid.addEventListener("change", () => updateKpiAdminPreviews(grid, definitions));
   updateKpiAdminPreviews(grid, definitions);
   document.getElementById("kpiAuditMode").checked = kpiPreferences.audit;
-  document.getElementById("saveKpiConfigButton").addEventListener("click", () => {
+  document.getElementById("saveKpiConfigButton").addEventListener("click", async () => {
     const candidate = { ...kpiPreferences };
     for (const card of grid.querySelectorAll("[data-kpi]")) candidate[card.dataset.kpi] = readKpiCard(card, candidate[card.dataset.kpi]);
     const error = validateKpiPreferences(candidate, definitions);
@@ -225,7 +227,19 @@ function initKpiControls() {
     kpiPreferences = candidate;
     kpiPreferences.audit = document.getElementById("kpiAuditMode").checked;
     localStorage.setItem(kpiStorageKey(), JSON.stringify(kpiPreferences));
-    document.getElementById("kpiAdminMessage").textContent = "Indicadores guardados para esta implementación.";
+    const saveButton = document.getElementById("saveKpiConfigButton");
+    saveButton.disabled = true;
+    document.getElementById("kpiAdminMessage").textContent = "Guardando indicadores para todos los dispositivos...";
+    try {
+      await saveRemoteKpiConfig(remoteKpiPayload(kpiPreferences));
+    } catch (error) {
+      console.error("No se pudo sincronizar la configuración KPI:", error);
+      document.getElementById("kpiAdminMessage").textContent = "No se pudo sincronizar la configuración. Se conservó una copia en este dispositivo.";
+      saveButton.disabled = false;
+      return;
+    }
+    saveButton.disabled = false;
+    document.getElementById("kpiAdminMessage").textContent = "Indicadores guardados y sincronizados para todos los dispositivos.";
     render();
   });
   const overlay = document.getElementById("metallurgicalBalanceOverlay");
@@ -292,21 +306,29 @@ function updateKpiAdminPreviews(grid, definitions) {
 }
 
 function loadKpiPreferences() {
-  const defaults = {
+  const defaults = defaultKpiPreferences();
+  try {
+    const stored = JSON.parse(localStorage.getItem(kpiStorageKey()) || "{}");
+    return mergeKpiPreferences(defaults, stored);
+  } catch { return defaults; }
+}
+
+function defaultKpiPreferences() {
+  return {
     copperToSx: { unit: "t", ...clientConfig.kpiObjectives.copperToSx, alarmMode: "higher_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
     specificAcidConsumption: { unit: "kg/t", ...clientConfig.kpiObjectives.specificAcidConsumption, alarmMode: "lower_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
     recovery: { unit: "%", ...clientConfig.kpiObjectives.recovery, alarmMode: "higher_is_better", warningDeviationPercent: 5, criticalDeviationPercent: 10 },
     audit: false
   };
-  try {
-    const stored = JSON.parse(localStorage.getItem(kpiStorageKey()) || "{}");
-    return {
-      copperToSx: migrateKpiObjective(defaults.copperToSx, stored.copperToSx),
-      specificAcidConsumption: migrateKpiObjective(defaults.specificAcidConsumption, stored.specificAcidConsumption),
-      recovery: migrateKpiObjective(defaults.recovery, stored.recovery),
-      audit: stored.audit ?? defaults.audit
-    };
-  } catch { return defaults; }
+}
+
+function mergeKpiPreferences(defaults, stored = {}) {
+  return {
+    copperToSx: migrateKpiObjective(defaults.copperToSx, stored.copperToSx),
+    specificAcidConsumption: migrateKpiObjective(defaults.specificAcidConsumption, stored.specificAcidConsumption),
+    recovery: migrateKpiObjective(defaults.recovery, stored.recovery),
+    audit: stored.audit ?? defaults.audit
+  };
 }
 
 function migrateKpiObjective(defaults, stored = {}) {
@@ -320,6 +342,56 @@ function migrateKpiObjective(defaults, stored = {}) {
 }
 
 function kpiStorageKey() { return `plantview:kpi:${clientConfig.implementationId}`; }
+
+function initKpiConfigSync() {
+  let migrationAttempted = false;
+  startKpiConfigListener(async (remoteConfig) => {
+    if (remoteConfig) {
+      kpiPreferences = mergeKpiPreferences(defaultKpiPreferences(), {
+        ...remoteConfig,
+        audit: kpiPreferences.audit
+      });
+      localStorage.setItem(kpiStorageKey(), JSON.stringify(kpiPreferences));
+      refreshKpiControls();
+      render();
+      return;
+    }
+
+    if (!migrationAttempted && hasCustomizedLocalKpiConfig()) {
+      migrationAttempted = true;
+      try {
+        await saveRemoteKpiConfig(remoteKpiPayload(kpiPreferences));
+      } catch (error) {
+        console.warn("No se pudo migrar la configuración KPI local:", error.message);
+      }
+    }
+  }, (error) => console.warn("No se pudo escuchar la configuración KPI remota:", error.message));
+}
+
+function hasCustomizedLocalKpiConfig() {
+  return JSON.stringify(remoteKpiPayload(kpiPreferences))
+    !== JSON.stringify(remoteKpiPayload(defaultKpiPreferences()));
+}
+
+function remoteKpiPayload(preferences) {
+  return {
+    copperToSx: { ...preferences.copperToSx },
+    specificAcidConsumption: { ...preferences.specificAcidConsumption },
+    recovery: { ...preferences.recovery }
+  };
+}
+
+function refreshKpiControls() {
+  const grid = document.getElementById("kpiAdminGrid");
+  if (!grid) return;
+  const definitions = [
+    ["copperToSx", "Cobre a SX"],
+    ["specificAcidConsumption", "Consumo Específico de Ácido"],
+    ["recovery", "Recuperación"]
+  ];
+  renderKpiConfigGrid(grid, definitions);
+  updateKpiAdminPreviews(grid, definitions);
+}
 
 function initAdminCollapsibles() {
   document.querySelectorAll("#alarmAdminSection .admin-subsection").forEach((panel, index) => {
