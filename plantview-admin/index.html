@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PlantView Admin | MetKinetics</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="admin.css?v=20260712-2">
-  <script type="module" src="admin.js?v=20260712-2"></script>
+  <link rel="stylesheet" href="admin.css?v=20260713-3">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script type="module" src="admin.js?v=20260713-3"></script>
 </head>
 <body>
   <section id="authScreen" class="auth-screen" aria-live="polite">
@@ -35,7 +36,7 @@
       <h1>PlantView Admin</h1>
       <nav aria-label="Administración MetKinetics">
         <a href="#clientes">Clientes</a><a href="#implementaciones">Implementaciones</a>
-        <a href="#importacion">Importación Masiva</a><a id="deleteHistoryNav" href="#historico">Eliminar Histórico</a>
+        <a id="bulkImportNav" href="#importacion">Importación Masiva</a><a id="deleteHistoryNav" href="#historico">Eliminar Histórico</a>
         <a href="#variables">Variables</a><a href="#layout">Layout</a><a href="#usuarios">Usuarios</a>
         <a href="#licencias">Licencias</a><a href="#branding">Branding</a><a href="#respaldos">Respaldos</a>
         <a href="#versiones">Versiones</a><a href="#global">Configuración Global</a>
@@ -50,6 +51,15 @@
         </div>
       </header>
       <section id="adminHome"><h2>Arquitectura preparada</h2><p>Los módulos administrativos se implementarán en la siguiente etapa. Esta consola no forma parte del Dashboard del Cliente.</p><section class="access-card"><strong>Acceso autorizado</strong><span>Administrador MetKinetics</span></section></section>
+      <section id="bulkImportSection" class="module-section" hidden aria-labelledby="bulkImportTitle">
+        <p class="eyebrow">Administración de datos</p><h2 id="bulkImportTitle">Importación Masiva</h2><p>Valide el archivo y revise la vista previa antes de escribir registros en Firestore.</p>
+        <div class="bulk-import-controls"><label><span>Cliente / implementación</span><select id="bulkImportClient"><option value="">Seleccione un cliente</option><option value="demo_lixiviacion">Demo Lixiviación</option><option value="solmin_mantos_blancos">Solmin Mantos Blancos</option></select></label><label><span>Archivo XLSX, XLS o CSV</span><input id="bulkImportFile" type="file" accept=".xlsx,.xls,.csv"></label><button id="validateBulkImportButton" class="primary-button" type="button">Validar archivo</button></div>
+        <p class="import-warning">La importación no valida duplicados contra registros ya existentes en Firestore.</p><p id="bulkImportMessage" class="module-message" role="status" aria-live="polite"></p>
+        <section id="bulkImportPreview" class="preview-card" hidden><h3>Vista previa</h3><dl class="import-summary-grid"><div><dt>Archivo</dt><dd id="importFileName">--</dd></div><div><dt>Cliente</dt><dd id="importClientName">--</dd></div><div><dt>Total filas</dt><dd id="importTotalRows">0</dd></div><div><dt>Filas válidas</dt><dd id="importValidRows">0</dd></div><div><dt>Filas con error</dt><dd id="importErrorRows">0</dd></div><div><dt>Advertencias</dt><dd id="importWarningRows">0</dd></div><div><dt>Fecha más antigua</dt><dd id="importOldestDate">--</dd></div><div><dt>Fecha más reciente</dt><dd id="importNewestDate">--</dd></div></dl><p class="import-table-note">El encabezado del archivo no se considera un registro de datos.</p><div class="import-table-wrap"><table class="import-preview-table"><thead><tr><th>Fila</th><th>Estado</th><th>Fecha</th><th>Hora</th><th>Área</th><th>Subárea</th><th>Detalle</th></tr></thead><tbody id="bulkImportPreviewBody"></tbody></table></div></section>
+        <section id="bulkImportCountCard" class="import-count-card" hidden><div><span>Cliente seleccionado</span><strong id="countClientName">--</strong></div><div><span>Registros actualmente en Firestore</span><strong id="currentFirestoreCount">--</strong></div><div><span>Registros válidos para importar</span><strong id="validImportCount">0</strong></div><div><span>Total esperado después de importar</span><strong id="expectedFirestoreCount">--</strong></div><p id="bulkImportCountMessage" class="module-message" role="status"></p></section>
+        <div class="import-actions"><button id="importRecordsButton" class="primary-button" type="button" disabled>Importar registros</button><button id="downloadImportReportButton" type="button" disabled>Descargar reporte CSV</button></div>
+        <section id="bulkImportResult" class="preview-card" hidden><h3>Resultado final</h3><dl class="import-summary-grid"><div><dt>Registros importados</dt><dd id="resultImported">0</dd></div><div><dt>Registros rechazados</dt><dd id="resultRejected">0</dd></div><div><dt>Advertencias</dt><dd id="resultWarnings">0</dd></div><div><dt>Lotes procesados</dt><dd id="resultBatches">0</dd></div><div><dt>Cliente</dt><dd id="resultClient">--</dd></div><div><dt>Fecha de importación</dt><dd id="resultDate">--</dd></div></dl></section>
+      </section>
       <section id="deleteHistorySection" class="module-section" hidden aria-labelledby="deleteHistoryTitle">
         <p class="eyebrow">Administración de datos</p><h2 id="deleteHistoryTitle">Eliminar Histórico</h2><p>Busque y revise los registros antes de autorizar su eliminación definitiva.</p>
         <form id="deleteHistorySearchForm" class="history-form" novalidate>
