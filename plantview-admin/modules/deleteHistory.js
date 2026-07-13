@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, query, serverTimestamp, Timestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { addDoc, collection, getDocs, query, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const CLIENTS = { demo_lixiviacion: "Demo Lixiviación", solmin_mantos_blancos: "Solmin Mantos Blancos" };
 const byId = (id) => document.getElementById(id);
@@ -36,7 +36,7 @@ export function initializeDeleteHistory(db, admin) {
     console.log("Fin:", finDelDia);
     setBusy(true); message("Buscando registros...");
     try {
-      const safeQuery = query(collection(db, "leach_records"), where("clienteId", "==", clientId), where("timestampCreacion", ">=", Timestamp.fromDate(inicioDelDia)), where("timestampCreacion", "<=", Timestamp.fromDate(finDelDia)));
+      const safeQuery = query(collection(db, "leach_records"), where("clienteId", "==", clientId), where("timestampCreacion", ">=", inicioDelDia.getTime()), where("timestampCreacion", "<=", finDelDia.getTime()));
       const snapshot = await getDocs(safeQuery);
       matches = snapshot.docs; range = { clientId, fromValue, toValue };
       preview();
@@ -57,7 +57,7 @@ export function initializeDeleteHistory(db, admin) {
   }
 
   function preview() {
-    const dates = matches.map((item) => item.data().timestampCreacion?.toDate?.()).filter((date) => date instanceof Date && !Number.isNaN(date.valueOf())).sort((a, b) => a - b);
+    const dates = matches.map((item) => new Date(item.data().timestampCreacion)).filter((date) => !Number.isNaN(date.valueOf())).sort((a, b) => a - b);
     console.log("Primer timestamp encontrado:", dates[0]);
     console.log("Último timestamp encontrado:", dates.at(-1));
     el.previewClient.textContent = CLIENTS[range.clientId]; el.previewFrom.textContent = dateLabel(range.fromValue); el.previewTo.textContent = dateLabel(range.toValue); el.previewCount.textContent = matches.length;
