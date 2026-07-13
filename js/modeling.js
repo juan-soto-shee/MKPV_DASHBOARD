@@ -1,3 +1,5 @@
+import "./productVersion.js?v=20260713-1";
+
 const charts = new Map();
 const locale = "es-CL";
 let data;

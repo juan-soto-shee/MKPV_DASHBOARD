@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Modelos Matemáticos | MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260713-28">
+    <link rel="stylesheet" href="css/style.css?v=20260713-29">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
-    <script type="module" src="js/modeling.js?v=20260713-1"></script>
+    <script type="module" src="js/modeling.js?v=20260713-2"></script>
   </head>
   <body class="modeling-page">
     <div class="shell">
@@ -32,22 +32,22 @@
         <p id="modelingError" class="modeling-error is-hidden" role="alert">Información de modelamiento no disponible</p>
         <div class="prediction-grid">
           <section class="prediction-module" aria-labelledby="cuPredictionTitle">
-            <div class="section-heading"><div><p class="eyebrow">Horizonte de 4 horas</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div><span class="demo-badge">Muestra</span></div>
+            <div class="section-heading"><div><p class="eyebrow">Horizonte de 4 horas</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div><span class="sample-badge">Muestra</span></div>
             <div id="cuIndicators" class="model-indicators"></div>
-            <div class="model-chart-panel"><h3>Cu²⁺ en PLS — Valor real vs. predicho</h3><p>Ventana demostrativa de los últimos 7 días</p><div class="model-chart-box"><canvas id="cuPredictionChart"></canvas></div></div>
+            <div class="model-chart-panel"><h3>Cu²⁺ en PLS — Valor real vs. predicho</h3><p>Ventana de muestra de los últimos 7 días</p><div class="model-chart-box"><canvas id="cuPredictionChart"></canvas></div></div>
             <dl id="cuForecastDetails" class="forecast-details"></dl>
           </section>
 
           <section class="prediction-module" aria-labelledby="recoveryPredictionTitle">
-            <div class="section-heading"><div><p class="eyebrow">Horizonte de 24 horas</p><h2 id="recoveryPredictionTitle">Proyección de Recuperación Metalúrgica</h2></div><span class="demo-badge">Muestra</span></div>
+            <div class="section-heading"><div><p class="eyebrow">Horizonte de 24 horas</p><h2 id="recoveryPredictionTitle">Proyección de Recuperación Metalúrgica</h2></div><span class="sample-badge">Muestra</span></div>
             <div id="recoveryIndicators" class="model-indicators"></div>
-            <div class="model-chart-panel"><h3>Recuperación — Valor real vs. proyectado</h3><p>Ventana demostrativa de los últimos 7 días</p><div class="model-chart-box"><canvas id="recoveryPredictionChart"></canvas></div></div>
+            <div class="model-chart-panel"><h3>Recuperación — Valor real vs. proyectado</h3><p>Ventana de muestra de los últimos 7 días</p><div class="model-chart-box"><canvas id="recoveryPredictionChart"></canvas></div></div>
             <dl id="recoveryForecastDetails" class="forecast-details"></dl>
           </section>
         </div>
 
         <section class="modeling-section" aria-labelledby="competitionTitle">
-          <div class="section-heading"><div><p class="eyebrow">Evaluación demostrativa</p><h2 id="competitionTitle">Competencia de Modelos — Cu²⁺ en PLS</h2></div></div>
+          <div class="section-heading"><div><p class="eyebrow">Evaluación de muestra</p><h2 id="competitionTitle">Competencia de Modelos — Cu²⁺ en PLS</h2></div></div>
           <div class="model-table-wrap"><table class="model-table"><thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Tiempo de entrenamiento</th><th>Estado</th></tr></thead><tbody id="modelMetricsBody"></tbody></table></div>
         </section>
 
@@ -59,11 +59,14 @@
 
         <aside class="operational-notice">Las predicciones son referenciales y deben utilizarse como apoyo a la decisión operacional. No reemplazan la evaluación técnica ni el criterio del personal responsable del proceso.</aside>
       </main>
+      <footer class="product-footer" aria-label="Información del producto">
+        <span data-product-name>MetKinetics PlantView</span><span data-product-version>Versión --</span><span data-product-copyright>© 2026 MetKinetics</span><span>Todos los derechos reservados.</span>
+      </footer>
     </div>
 
     <div id="modelVariablesOverlay" class="admin-overlay is-hidden" aria-hidden="true">
       <section class="admin-password-panel model-variables-panel" role="dialog" aria-modal="true" aria-labelledby="modelVariablesTitle">
-        <div class="section-heading"><div><p class="eyebrow">Datos de entrada demostrativos</p><h2 id="modelVariablesTitle">Variables del modelo</h2></div><button id="closeModelVariables" class="icon-close-button" type="button" aria-label="Cerrar">X</button></div>
+        <div class="section-heading"><div><p class="eyebrow">Datos de entrada de muestra</p><h2 id="modelVariablesTitle">Variables del modelo</h2></div><button id="closeModelVariables" class="icon-close-button" type="button" aria-label="Cerrar">X</button></div>
         <ul id="modelVariablesList" class="model-variables-list"></ul>
       </section>
     </div>

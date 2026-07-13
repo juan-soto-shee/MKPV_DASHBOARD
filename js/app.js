@@ -9,6 +9,7 @@ import { initDataExport } from "./dataExport.js?v=20260712-2";
 import { calculateOperationalKpis, evaluarEstadoKpi } from "./kpiEngine.js?v=20260713-18";
 import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-2";
 import { saveRemoteKpiConfig, startKpiConfigListener } from "./kpiConfigService.js?v=20260713-1";
+import { productInfo } from "./productVersion.js?v=20260713-1";
 
 applyClientConfiguration();
 await requireWebAccess();
@@ -768,7 +769,7 @@ function applyClientConfiguration() {
   setText("alarmsTitle", text.alarmas);
   setText("historyEyebrow", text.historialEyebrow);
   setText("historyTitle", text.historial);
-  setText("systemVersion", identity.version);
+  setText("systemVersion", `${productInfo.productName} ${productInfo.version}`);
   setText("alarmConfigPath", `${identity.firebase.coleccionConfiguracion}/${identity.firebase.documentoConfiguracion}`);
   setText("recordsCollectionLabel", `Registros asociados (${clientConfig.clienteId})`);
   setText("resetRecordsCollection", `${identity.firebase.coleccionRegistros} para ${clientConfig.clienteId}`);
