@@ -1367,6 +1367,10 @@ td {
   .collapsible-summary { padding: 12px 14px; }
   .collapsible-content { padding: 0 14px 14px; }
 
+  .history-section .data-export {
+    display: none;
+  }
+
   .alarm-row {
     grid-template-columns: 58px minmax(0, 1fr) 82px;
     gap: 8px;
