@@ -671,7 +671,7 @@ h3 {
 .admin-collapsible-content[hidden] { display: none; }
 
 .kpi-section { padding: 18px; margin-bottom: 18px; }
-.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
 .kpi-card { min-width: 0; min-height: 260px; padding: 18px; border: 1px solid rgba(147, 185, 197, .16); border-radius: 8px; background: linear-gradient(145deg, rgba(3, 13, 18, .42), rgba(20, 53, 67, .58)); text-align: center; }
 .kpi-card h3 { min-height: 34px; color: var(--muted); font-size: .82rem; letter-spacing: .035em; text-transform: uppercase; }
 .kpi-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
