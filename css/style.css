@@ -716,6 +716,7 @@ h3 {
 .kpi-card-premium { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; color: var(--text); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(50, 213, 232, .08); transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
 .kpi-card-premium:hover, .kpi-card-premium:focus-visible { border-color: rgba(50, 213, 232, .55); box-shadow: inset 0 0 30px rgba(50, 213, 232, .06), 0 8px 24px rgba(0, 0, 0, .18); transform: translateY(-2px); }
 .kpi-card-premium strong { max-width: 180px; font-size: 1.05rem; line-height: 1.3; }
+.kpi-sample-label { padding: 4px 8px; border: 1px solid rgba(50, 213, 232, .22); border-radius: 999px; color: var(--muted); font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .kpi-admin-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .kpi-admin-card { padding: 14px; border: 1px solid rgba(147, 185, 197, .16); border-radius: 8px; }
 .kpi-admin-card legend { padding: 0 6px; color: var(--cyan); font-weight: 850; }
