@@ -162,9 +162,22 @@ export function initializeBulkImport(db, initialAdmin) {
       return message(imported ? `Importación parcial: se escribieron ${imported} registros antes del error. ${firestoreError(error)}` : firestoreError(error), true);
     }
     let auditWarning = ""; const dates = records.map((r) => r.timestampCreacion).sort((a,b) => a-b);
-    try { await addDoc(collection(db, "audit_log"), { accion:"importacion_masiva", adminEmail:admin.email, adminNombre:admin.nombre, adminRol:admin.rol, clienteId, archivoNombre:fileName, filasTotales:processed.length, filasValidas:validRecords.length, filasImportadas:imported, filasRechazadas:processed.length-validRecords.length, fechaDesde:dates[0], fechaHasta:dates.at(-1), timestamp:serverTimestamp() }); }
-    catch (error) { console.error("Importación completada; falló audit_log:", error); auditWarning = " Advertencia: no fue posible registrar la auditoría."; }
-    showResult(imported, batches); setBusy(false); el.importRecordsButton.disabled = true; message(`Se importaron correctamente ${imported} registros.${auditWarning}`, Boolean(auditWarning));
+    const adminEmail = admin?.email || "", adminNombre = admin?.nombre || "", adminRol = admin?.rol || "";
+    try {
+      await addDoc(collection(db, "audit_log"), {
+        accion: "importacion_masiva", adminEmail, adminNombre, adminRol, clienteId, archivoNombre: fileName,
+        filasTotales: processed.length, filasValidas: validRecords.length, filasImportadas: imported,
+        filasRechazadas: processed.length - validRecords.length, fechaDesde: dates[0], fechaHasta: dates.at(-1),
+        timestamp: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error guardando audit_log de importación:", error);
+      console.error("Código:", error?.code);
+      console.error("Mensaje:", error?.message);
+      auditWarning = `La importación terminó correctamente, pero no fue posible registrar la auditoría. Código: ${error?.code || "desconocido"}.`;
+    }
+    showResult(imported, batches); setBusy(false); el.importRecordsButton.disabled = true;
+    message(auditWarning || `Se importaron correctamente ${imported} registros.`, Boolean(auditWarning));
   }
 
   function showResult(imported, batches) { el.resultImported.textContent=imported; el.resultRejected.textContent=processed.length-validRecords.length; el.resultWarnings.textContent=processed.filter((r)=>r.warnings.length).length; el.resultBatches.textContent=batches; el.resultClient.textContent=CLIENTS[clientId]; el.resultDate.textContent=new Date().toLocaleString("es-CL"); el.bulkImportResult.hidden=false; }

@@ -159,13 +159,13 @@ function renderKpiRing(suffix, valueElement, value, decimals, objective) {
   const labels = { normal: "Normal", warning: "Alerta", critical: "Crítico", "no-data": "Sin datos", "invalid-config": "Configuración inválida" };
   const ring = document.getElementById(`kpi${suffix}Ring`);
   const statusElement = document.getElementById(`kpi${suffix}Compliance`);
-  document.getElementById(`kpi${suffix}Target`).textContent = formatKpiTarget(objective, decimals, unit);
+  document.getElementById(`kpi${suffix}Target`).textContent = formatKpiTarget(objective, 0, unit);
   statusElement.textContent = evaluation.mensaje;
   statusElement.dataset.status = status;
   ring.dataset.status = status;
   ring.querySelector(".kpi-ring-unit").textContent = unit;
   ring.querySelector(".kpi-ring-state").textContent = labels[status];
-  ring.title = `${formatKpiTarget(objective, decimals, unit)}\nEstado: ${labels[status]}\n${evaluation.mensaje}`;
+  ring.title = `${formatKpiTarget(objective, 0, unit)}\nEstado: ${labels[status]}\n${evaluation.mensaje}`;
   const progress = Number.isFinite(value) && Number(objective.target) ? value / Number(objective.target) * 100 : 0;
   ring.style.setProperty("--kpi-progress", `${Math.min(100, Math.max(0, progress)) * 3.6}deg`);
 }
