@@ -134,7 +134,7 @@ function render() {
   renderProcessMap(elements.processMap, recentRecords, state.selectedArea, handleProcessSelection, alarmConfig);
   renderAlarms(selectedRecords);
   renderHistoryTable(selectedRecords.slice(0, 30));
-  renderMobileSummary(recentRecords);
+  renderMobileSummary(recentRecords, alarmConfig);
   renderOperationalKpis(state.records);
   updateMobilePeriodTitle();
   updateCharts(chartRecords, {
@@ -411,15 +411,21 @@ function renderHistoryTable(records) {
   }).join("");
 }
 
-function renderMobileSummary(records) {
+function renderMobileSummary(records, alarmConfig) {
   clientConfig.layout.equiposResumenMovil.forEach((area) => {
     const counter = elements.mobileCounts.querySelector(`[data-area-count="${CSS.escape(area)}"]`);
-    if (counter) counter.textContent = countBySubarea(records, area);
-  });
-}
+    if (!counter) return;
 
-function countBySubarea(records, subarea) {
-  return records.filter((record) => record.subarea === subarea).length;
+    const areaRecords = filterRawRecordsByArea(records, area);
+    const stateClass = areaRecords.length
+      ? normalizeStateClass(getWorstState(areaRecords, alarmConfig))
+      : "sin-datos";
+    const item = counter.closest("span");
+
+    counter.textContent = areaRecords.length;
+    item.classList.remove("normal", "alerta", "advertencia", "warning", "critico", "sin-datos");
+    item.classList.add(stateClass);
+  });
 }
 
 function filterByArea(records, area) {
