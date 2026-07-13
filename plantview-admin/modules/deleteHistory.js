@@ -6,13 +6,13 @@ const byId = (id) => document.getElementById(id);
 export function initializeDeleteHistory(db, admin) {
   const el = Object.fromEntries(["adminHome", "deleteHistorySection", "deleteHistoryNav", "deleteHistorySearchForm", "historyClient", "historyDateFrom", "historyDateTo", "searchHistoryButton", "deleteHistoryMessage", "deleteHistoryPreview", "previewClient", "previewFrom", "previewTo", "previewCount", "previewOldest", "previewNewest", "deleteHistoryButton", "deleteHistoryConfirmation", "deleteHistorySummary", "deleteHistoryConfirmationInput", "cancelHistoryDeletion", "confirmHistoryDeletion"].map((id) => [id, byId(id)]));
   let matches = [], range = null, busy = false;
-  const createIndexButton = document.createElement("button");
-  createIndexButton.type = "button";
-  createIndexButton.className = "primary-button";
-  createIndexButton.textContent = "Crear índice en Firebase";
-  createIndexButton.hidden = true;
-  createIndexButton.addEventListener("click", () => window.open(createIndexButton.dataset.url, "_blank", "noopener,noreferrer"));
-  el.deleteHistoryMessage.insertAdjacentElement("afterend", createIndexButton);
+  const createIndexLink = document.createElement("a");
+  createIndexLink.className = "primary-button";
+  createIndexLink.textContent = "Crear índice en Firebase";
+  createIndexLink.target = "_blank";
+  createIndexLink.rel = "noopener noreferrer";
+  createIndexLink.hidden = true;
+  el.deleteHistoryMessage.insertAdjacentElement("afterend", createIndexLink);
 
   const showRequestedSection = () => { const active = location.hash === "#historico"; el.adminHome.hidden = active; el.deleteHistorySection.hidden = !active; };
   el.deleteHistoryNav.addEventListener("click", () => setTimeout(showRequestedSection));
@@ -47,11 +47,11 @@ export function initializeDeleteHistory(db, admin) {
         console.error(error);
         console.error(error.message);
         const indexUrl = firebaseIndexUrl(error.message);
-        createIndexButton.dataset.url = indexUrl || "";
-        createIndexButton.hidden = !indexUrl;
+        createIndexLink.href = indexUrl || "";
+        createIndexLink.hidden = !indexUrl;
         el.deleteHistoryButton.disabled = true;
       }
-      message(errorText(error, "consulta"), true);
+      message(error?.code === "failed-precondition" ? error.message : errorText(error, "consulta"), true);
     }
     finally { setBusy(false); }
   }
@@ -94,7 +94,7 @@ export function initializeDeleteHistory(db, admin) {
     resetResult(); setBusy(false); message(`Se eliminaron correctamente ${deleted} registros.${warning}`, Boolean(warning));
   }
 
-  function resetResult() { matches = []; range = null; el.deleteHistoryPreview.hidden = true; el.deleteHistoryButton.disabled = true; createIndexButton.hidden = true; createIndexButton.dataset.url = ""; closeConfirmation(); }
+  function resetResult() { matches = []; range = null; el.deleteHistoryPreview.hidden = true; el.deleteHistoryButton.disabled = true; createIndexLink.hidden = true; createIndexLink.removeAttribute("href"); closeConfirmation(); }
   function setBusy(value) { busy = value; el.searchHistoryButton.disabled = value; el.historyClient.disabled = value; el.historyDateFrom.disabled = value; el.historyDateTo.disabled = value; el.deleteHistoryButton.disabled = value || !matches.length; el.cancelHistoryDeletion.disabled = value; updateConfirmation(); }
   function message(text, error = false) { el.deleteHistoryMessage.textContent = text; el.deleteHistoryMessage.classList.toggle("is-error", error); }
   function boundary(value, end) { const [y, m, d] = value.split("-").map(Number); const date = new Date(y, m - 1, d); date.setHours(end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0); return date; }
