@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { initializeDeleteHistory } from "./modules/deleteHistory.js";
-import { initializeBulkImport } from "./modules/bulkImport.js";
+import { initializeBulkImport } from "./modules/bulkImport.js?v=20260713-2";
 
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
