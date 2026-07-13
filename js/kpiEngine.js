@@ -23,7 +23,7 @@ export function calculateOperationalKpis(records, { windowHours = KPI_WINDOW_HOU
   const copperToSx = copperIntegration.total;
   const acidUsedTonnes = acidIntegration.total;
   const specificAcidConsumption = Number.isFinite(copperToSx) && copperToSx > 0 && Number.isFinite(acidUsedTonnes)
-    ? acidUsedTonnes * 1000 / copperToSx : null;
+    ? acidUsedTonnes / copperToSx : null;
   const auditData = { copper: copperIntegration, acid: acidIntegration };
   const result = { copperToSx, acidUsedTonnes, specificAcidConsumption, recovery: 72, metallurgicalBalance: null, audit: auditData };
   if (audit) printKpiAudit(auditData, result);
@@ -99,7 +99,7 @@ export function printKpiAudit(auditData, result) {
     "Flujo Refino (m3/h)": item.flow, "Acidez Refino (g/L)": item.concentration,
     "Ácido instantáneo (t/h)": item.instantaneous, "Ácido intervalo (t)": item.tonnes
   })));
-  console.info("Ácido total (t):", result.acidUsedTonnes, "Consumo específico (kg/t Cu):", result.specificAcidConsumption);
+  console.info("Ácido total (t):", result.acidUsedTonnes, "Ratio ácido/cobre:", result.specificAcidConsumption);
   console.groupEnd();
 }
 

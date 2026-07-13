@@ -6,7 +6,7 @@ import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
 import { requireWebAccess } from "./webAccess.js?v=20260713-1";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
-import { calculateOperationalKpis, evaluarEstadoKpi } from "./kpiEngine.js?v=20260713-17";
+import { calculateOperationalKpis, evaluarEstadoKpi } from "./kpiEngine.js?v=20260713-18";
 import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-2";
 import { saveRemoteKpiConfig, startKpiConfigListener } from "./kpiConfigService.js?v=20260713-1";
 
@@ -283,7 +283,7 @@ function formatPeriodShort(hours) {
 
 function renderKpiRing(suffix, valueElement, value, decimals, objective) {
   valueElement.textContent = formatKpiValue(value, decimals);
-  const unit = objective.unit || { Copper: "t", Acid: "kg/t", Recovery: "%" }[suffix];
+  const unit = objective.unit || { Copper: "t", Acid: "", Recovery: "%" }[suffix];
   const evaluation = evaluarEstadoKpi(value, objective);
   const status = evaluation.estado;
   const labels = { normal: "Normal", warning: "Alerta", critical: "Crítico", "no-data": "Sin datos", "invalid-config": "Configuración inválida" };
@@ -433,7 +433,7 @@ function loadKpiPreferences() {
 function defaultKpiPreferences() {
   return {
     copperToSx: { unit: "t", ...clientConfig.kpiObjectives.copperToSx, alarmMode: "higher_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
-    specificAcidConsumption: { unit: "kg/t", ...clientConfig.kpiObjectives.specificAcidConsumption, alarmMode: "lower_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
+    specificAcidConsumption: { unit: "", ...clientConfig.kpiObjectives.specificAcidConsumption, alarmMode: "lower_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
     recovery: { unit: "%", ...clientConfig.kpiObjectives.recovery, alarmMode: "higher_is_better", warningDeviationPercent: 5, criticalDeviationPercent: 10 },
     audit: false
   };
@@ -442,7 +442,7 @@ function defaultKpiPreferences() {
 function mergeKpiPreferences(defaults, stored = {}) {
   return {
     copperToSx: migrateKpiObjective(defaults.copperToSx, stored.copperToSx),
-    specificAcidConsumption: migrateKpiObjective(defaults.specificAcidConsumption, stored.specificAcidConsumption),
+    specificAcidConsumption: { ...migrateKpiObjective(defaults.specificAcidConsumption, stored.specificAcidConsumption), unit: "" },
     recovery: migrateKpiObjective(defaults.recovery, stored.recovery),
     audit: stored.audit ?? defaults.audit
   };

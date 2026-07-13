@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260713-23">
+    <link rel="stylesheet" href="css/style.css?v=20260713-25">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260713-28"></script>
+    <script type="module" src="js/app.js?v=20260713-29"></script>
   </head>
   <body>
     <div class="shell">
@@ -241,6 +241,16 @@
           </div>
         </section>
 
+        <section class="process-section" aria-label="Vista operacional de la planta">
+          <div class="section-heading">
+            <div>
+              <p id="processEyebrow" class="eyebrow"></p>
+              <h2 id="processTitle"></h2>
+            </div>
+          </div>
+          <div id="processMap" class="process-map"></div>
+        </section>
+
         <details class="operational-analysis collapsible-section" aria-label="Análisis Operacional">
           <summary class="section-heading collapsible-summary">
             <div>
@@ -262,15 +272,15 @@
               <h3 id="operationalTrendsTitle">Tendencias detectadas</h3>
               <ul id="operationalTrends" class="analysis-list"></ul>
             </section>
-            <section class="analysis-block analysis-evidence" aria-labelledby="operationalEvidenceTitle">
-              <h3 id="operationalEvidenceTitle">Evidencia del Análisis</h3>
+            <details class="analysis-block analysis-evidence" aria-labelledby="operationalEvidenceTitle">
+              <summary id="operationalEvidenceTitle">Análisis Estadístico</summary>
               <div class="analysis-table-wrap">
                 <table class="analysis-evidence-table">
                   <thead><tr><th>Variable</th><th>Diagnóstico</th><th>Evidencia</th></tr></thead>
                   <tbody id="operationalEvidenceBody"></tbody>
                 </table>
               </div>
-            </section>
+            </details>
             <section class="analysis-block analysis-events" aria-labelledby="operationalEventsTitle">
               <h3 id="operationalEventsTitle">Eventos detectados</h3>
               <ul id="operationalEvents" class="analysis-list"></ul>
@@ -281,16 +291,6 @@
             </details>
           </div>
         </details>
-
-        <section class="process-section" aria-label="Vista operacional de la planta">
-          <div class="section-heading">
-            <div>
-              <p id="processEyebrow" class="eyebrow"></p>
-              <h2 id="processTitle"></h2>
-            </div>
-          </div>
-          <div id="processMap" class="process-map"></div>
-        </section>
 
         <section class="mobile-controls" aria-label="Filtro de comportamiento temporal">
           <div class="segmented" id="periodFilter">
