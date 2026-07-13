@@ -147,7 +147,7 @@ function render() {
 function renderOperationalKpis(records) {
   const kpis = calculateOperationalKpis(records, { windowHours: KPI_WINDOW_HOURS, audit: kpiPreferences.audit });
   renderKpiRing("Copper", elements.kpiCopperToSx, kpis.copperToSx, 1, kpiPreferences.copperToSx);
-  renderKpiRing("Acid", elements.kpiSpecificAcid, kpis.specificAcidConsumption, 2, kpiPreferences.specificAcidConsumption);
+  renderKpiRing("Acid", elements.kpiSpecificAcid, kpis.specificAcidConsumption, 1, kpiPreferences.specificAcidConsumption);
   renderKpiRing("Recovery", elements.kpiRecovery, kpis.recovery, 1, kpiPreferences.recovery);
 }
 
