@@ -213,20 +213,26 @@ function renderAnalysisList(elementId, items) {
 
 function renderOperationalKpis(records, windowHours) {
   const kpis = calculateOperationalKpis(records, { windowHours, audit: kpiPreferences.audit });
-  const copperObjective = scaleSummedKpiObjective(kpiPreferences.copperToSx, windowHours);
+  const copperObjective = scaleSummedKpiObjective(kpiPreferences.copperToSx, windowHours, state.selectedArea);
   renderKpiRing("Copper", elements.kpiCopperToSx, kpis.copperToSx, 1, copperObjective);
   renderKpiRangeBox(kpis.specificAcidConsumption, kpiPreferences.specificAcidConsumption);
   renderKpiRing("Recovery", elements.kpiRecovery, kpis.recovery, 1, kpiPreferences.recovery);
   document.getElementById("kpiWindowLabel").textContent = `Ventana ${formatPeriodShort(windowHours)} · ${formatAnalysisUnit(state.selectedArea)}`;
 }
 
-function scaleSummedKpiObjective(objective, windowHours) {
+function scaleSummedKpiObjective(objective, windowHours, selectedArea = PLANT_AREA) {
   const target = Number(objective?.target);
   const targetPeriodHours = Number(objective?.targetPeriodHours);
   const selectedHours = Number(windowHours);
   if (!Number.isFinite(target) || !Number.isFinite(targetPeriodHours) || targetPeriodHours <= 0
     || !Number.isFinite(selectedHours) || selectedHours <= 0) return { ...objective };
-  return { ...objective, target: target * selectedHours / targetPeriodHours };
+  const pileNames = clientConfig.equipment
+    .filter((item) => item.tipo === "pila")
+    .map((item) => item.nombre);
+  const unitShare = selectedArea !== PLANT_AREA && pileNames.includes(selectedArea) && pileNames.length
+    ? 1 / pileNames.length
+    : 1;
+  return { ...objective, target: target * selectedHours / targetPeriodHours * unitShare };
 }
 
 function renderKpiRangeBox(value, objective) {
