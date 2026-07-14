@@ -10,7 +10,7 @@ import {
 import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
 import { invalidateRecordsCache } from "./firestoreService.js?v=20260710-2";
-import { verifyAdminPassword } from "./alarmAdmin.js?v=20260710-2";
+import { canManageConfiguration } from "./webAccess.js?v=auth-v1";
 
 const DEMO_IMPLEMENTATION = "demo_lixiviacion";
 const PAGE_SIZE = 450;
@@ -26,8 +26,9 @@ export function initLegacyCleanup({ refreshDashboard } = {}) {
   if (!elements.section) return;
   const isDemo = clientConfig.implementationId === DEMO_IMPLEMENTATION
     && clientConfig.clienteId === DEMO_IMPLEMENTATION;
-  elements.section.classList.toggle("is-hidden", !isDemo);
-  if (!isDemo) return;
+  const authorized = canManageConfiguration();
+  elements.section.classList.toggle("is-hidden", !isDemo || !authorized);
+  if (!isDemo || !authorized) return;
 
   elements.inspectButton.addEventListener("click", () => inspectLegacy(elements));
   elements.cleanButton.addEventListener("click", () => openConfirmation(elements));
@@ -112,15 +113,13 @@ function openConfirmation(elements) {
 
 async function continueConfirmation(elements, refreshDashboard) {
   if (elements.continueButton.dataset.stage === "question") {
-    elements.passwordStage.classList.remove("is-hidden");
-    elements.continueButton.dataset.stage = "password";
+    elements.continueButton.dataset.stage = "authorized";
     elements.continueButton.textContent = "Eliminar datos legacy";
-    elements.dialogMessage.textContent = "Confirme nuevamente la contraseña administrativa.";
-    elements.password.focus();
+    elements.dialogMessage.textContent = "Confirme la eliminacion con su sesion administrativa activa.";
     return;
   }
-  if (!verifyAdminPassword(elements.password.value)) {
-    elements.dialogMessage.textContent = "Contraseña incorrecta. No se eliminó ningún documento.";
+  if (!canManageConfiguration()) {
+    elements.dialogMessage.textContent = "La sesion no tiene autorizacion administrativa.";
     return;
   }
   closeConfirmation(elements);

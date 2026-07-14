@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Modelos Matemáticos | MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260713-29">
+    <link rel="stylesheet" href="css/style.css?v=20260713-31">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script type="module" src="js/modeling.js?v=20260713-2"></script>
   </head>
@@ -46,10 +46,10 @@
           </section>
         </div>
 
-        <section class="modeling-section" aria-labelledby="competitionTitle">
-          <div class="section-heading"><div><p class="eyebrow">Ciencia de Datos</p><h2 id="competitionTitle">Competencia de Modelos — Cu²⁺ en PLS</h2></div></div>
-          <div class="model-table-wrap"><table class="model-table"><thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Tiempo de entrenamiento</th><th>Estado</th></tr></thead><tbody id="modelMetricsBody"></tbody></table></div>
-        </section>
+        <details class="modeling-section collapsible-section" aria-labelledby="competitionTitle">
+          <summary class="section-heading collapsible-summary"><div><p class="eyebrow">Ciencia de Datos</p><h2 id="competitionTitle">Competencia de Modelos — Cu²⁺ en PLS</h2></div><span class="collapse-chevron" aria-hidden="true"></span></summary>
+          <div class="collapsible-content"><div class="model-table-wrap"><table class="model-table"><thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Tiempo de entrenamiento</th><th>Estado</th></tr></thead><tbody id="modelMetricsBody"></tbody></table></div></div>
+        </details>
 
         <section class="modeling-section winner-information" aria-labelledby="winnerTitle">
           <div><p class="eyebrow">Resultado de evaluación</p><h2 id="winnerTitle">Información del modelo ganador</h2></div>

@@ -1,89 +1,113 @@
+import { app, db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
-import { verifyWebPassword } from "./credentials.js?v=20260713-1";
+import {
+  browserSessionPersistence,
+  getAuth,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-const SESSION_DURATION_MS = 4 * 60 * 60 * 1000;
-const STORAGE_PREFIX = "mkpv:web-access:";
+const auth = getAuth(app);
+const TECHNICAL_ROLES = new Set(["tecnico", "technical_profile", "metkinetics_admin"]);
+const USERNAME_DOMAIN = "users.metkinetics.cl";
+let currentAuthorization = null;
 
 export function requireWebAccess() {
   const elements = getElements();
-  if (!elements.overlay || !elements.form) return Promise.resolve(false);
-
-  if (isAndroidApp()) {
-    closeAccess(elements);
-    return Promise.resolve(true);
-  }
-
-  const session = readSession();
-  if (session?.expiresAt > Date.now()) {
-    closeAccess(elements);
-    scheduleExpiration(session.expiresAt, elements);
-    return Promise.resolve(true);
+  if (!elements.overlay || !elements.form || !elements.button) {
+    return Promise.reject(new Error("No se encontró la interfaz de acceso seguro."));
   }
 
   return new Promise((resolve) => {
-    openAccess(elements);
-    elements.form.addEventListener("submit", (event) => {
+    let settled = false;
+
+    elements.form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!verifyWebPassword(clientConfig.implementationId, elements.password.value)) {
-        elements.message.textContent = "Clave incorrecta. Intente nuevamente.";
+      elements.button.disabled = true;
+      elements.message.textContent = "Verificando credenciales...";
+      try {
+        const username = normalizeUsername(elements.username.value);
+        if (!username) {
+          elements.message.textContent = "Ingrese un usuario válido.";
+          elements.username.focus();
+          return;
+        }
+        await setPersistence(auth, browserSessionPersistence);
+        await signInWithEmailAndPassword(
+          auth,
+          `${username}@${USERNAME_DOMAIN}`,
+          elements.password.value
+        );
+      } catch (error) {
+        elements.message.textContent = authErrorMessage(error);
         elements.password.select();
+      } finally {
+        elements.button.disabled = false;
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        openAccess(elements);
         return;
       }
 
-      const expiresAt = Date.now() + SESSION_DURATION_MS;
-      writeSession(expiresAt);
-      closeAccess(elements);
-      scheduleExpiration(expiresAt, elements);
-      resolve(true);
-    }, { once: false });
+      elements.message.textContent = "Verificando autorización...";
+      try {
+        const authorization = await getViewerAuthorization(user);
+        if (!authorization) {
+          await signOut(auth);
+          elements.message.textContent = "Esta cuenta no está autorizada para esta implementación.";
+          return;
+        }
+
+        closeAccess(elements);
+        if (!settled) {
+          settled = true;
+          currentAuthorization = authorization;
+          resolve(authorization);
+        }
+      } catch (error) {
+        console.error("No se pudo validar el acceso al monitoreo:", error);
+        await signOut(auth).catch(() => {});
+        elements.message.textContent = "No fue posible verificar la autorización. Intente nuevamente.";
+      }
+    });
   });
 }
 
-function isAndroidApp() {
-  const userAgent = window.navigator.userAgent || "";
-  return Boolean(window.Android || window.MKPV_ANDROID)
-    || /;\s*wv\)/i.test(userAgent)
-    || (/Android/i.test(userAgent) && /Version\/\d+(?:\.\d+)*\s+Chrome\//i.test(userAgent));
+export function canManageConfiguration(authorization = currentAuthorization) {
+  return authorization?.activo === true && TECHNICAL_ROLES.has(authorization.rol);
 }
 
-function sessionKey() {
-  return `${STORAGE_PREFIX}${clientConfig.implementationId}`;
-}
-
-function readSession() {
-  try {
-    const session = JSON.parse(window.localStorage.getItem(sessionKey()) || "null");
-    if (!session || session.expiresAt <= Date.now()) window.localStorage.removeItem(sessionKey());
-    return session;
-  } catch {
-    return null;
+async function getViewerAuthorization(user) {
+  const email = user.email?.trim().toLowerCase();
+  if (email) {
+    const adminSnapshot = await getDoc(doc(db, "admin_users", email));
+    if (adminSnapshot.exists() && adminSnapshot.data()?.activo === true) {
+      return { type: "admin", ...adminSnapshot.data() };
+    }
   }
+
+  const accessSnapshot = await getDoc(doc(db, "user_access", user.uid));
+  if (!accessSnapshot.exists()) return null;
+
+  const access = accessSnapshot.data();
+  const allowedClients = Array.isArray(access.clienteIds) ? access.clienteIds : [];
+  if (access.activo !== true || !allowedClients.includes(clientConfig.clienteId)) return null;
+  return { type: "viewer", ...access };
 }
 
-function writeSession(expiresAt) {
-  try {
-    window.localStorage.setItem(sessionKey(), JSON.stringify({ expiresAt }));
-  } catch {
-    // Si el navegador bloquea storage, el acceso funciona solo hasta recargar.
-  }
-}
-
-function scheduleExpiration(expiresAt, elements) {
-  const delay = Math.max(0, Math.min(expiresAt - Date.now(), 2147483647));
-  window.setTimeout(() => {
-    try { window.localStorage.removeItem(sessionKey()); } catch { /* storage no disponible */ }
-    elements.message.textContent = "La sesión de 4 horas expiró. Ingrese nuevamente.";
-    openAccess(elements, false);
-  }, delay);
-}
-
-function openAccess(elements, clearMessage = true) {
-  if (clearMessage) elements.message.textContent = "";
-  elements.password.value = "";
+function openAccess(elements) {
   elements.overlay.classList.remove("is-hidden");
   elements.overlay.setAttribute("aria-hidden", "false");
   document.body.classList.add("web-access-locked");
-  window.setTimeout(() => elements.password.focus(), 0);
 }
 
 function closeAccess(elements) {
@@ -96,7 +120,20 @@ function getElements() {
   return {
     overlay: document.getElementById("webAccessOverlay"),
     form: document.getElementById("webAccessForm"),
+    username: document.getElementById("webAccessUsername"),
     password: document.getElementById("webAccessPassword"),
+    button: document.getElementById("webAccessButton"),
     message: document.getElementById("webAccessMessage")
   };
+}
+
+function normalizeUsername(value) {
+  const username = String(value || "").trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9._-]{2,63}$/.test(username) ? username : "";
+}
+
+function authErrorMessage(error) {
+  if (error?.code === "auth/network-request-failed") return "No fue posible conectar. Revise su conexión.";
+  if (error?.code === "auth/too-many-requests") return "Acceso temporalmente bloqueado por demasiados intentos. Intente más tarde.";
+  return "Usuario o contraseña incorrectos.";
 }

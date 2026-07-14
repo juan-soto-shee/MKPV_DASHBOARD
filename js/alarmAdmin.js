@@ -5,8 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
-export { verifyAdminPassword } from "./credentials.js?v=20260712-10";
-import { verifyTechnicalProfilePassword } from "./credentials.js?v=20260712-10";
+import { canManageConfiguration } from "./webAccess.js?v=auth-v1";
 const {
   coleccionConfiguracion: COLLECTION_NAME,
   coleccionConfiguracionLegacy: LEGACY_COLLECTION_NAME,
@@ -21,13 +20,16 @@ let configListeners = [];
 let adminStats = { count: 0, lastRecord: null, lastSync: null, connected: false };
 let alarmConfigLoaded = false;
 
-export function initAlarmAdmin() {
+export function initAlarmAdmin(access) {
   const elements = getElements();
   if (!elements.adminAccessButton || !elements.alarmConfigTableBody) return;
 
+  const technicalAccess = canManageConfiguration(access);
+  elements.adminAccessButton.hidden = !technicalAccess;
+  elements.adminAccessButton.disabled = !technicalAccess;
   configState = buildDefaultConfig();
   renderAlarmRows(elements);
-  bindAlarmAdminControls(elements);
+  bindAlarmAdminControls(elements, access);
   loadAlarmConfig(elements);
 }
 
@@ -56,14 +58,14 @@ export function updateAdminStats(stats) {
   renderAdminStats();
 }
 
-function bindAlarmAdminControls(elements) {
-  elements.adminAccessButton.addEventListener("click", () => openPasswordPanel(elements));
+function bindAlarmAdminControls(elements, access) {
+  elements.adminAccessButton.addEventListener("click", () => unlockAdmin(elements, access));
   elements.cancelAdminAccessButton.addEventListener("click", () => closePasswordPanel(elements));
   elements.adminPasswordForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    unlockAdmin(elements);
+    unlockAdmin(elements, access);
   });
-  elements.adminPasswordInput.addEventListener("keydown", (event) => {
+  elements.adminPasswordInput?.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closePasswordPanel(elements);
   });
   elements.closeAlarmAdminButton.addEventListener("click", () => {
@@ -75,9 +77,9 @@ function bindAlarmAdminControls(elements) {
 function openPasswordPanel(elements) {
   elements.adminPasswordOverlay.classList.remove("is-hidden");
   elements.adminPasswordOverlay.setAttribute("aria-hidden", "false");
-  elements.adminPasswordInput.value = "";
+  if (elements.adminPasswordInput) elements.adminPasswordInput.value = "";
   elements.adminPasswordMessage.textContent = "";
-  elements.adminPasswordInput.focus();
+  elements.adminPasswordInput?.focus();
 }
 
 function closePasswordPanel(elements) {
@@ -85,9 +87,10 @@ function closePasswordPanel(elements) {
   elements.adminPasswordOverlay.setAttribute("aria-hidden", "true");
 }
 
-async function unlockAdmin(elements) {
-  if (!verifyTechnicalProfilePassword(elements.adminPasswordInput.value)) {
-    elements.adminPasswordMessage.textContent = "Contrasena incorrecta.";
+async function unlockAdmin(elements, access) {
+  if (!canManageConfiguration(access)) {
+    elements.adminPasswordMessage.textContent = "Su cuenta no tiene permisos de configuracion.";
+    openPasswordPanel(elements);
     return;
   }
 
