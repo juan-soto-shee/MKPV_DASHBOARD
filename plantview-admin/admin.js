@@ -8,7 +8,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { initializeDeleteHistory } from "./modules/deleteHistory.js";
-import { initializeBulkImport } from "./modules/bulkImport.js?v=20260713-3";
+import { initializeBulkImport } from "./modules/bulkImport.js?v=20260714-4";
+
+const ADMIN_ROLE = "metkinetics_admin";
 
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
@@ -92,8 +94,8 @@ async function getAdminAuthorization(user) {
   const snapshot = await getDoc(doc(db, "admin_users", email));
   if (!snapshot.exists()) return null;
   const data = snapshot.data();
-  if (data.activo !== true || typeof data.rol !== "string" || !data.rol.trim()) return null;
-  return data;
+  if (data.activo !== true || data.rol !== ADMIN_ROLE) return null;
+  return { ...data, email };
 }
 
 function setCheckingState(message) {
@@ -125,7 +127,10 @@ function showConsole(user, authorization) {
   const activeAdmin = {
     email: authorization.email || user.email || "",
     nombre: authorization.nombre || user.displayName || "Administrador",
-    rol: authorization.rol
+    rol: authorization.rol,
+    implementationIds: Array.isArray(authorization.implementationIds)
+      ? [...authorization.implementationIds]
+      : null
   };
   if (!deleteHistoryController) deleteHistoryController = initializeDeleteHistory(db, activeAdmin);
   else deleteHistoryController.setAdmin(activeAdmin);

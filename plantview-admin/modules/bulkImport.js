@@ -1,5 +1,8 @@
 import { addDoc, collection, doc, getCountFromServer, query, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+const ADMIN_ROLE = "metkinetics_admin";
+const CONFIG_ROOT = new URL("../../config/customers/", import.meta.url);
+
 const CLIENTS = { demo_lixiviacion: "Demo Lixiviación", solmin_mantos_blancos: "Solmin Mantos Blancos" };
 const NUMERIC_FIELDS = ["flujoPLS", "flujoRefino", "acidezRefino", "cuPls", "nivelPiscinaRefino", "nivelPiscinaPLS"];
 const FIELD_ALIASES = {
@@ -7,13 +10,13 @@ const FIELD_ALIASES = {
   flujopls: "flujoPLS", flujorefino: "flujoRefino", acidezrefino: "acidezRefino", cupls: "cuPls",
   nivelpiscinarefino: "nivelPiscinaRefino", nivelpiscinorefino: "nivelPiscinaRefino",
   nivelpiscinapls: "nivelPiscinaPLS", observacion: "observacion",
-  estado: "estado", timestampcreacion: "timestampCreacion", clienteid: "clienteId", implementacionid: "implementacionId"
+  estado: "estado", timestampcreacion: "timestampCreacion"
 };
 const IDS = ["adminHome","deleteHistorySection","bulkImportSection","bulkImportNav","bulkImportClient","bulkImportFile","validateBulkImportButton","bulkImportMessage","bulkImportPreview","importFileName","importClientName","importTotalRows","importValidRows","importErrorRows","importWarningRows","importOldestDate","importNewestDate","bulkImportPreviewBody","bulkImportCountCard","countClientName","currentFirestoreCount","validImportCount","expectedFirestoreCount","bulkImportCountMessage","importRecordsButton","downloadImportReportButton","bulkImportResult","resultImported","resultRejected","resultWarnings","resultBatches","resultClient","resultDate"];
 
 export function initializeBulkImport(db, initialAdmin) {
   const el = Object.fromEntries(IDS.map((id) => [id, document.getElementById(id)]));
-  let admin = initialAdmin, processed = [], validRecords = [], busy = false, fileName = "", clientId = "";
+  let admin = initialAdmin, implementation = null, processed = [], validRecords = [], busy = false, fileName = "", clientId = "";
   const showRequestedSection = () => {
     const active = location.hash === "#importacion";
     el.bulkImportSection.hidden = !active;
@@ -34,11 +37,13 @@ export function initializeBulkImport(db, initialAdmin) {
     clientId = el.bulkImportClient.value;
     const file = el.bulkImportFile.files?.[0];
     if (!clientId) return message("Seleccione un cliente antes de validar.", true);
+    if (!canImportFor(admin, clientId)) return message("Su cuenta no está autorizada para importar registros en esta implementación.", true);
     if (!file) return message("Seleccione un archivo XLSX, XLS o CSV.", true);
     if (!/\.(xlsx|xls|csv)$/i.test(file.name)) return message("Archivo inválido. Use formato XLSX, XLS o CSV.", true);
     if (!window.XLSX) return message("No fue posible cargar SheetJS. Revise la conexión e intente nuevamente.", true);
     setBusy(true); message("Leyendo y validando archivo..."); fileName = file.name;
     try {
+      implementation = await loadImplementation(clientId);
       const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = sheet ? window.XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true }) : [];
@@ -69,7 +74,11 @@ export function initializeBulkImport(db, initialAdmin) {
     const duplicateKeys = new Set();
     processed = rows.map((row, index) => {
       const rowNumber = index + 2, errors = [], warnings = [];
-      const record = { clienteId: clientId, implementacionId: clientId };
+      const record = {
+        clienteId: implementation.clienteId,
+        implementationId: implementation.implementationId,
+        profileId: implementation.profileId
+      };
       let timestamp = parseTimestamp(row, errors);
       if (Number.isFinite(timestamp)) {
         const date = new Date(timestamp); record.timestampCreacion = timestamp; record.fecha = localDate(date); record.hora = localTime(date);
@@ -86,7 +95,7 @@ export function initializeBulkImport(db, initialAdmin) {
       });
       if (!operationalCount) errors.push("Debe incluir al menos una variable operacional.");
       if (!errors.length) {
-        const key = `${clientId}|${record.subarea.toLocaleLowerCase("es")}|${record.timestampCreacion}`;
+        const key = `${implementation.clienteId}|${record.subarea.toLocaleLowerCase("es")}|${record.timestampCreacion}`;
         if (duplicateKeys.has(key)) { errors.push("Fila duplicada dentro del archivo."); warnings.push("No será importada."); }
         else duplicateKeys.add(key);
       }
@@ -139,7 +148,7 @@ export function initializeBulkImport(db, initialAdmin) {
   async function updateCurrentCount() {
     el.countClientName.textContent = CLIENTS[clientId]; el.validImportCount.textContent = validRecords.length; el.currentFirestoreCount.textContent = "Consultando..."; el.expectedFirestoreCount.textContent = "--"; el.bulkImportCountMessage.textContent = ""; el.bulkImportCountCard.hidden = false;
     try {
-      const countSnapshot = await getCountFromServer(query(collection(db, "leach_records"), where("clienteId", "==", clientId)));
+      const countSnapshot = await getCountFromServer(query(collection(db, "leach_records"), where("clienteId", "==", implementation.clienteId)));
       const currentCount = countSnapshot.data().count;
       el.currentFirestoreCount.textContent = currentCount; el.expectedFirestoreCount.textContent = currentCount + validRecords.length;
     } catch (error) {
@@ -149,7 +158,9 @@ export function initializeBulkImport(db, initialAdmin) {
   }
 
   async function importRecords() {
-    if (busy || !clientId || !validRecords.length) return;
+    if (busy || !clientId || !implementation || !validRecords.length) return;
+    if (!canImportFor(admin, clientId)) return message("Su cuenta no está autorizada para importar registros en esta implementación.", true);
+    if (!validRecords.every(isValidRecordIdentity)) return message("Los registros preparados no contienen una identidad de implementación válida. Valide nuevamente el archivo.", true);
     const records = [...validRecords], totalBatches = Math.ceil(records.length / 450); let imported = 0, batches = 0;
     setBusy(true); el.bulkImportResult.hidden = true;
     try {
@@ -166,7 +177,9 @@ export function initializeBulkImport(db, initialAdmin) {
     const adminEmail = admin?.email || "", adminNombre = admin?.nombre || "", adminRol = admin?.rol || "";
     try {
       await addDoc(collection(db, "audit_log"), {
-        accion: "importacion_masiva", adminEmail, adminNombre, adminRol, clienteId, archivoNombre: fileName,
+        accion: "importacion_masiva", adminEmail, adminNombre, adminRol,
+        clienteId: implementation.clienteId, implementationId: implementation.implementationId,
+        profileId: implementation.profileId, archivoNombre: fileName,
         filasTotales: processed.length, filasValidas: validRecords.length, filasImportadas: imported,
         filasRechazadas: processed.length - validRecords.length, fechaDesde: dates[0], fechaHasta: dates.at(-1),
         timestamp: serverTimestamp()
@@ -182,11 +195,42 @@ export function initializeBulkImport(db, initialAdmin) {
   }
 
   function showResult(imported, batches) { el.resultImported.textContent=imported; el.resultRejected.textContent=processed.length-validRecords.length; el.resultWarnings.textContent=processed.filter((r)=>r.warnings.length).length; el.resultBatches.textContent=batches; el.resultClient.textContent=CLIENTS[clientId]; el.resultDate.textContent=new Date().toLocaleString("es-CL"); el.bulkImportResult.hidden=false; }
-  function downloadReport() { if (!processed.length) return; const lines=[["fila","estado","mensaje","timestampCreacion","clienteId"],...processed.map((r)=>[r.rowNumber,statusLabel(r.status),[...r.errors,...r.warnings].join(" "),r.record.timestampCreacion||"",clientId])]; const csv=lines.map((row)=>row.map(csvCell).join(",")).join("\r\n"); const url=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"})); const a=document.createElement("a"); a.href=url;a.download=`reporte-importacion-${Date.now()}.csv`;a.click();URL.revokeObjectURL(url); }
-  function clearPreparedData() { if (busy) return; processed=[];validRecords=[];fileName="";clientId="";el.bulkImportPreview.hidden=true;el.bulkImportCountCard.hidden=true;el.bulkImportResult.hidden=true;el.importRecordsButton.disabled=true;el.downloadImportReportButton.disabled=true;message(""); }
+  function downloadReport() { if (!processed.length) return; const lines=[["fila","estado","mensaje","timestampCreacion","clienteId","implementationId","profileId"],...processed.map((r)=>[r.rowNumber,statusLabel(r.status),[...r.errors,...r.warnings].join(" "),r.record.timestampCreacion||"",r.record.clienteId||"",r.record.implementationId||"",r.record.profileId||""])]; const csv=lines.map((row)=>row.map(csvCell).join(",")).join("\r\n"); const url=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"})); const a=document.createElement("a"); a.href=url;a.download=`reporte-importacion-${Date.now()}.csv`;a.click();URL.revokeObjectURL(url); }
+  function clearPreparedData() { if (busy) return; implementation=null;processed=[];validRecords=[];fileName="";clientId="";el.bulkImportPreview.hidden=true;el.bulkImportCountCard.hidden=true;el.bulkImportResult.hidden=true;el.importRecordsButton.disabled=true;el.downloadImportReportButton.disabled=true;message(""); }
   function setBusy(value) { busy=value;el.bulkImportClient.disabled=value;el.bulkImportFile.disabled=value;el.validateBulkImportButton.disabled=value;el.importRecordsButton.disabled=value||!validRecords.length;el.downloadImportReportButton.disabled=value||!processed.length; }
   function message(text,error=false){el.bulkImportMessage.textContent=text;el.bulkImportMessage.classList.toggle("is-error",error);}
   return { showRequestedSection, setAdmin(value){admin=value;} };
+}
+
+async function loadImplementation(selectedId) {
+  const response = await fetch(new URL(`${encodeURIComponent(selectedId)}/client.json`, CONFIG_ROOT), { cache: "no-store" });
+  if (!response.ok) throw new ImportError(`No se pudo cargar la configuración de la implementación (${response.status}).`);
+  const config = await response.json();
+  if (config.enabled !== true
+    || config.implementationId !== selectedId
+    || typeof config.clienteId !== "string"
+    || !config.clienteId
+    || typeof config.profileId !== "string"
+    || !config.profileId) {
+    throw new ImportError("La configuración de la implementación seleccionada no es válida.");
+  }
+  return Object.freeze({
+    clienteId: config.clienteId,
+    implementationId: config.implementationId,
+    profileId: config.profileId
+  });
+}
+
+function canImportFor(admin, implementationId) {
+  if (admin?.rol !== ADMIN_ROLE) return false;
+  const allowed = admin.implementationIds;
+  return !Array.isArray(allowed) || allowed.includes("*") || allowed.includes(implementationId);
+}
+
+function isValidRecordIdentity(record) {
+  return typeof record?.clienteId === "string" && Boolean(record.clienteId)
+    && typeof record?.implementationId === "string" && Boolean(record.implementationId)
+    && typeof record?.profileId === "string" && Boolean(record.profileId);
 }
 
 function normalizeHeader(value){return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");}
