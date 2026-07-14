@@ -7,13 +7,13 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="css/style.css?v=20260713-31">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
-    <script type="module" src="js/modeling.js?v=20260713-2"></script>
+    <script type="module" src="js/modeling.js?v=20260714-3"></script>
   </head>
   <body class="modeling-page">
     <div class="shell">
       <header class="topbar modeling-header">
         <div class="brand-block">
-          <p class="eyebrow">Analítica predictiva · Datos de muestra</p>
+          <p class="eyebrow">Analítica predictiva</p>
           <h1>Modelos Matemáticos</h1>
           <p class="modeling-subtitle">Predicción de variables basada en datos históricos de operación</p>
           <div class="implementation-identity" aria-label="Implementación activa">
@@ -32,16 +32,16 @@
         <p id="modelingError" class="modeling-error is-hidden" role="alert">Información de modelamiento no disponible</p>
         <div class="prediction-grid">
           <section class="prediction-module" aria-labelledby="cuPredictionTitle">
-            <div class="section-heading"><div><p class="eyebrow">Horizonte de 4 horas</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div><span class="sample-badge">Muestra</span></div>
+            <div class="section-heading"><div><p class="eyebrow">Horizonte de 4 horas</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div></div>
             <div id="cuIndicators" class="model-indicators"></div>
-            <div class="model-chart-panel"><h3>Cu²⁺ en PLS — Valor real vs. predicho</h3><p>Ventana de muestra de los últimos 7 días</p><div class="model-chart-box"><canvas id="cuPredictionChart"></canvas></div></div>
+            <div class="model-chart-panel"><h3>Cu²⁺ en PLS — Valor real vs. predicho</h3><p>Ventana de los últimos 7 días</p><div class="model-chart-box"><canvas id="cuPredictionChart"></canvas></div></div>
             <dl id="cuForecastDetails" class="forecast-details"></dl>
           </section>
 
           <section class="prediction-module" aria-labelledby="recoveryPredictionTitle">
-            <div class="section-heading"><div><p class="eyebrow">Horizonte de 24 horas</p><h2 id="recoveryPredictionTitle">Proyección de Recuperación Metalúrgica</h2></div><span class="sample-badge">Muestra</span></div>
+            <div class="section-heading"><div><p class="eyebrow">Horizonte de 24 horas</p><h2 id="recoveryPredictionTitle">Proyección de Recuperación Metalúrgica</h2></div></div>
             <div id="recoveryIndicators" class="model-indicators"></div>
-            <div class="model-chart-panel"><h3>Recuperación — Valor real vs. proyectado</h3><p>Ventana de muestra de los últimos 7 días</p><div class="model-chart-box"><canvas id="recoveryPredictionChart"></canvas></div></div>
+            <div class="model-chart-panel"><h3>Recuperación — Valor real vs. proyectado</h3><p>Ventana de los últimos 7 días</p><div class="model-chart-box"><canvas id="recoveryPredictionChart"></canvas></div></div>
             <dl id="recoveryForecastDetails" class="forecast-details"></dl>
           </section>
         </div>
@@ -66,7 +66,7 @@
 
     <div id="modelVariablesOverlay" class="admin-overlay is-hidden" aria-hidden="true">
       <section class="admin-password-panel model-variables-panel" role="dialog" aria-modal="true" aria-labelledby="modelVariablesTitle">
-        <div class="section-heading"><div><p class="eyebrow">Datos de entrada de muestra</p><h2 id="modelVariablesTitle">Variables del modelo</h2></div><button id="closeModelVariables" class="icon-close-button" type="button" aria-label="Cerrar">X</button></div>
+        <div class="section-heading"><div><p class="eyebrow">Datos de entrada</p><h2 id="modelVariablesTitle">Variables del modelo</h2></div><button id="closeModelVariables" class="icon-close-button" type="button" aria-label="Cerrar">X</button></div>
         <ul id="modelVariablesList" class="model-variables-list"></ul>
       </section>
     </div>

@@ -15,7 +15,7 @@ async function init() {
   await renderClientIdentity();
   ({ modelingDemoData: data } = await import("./modelingDemoData.js?v=20260713-1"));
   if (!data || !Array.isArray(data.modelMetrics)) throw new Error("Los datos demostrativos no tienen el formato esperado.");
-  document.getElementById("modelLastUpdated").textContent = `Última actualización del modelo: ${data.lastUpdated} · Datos de muestra`;
+  document.getElementById("modelLastUpdated").textContent = `Última actualización del modelo: ${data.lastUpdated}`;
   renderIndicators();
   renderDetails();
   renderMetrics();
