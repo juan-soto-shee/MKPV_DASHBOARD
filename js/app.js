@@ -213,10 +213,20 @@ function renderAnalysisList(elementId, items) {
 
 function renderOperationalKpis(records, windowHours) {
   const kpis = calculateOperationalKpis(records, { windowHours, audit: kpiPreferences.audit });
-  renderKpiRing("Copper", elements.kpiCopperToSx, kpis.copperToSx, 1, kpiPreferences.copperToSx);
+  const copperObjective = scaleSummedKpiObjective(kpiPreferences.copperToSx, windowHours);
+  renderKpiRing("Copper", elements.kpiCopperToSx, kpis.copperToSx, 1, copperObjective);
   renderKpiRangeBox(kpis.specificAcidConsumption, kpiPreferences.specificAcidConsumption);
   renderKpiRing("Recovery", elements.kpiRecovery, kpis.recovery, 1, kpiPreferences.recovery);
   document.getElementById("kpiWindowLabel").textContent = `Ventana ${formatPeriodShort(windowHours)} · ${formatAnalysisUnit(state.selectedArea)}`;
+}
+
+function scaleSummedKpiObjective(objective, windowHours) {
+  const target = Number(objective?.target);
+  const targetPeriodHours = Number(objective?.targetPeriodHours);
+  const selectedHours = Number(windowHours);
+  if (!Number.isFinite(target) || !Number.isFinite(targetPeriodHours) || targetPeriodHours <= 0
+    || !Number.isFinite(selectedHours) || selectedHours <= 0) return { ...objective };
+  return { ...objective, target: target * selectedHours / targetPeriodHours };
 }
 
 function renderKpiRangeBox(value, objective) {
@@ -377,9 +387,12 @@ function bindFeatureOverlay(buttonId, overlayId, closeButtonId) {
 function renderKpiConfigGrid(grid, definitions) {
   grid.innerHTML = definitions.map(([key, label]) => {
     const objective = kpiPreferences[key];
+    const targetLabel = Number.isFinite(Number(objective.targetPeriodHours))
+      ? `Valor objetivo (${formatPeriodShort(Number(objective.targetPeriodHours))})`
+      : "Valor objetivo";
     return `<fieldset class="kpi-admin-card" data-kpi="${key}"><legend>${label}</legend><p class="kpi-admin-unit">Unidad: <strong>${objective.unit}</strong></p>
       <label>Comportamiento de la variable<select class="kpi-alarm-mode"><option value="target_range">Mantener cerca del objetivo</option><option value="higher_is_better">Mientras más alto, mejor</option><option value="lower_is_better">Mientras más bajo, mejor</option><option value="operating_range">Mantener dentro de un rango</option></select></label>
-      <div class="kpi-percentage-fields"><label>Valor objetivo<input class="kpi-target-input" type="number" step="any" value="${objective.target}"></label><label>Porcentaje de alerta<input class="kpi-alert-threshold" type="number" step="0.1" value="${objective.warningDeviationPercent}"></label><label>Porcentaje crítico<input class="kpi-critical-threshold" type="number" step="0.1" value="${objective.criticalDeviationPercent}"></label></div>
+      <div class="kpi-percentage-fields"><label>${targetLabel}<input class="kpi-target-input" type="number" step="any" value="${objective.target}"></label><label>Porcentaje de alerta<input class="kpi-alert-threshold" type="number" step="0.1" value="${objective.warningDeviationPercent}"></label><label>Porcentaje crítico<input class="kpi-critical-threshold" type="number" step="0.1" value="${objective.criticalDeviationPercent}"></label></div>
       <div class="kpi-range-fields">${[["criticalMin","Mínimo crítico"],["criticalMax","Máximo crítico"],["warningMin","Mínimo de alerta"],["warningMax","Máximo de alerta"],["normalMin","Mínimo normal"],["normalMax","Máximo normal"]].map(([field,text]) => `<label>${text}<input data-range="${field}" type="number" step="any" value="${objective[field] ?? ""}"></label>`).join("")}</div>
       <div class="kpi-limit-preview" role="status"></div>
     </fieldset>`;
@@ -442,7 +455,7 @@ function loadKpiPreferences() {
 
 function defaultKpiPreferences() {
   return {
-    copperToSx: { unit: "t", ...clientConfig.kpiObjectives.copperToSx, alarmMode: "higher_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
+    copperToSx: { unit: "t", targetPeriodHours: 24, ...clientConfig.kpiObjectives.copperToSx, alarmMode: "higher_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
     specificAcidConsumption: { unit: "", ...clientConfig.kpiObjectives.specificAcidConsumption, alarmMode: "lower_is_better", warningDeviationPercent: 10, criticalDeviationPercent: 20 },
     recovery: { unit: "%", ...clientConfig.kpiObjectives.recovery, alarmMode: "higher_is_better", warningDeviationPercent: 5, criticalDeviationPercent: 10 },
     audit: false
