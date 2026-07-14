@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function adminPath() {
+      return /databases/$(database)/documents/admin_users/$(request.auth.token.email);
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email != null
+        && exists(adminPath())
+        && get(adminPath()).data.activo == true
+        && get(adminPath()).data.rol == 'metkinetics_admin';
+    }
+
+    function accessPath() {
+      return /databases/$(database)/documents/user_access/$(request.auth.uid);
+    }
+
+    function hasClientAccess(clientId) {
+      return signedIn()
+        && exists(accessPath())
+        && get(accessPath()).data.activo == true
+        && clientId in get(accessPath()).data.clienteIds;
+    }
+
+    function canAccess(clientId) {
+      return isAdmin() || hasClientAccess(clientId);
+    }
+
+    function hasTechnicalProfileAccess(profileId) {
+      return signedIn()
+        && exists(accessPath())
+        && get(accessPath()).data.activo == true
+        && get(accessPath()).data.rol in ['tecnico', 'technical_profile']
+        && profileId in get(accessPath()).data.profileIds;
+    }
+
+    match /leach_records/{recordId} {
+      allow read: if canAccess(resource.data.clienteId);
+      allow create: if canAccess(request.resource.data.clienteId)
+        && request.resource.data.clienteId is string
+        && request.resource.data.implementationId is string
+        && request.resource.data.profileId is string;
+      allow update, delete: if isAdmin();
+    }
+
+    match /admin_users/{email} {
+      allow read: if signedIn() && (request.auth.token.email == email || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /user_access/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /configuration/{documentId} {
+      allow read: if signedIn();
+      allow write: if isAdmin() || hasTechnicalProfileAccess(documentId);
+    }
+
+    match /alarm_config/{documentId} {
+      allow read: if signedIn();
+      allow write: if isAdmin() || hasTechnicalProfileAccess(documentId);
+    }
+
+    match /audit_log/{entryId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

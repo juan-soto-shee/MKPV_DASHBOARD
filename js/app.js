@@ -4,15 +4,16 @@ import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, rend
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260712-10";
 import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
-import { requireWebAccess } from "./webAccess.js?v=20260713-1";
+import { requireWebAccess } from "./webAccess.js?v=auth-v1";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
 import { calculateOperationalKpis, evaluarEstadoKpi } from "./kpiEngine.js?v=20260713-18";
 import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-2";
 import { saveRemoteKpiConfig, startKpiConfigListener } from "./kpiConfigService.js?v=20260713-1";
 import { productInfo } from "./productVersion.js?v=20260713-1";
+import { canManageConfiguration } from "./webAccess.js?v=auth-v1";
 
 applyClientConfiguration();
-await requireWebAccess();
+const webAccess = await requireWebAccess();
 
 const state = {
   records: [],
@@ -42,7 +43,7 @@ const elements = {
 let kpiPreferences = loadKpiPreferences();
 
 bindControls();
-initAlarmAdmin();
+initAlarmAdmin(webAccess);
 initDataExport({ normalizeRecords });
 initKpiControls();
 initKpiConfigSync();
@@ -321,6 +322,10 @@ function initKpiControls() {
   updateKpiAdminPreviews(grid, definitions);
   document.getElementById("kpiAuditMode").checked = kpiPreferences.audit;
   document.getElementById("saveKpiConfigButton").addEventListener("click", async () => {
+    if (!canManageConfiguration(webAccess)) {
+      document.getElementById("kpiAdminMessage").textContent = "Su cuenta no tiene permisos para guardar KPI.";
+      return;
+    }
     const candidate = { ...kpiPreferences };
     for (const card of grid.querySelectorAll("[data-kpi]")) candidate[card.dataset.kpi] = readKpiCard(card, candidate[card.dataset.kpi]);
     const error = validateKpiPreferences(candidate, definitions);

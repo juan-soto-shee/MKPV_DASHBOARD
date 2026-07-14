@@ -366,7 +366,7 @@
       </footer>
     </div>
 
-    <button id="adminAccessButton" class="admin-access-button admin-access-discreet" type="button" aria-label="Configuraci&oacute;n t&eacute;cnica" title="Configuraci&oacute;n t&eacute;cnica">
+    <button id="adminAccessButton" class="admin-access-button admin-access-discreet" type="button" aria-label="Configuraci&oacute;n t&eacute;cnica" title="Configuraci&oacute;n t&eacute;cnica" hidden disabled>
       <span aria-hidden="true">&#8942;</span>
       <span class="sr-only">Configuraci&oacute;n t&eacute;cnica</span>
     </button>
@@ -375,14 +375,18 @@
       <section class="admin-password-panel web-access-panel" role="dialog" aria-modal="true" aria-labelledby="webAccessTitle">
         <p class="eyebrow">MetKinetics PlantView</p>
         <h2 id="webAccessTitle">Centro de Monitoreo</h2>
-        <p>Ingrese su clave de acceso para continuar. La sesi&oacute;n permanecer&aacute; activa durante 4 horas.</p>
+        <p>Ingrese las credenciales entregadas por MetKinetics.</p>
         <form id="webAccessForm" class="admin-password-form">
           <label class="admin-password-field">
-            <span>Clave de acceso</span>
+            <span>Usuario</span>
+            <input id="webAccessUsername" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+          </label>
+          <label class="admin-password-field">
+            <span>Contrase&ntilde;a</span>
             <input id="webAccessPassword" type="password" autocomplete="current-password" required>
           </label>
           <p id="webAccessMessage" class="admin-message" role="alert"></p>
-          <button class="primary-action" type="submit">Ingresar al monitoreo</button>
+          <button id="webAccessButton" class="primary-action" type="submit">Ingresar a PlantView</button>
         </form>
       </section>
     </div>
