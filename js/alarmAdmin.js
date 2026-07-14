@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
-import { canManageConfiguration } from "./webAccess.js?v=auth-v1";
+import { canManageConfiguration } from "./webAccess.js?v=auth-v2";
 const {
   coleccionConfiguracion: COLLECTION_NAME,
   coleccionConfiguracionLegacy: LEGACY_COLLECTION_NAME,

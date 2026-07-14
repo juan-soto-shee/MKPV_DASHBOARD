@@ -10,7 +10,7 @@ import {
 import { db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
 import { invalidateRecordsCache } from "./firestoreService.js?v=20260710-2";
-import { canManageConfiguration } from "./webAccess.js?v=auth-v1";
+import { canManageConfiguration } from "./webAccess.js?v=auth-v2";
 
 const DEMO_IMPLEMENTATION = "demo_lixiviacion";
 const PAGE_SIZE = 450;

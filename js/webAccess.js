@@ -1,6 +1,7 @@
 import { app, db } from "./firebaseConfig.js";
 import { clientConfig } from "./clientConfig.js";
 import {
+  browserLocalPersistence,
   browserSessionPersistence,
   getAuth,
   onAuthStateChanged,
@@ -16,13 +17,18 @@ import {
 const auth = getAuth(app);
 const TECHNICAL_ROLES = new Set(["tecnico", "technical_profile", "metkinetics_admin"]);
 const USERNAME_DOMAIN = "users.metkinetics.cl";
+const IS_ANDROID_APP = new URLSearchParams(window.location.search).get("mobileApp") === "1";
+const MOBILE_SESSION_STARTED_AT = "plantviewMobileSessionStartedAt";
+const MOBILE_SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
 let currentAuthorization = null;
 
-export function requireWebAccess() {
+export async function requireWebAccess() {
   const elements = getElements();
   if (!elements.overlay || !elements.form || !elements.button) {
     return Promise.reject(new Error("No se encontró la interfaz de acceso seguro."));
   }
+
+  await setPersistence(auth, IS_ANDROID_APP ? browserLocalPersistence : browserSessionPersistence);
 
   return new Promise((resolve) => {
     let settled = false;
@@ -38,12 +44,14 @@ export function requireWebAccess() {
           elements.username.focus();
           return;
         }
-        await setPersistence(auth, browserSessionPersistence);
         await signInWithEmailAndPassword(
           auth,
           `${username}@${USERNAME_DOMAIN}`,
           elements.password.value
         );
+        if (IS_ANDROID_APP) {
+          window.localStorage.setItem(MOBILE_SESSION_STARTED_AT, String(Date.now()));
+        }
       } catch (error) {
         elements.message.textContent = authErrorMessage(error);
         elements.password.select();
@@ -54,6 +62,16 @@ export function requireWebAccess() {
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        if (IS_ANDROID_APP && !isMobileSessionValid()) {
+          window.localStorage.removeItem(MOBILE_SESSION_STARTED_AT);
+        }
+        openAccess(elements);
+        return;
+      }
+
+      if (IS_ANDROID_APP && !isMobileSessionValid()) {
+        window.localStorage.removeItem(MOBILE_SESSION_STARTED_AT);
+        await signOut(auth);
         openAccess(elements);
         return;
       }
@@ -80,6 +98,13 @@ export function requireWebAccess() {
       }
     });
   });
+}
+
+function isMobileSessionValid() {
+  const startedAt = Number(window.localStorage.getItem(MOBILE_SESSION_STARTED_AT));
+  return Number.isFinite(startedAt)
+    && startedAt > 0
+    && Date.now() - startedAt < MOBILE_SESSION_DURATION_MS;
 }
 
 export function canManageConfiguration(authorization = currentAuthorization) {

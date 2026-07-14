@@ -4,13 +4,13 @@ import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, rend
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260712-10";
 import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
-import { requireWebAccess } from "./webAccess.js?v=auth-v1";
+import { requireWebAccess } from "./webAccess.js?v=auth-v2";
 import { initDataExport } from "./dataExport.js?v=20260712-2";
 import { calculateOperationalKpis, evaluarEstadoKpi } from "./kpiEngine.js?v=20260713-18";
 import { analyzeOperationalPeriod } from "./operationalAnalysis.js?v=20260713-2";
 import { saveRemoteKpiConfig, startKpiConfigListener } from "./kpiConfigService.js?v=20260713-1";
 import { productInfo } from "./productVersion.js?v=20260713-1";
-import { canManageConfiguration } from "./webAccess.js?v=auth-v1";
+import { canManageConfiguration } from "./webAccess.js?v=auth-v2";
 
 applyClientConfiguration();
 const webAccess = await requireWebAccess();
