@@ -371,6 +371,8 @@ function initKpiControls() {
   document.getElementById("mathematicalModelingButton")?.addEventListener("click", () => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has("implementation")) params.set("implementation", clientConfig.implementationId);
+    params.set("period", String(state.selectedPeriodHours));
+    params.set("area", state.selectedArea);
     window.location.href = `modelos-matematicos.html?${params.toString()}`;
   });
 }
