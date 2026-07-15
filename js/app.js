@@ -1,7 +1,7 @@
 import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260713-1";
 import { updateCharts } from "./charts.js?v=20260709-1";
 import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
-import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260712-10";
+import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260715-1";
 import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
 import { requireWebAccess } from "./webAccess.js?v=auth-v2";

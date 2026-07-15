@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/style.css?v=20260713-30">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="js/app.js?v=20260714-36"></script>
+    <script type="module" src="js/app.js?v=20260715-1"></script>
   </head>
   <body>
     <div class="shell">
@@ -109,23 +109,8 @@
           </section>
           <div class="admin-subsection">
           <h3>CONFIGURACI&Oacute;N DE ALARMAS</h3>
-          <p class="admin-note">La aplicaci&oacute;n Android leer&aacute; <strong id="alarmConfigPath"></strong> para calcular autom&aacute;ticamente las alarmas.</p>
-          <div class="alarm-config-table-wrap">
-            <table class="alarm-config-table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Unidad</th>
-                  <th>Bajo Critico</th>
-                  <th>Bajo Alerta</th>
-                  <th>Normal</th>
-                  <th>Alto Alerta</th>
-                  <th>Alto Critico</th>
-                </tr>
-              </thead>
-              <tbody id="alarmConfigTableBody"></tbody>
-            </table>
-          </div>
+          <p class="admin-note">Configure el objetivo y los porcentajes de desviaci&oacute;n. PlantView calcular&aacute; autom&aacute;ticamente los rangos sim&eacute;tricos de alerta y criticidad. La aplicaci&oacute;n Android leer&aacute; <strong id="alarmConfigPath"></strong>.</p>
+          <div id="alarmConfigTableBody" class="alarm-config-grid"></div>
           <div class="alarm-admin-actions">
             <span id="alarmAdminMessage" class="admin-message" role="status"></span>
             <button id="saveAlarmConfigButton" class="primary-action" type="button">Guardar Configuracion</button>
