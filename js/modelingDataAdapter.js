@@ -14,7 +14,7 @@ export function parseModelingSelection(search = window.location.search) {
   const params = new URLSearchParams(search);
   const requestedPeriod = Number(params.get("period"));
   return Object.freeze({
-    periodHours: SUPPORTED_PERIODS.includes(requestedPeriod) ? requestedPeriod : 168,
+    periodHours: SUPPORTED_PERIODS.includes(requestedPeriod) ? requestedPeriod : 720,
     unit: normalizeUnit(params.get("unit") || params.get("area") || "Planta")
   });
 }
