@@ -729,6 +729,18 @@ h3 {
 .kpi-admin-card.is-range-mode .kpi-range-fields { display: grid; }
 .kpi-percentage-fields label, .kpi-range-fields label { display: grid; gap: 5px; color: var(--muted); font-size: .76rem; font-weight: 750; }
 .kpi-limit-preview { min-height: 72px; margin-top: 12px; padding: 10px; border-radius: 7px; background: rgba(50, 213, 232, .06); color: rgba(234, 248, 250, .78); font-size: .74rem; line-height: 1.45; }
+.alarm-config-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.alarm-config-card { min-width: 0; padding: 14px; border: 1px solid rgba(147, 185, 197, .16); border-radius: 8px; }
+.alarm-config-card legend { padding: 0 6px; color: var(--cyan); font-weight: 850; }
+.alarm-config-card > label { display: grid; gap: 7px; margin-top: 10px; color: var(--muted); font-size: .8rem; font-weight: 800; }
+.alarm-config-card .limit-input { width: 100%; min-height: 40px; }
+.alarm-config-unit { margin: 0 0 12px; color: var(--muted); font-size: .8rem; }
+.alarm-fixed-behavior { display: grid; gap: 6px; margin-bottom: 12px; }
+.alarm-fixed-behavior span { color: var(--muted); font-size: .8rem; font-weight: 800; }
+.alarm-fixed-behavior strong { min-height: 40px; padding: 10px; border: 1px solid rgba(147, 185, 197, .16); border-radius: 7px; background: rgba(3, 13, 18, .42); color: var(--text); font-size: .82rem; }
+.alarm-range-description { min-height: 72px; margin: 12px 0 0; padding: 10px; border-radius: 7px; background: rgba(50, 213, 232, .06); color: rgba(234, 248, 250, .78); font-size: .74rem; line-height: 1.45; }
+.alarm-config-card.has-error { border-color: rgba(239, 68, 68, .72); background: rgba(239, 68, 68, .05); }
+.alarm-config-card.has-error .limit-input { border-color: rgba(239, 68, 68, .72); }
 .kpi-comparison { display: grid; gap: 8px; margin-top: 12px; color: var(--muted); font-size: .82rem; }
 .kpi-audit-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--muted); font-size: .82rem; }
 
@@ -1419,6 +1431,7 @@ td {
     scroll-snap-stop: always;
   }
   .kpi-admin-grid { grid-template-columns: 1fr; }
+  .alarm-config-grid { grid-template-columns: 1fr; }
   .kpi-card { min-height: 240px; padding: 14px; }
   .operational-analysis-content,
   .analysis-context { grid-template-columns: 1fr; }

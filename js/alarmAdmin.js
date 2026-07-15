@@ -13,7 +13,7 @@ const {
 } = clientConfig.identity.firebase;
 const alarmVariables = clientConfig.alarmVariables;
 
-const editableFields = ["bajoCritico", "bajoAlerta", "altoAlerta", "altoCritico"];
+const editableFields = ["objetivo", "porcentajeAlerta", "porcentajeCritico"];
 
 let configState = {};
 let configListeners = [];
@@ -149,7 +149,7 @@ async function saveAlarmConfig(elements) {
 
   if (!validation.isValid) {
     showValidationErrors(elements, validation.errors);
-    elements.alarmAdminMessage.textContent = "Revise el orden de limites antes de guardar.";
+    elements.alarmAdminMessage.textContent = "Revise el objetivo y los porcentajes antes de guardar.";
     return;
   }
 
@@ -177,33 +177,33 @@ function renderAlarmRows(elements) {
     const config = configState[variable.key] || variable;
 
     return `
-      <tr data-variable="${variable.key}">
-        <td><strong>${escapeHtml(variable.nombre)}</strong></td>
-        <td>${escapeHtml(config.unidad || variable.unidad)}</td>
-        <td>${renderNumberInput(variable.key, "bajoCritico", config.bajoCritico)}</td>
-        <td>${renderNumberInput(variable.key, "bajoAlerta", config.bajoAlerta)}</td>
-        <td><span class="normal-range">${formatLimit(config.bajoAlerta)} a ${formatLimit(config.altoAlerta)}</span></td>
-        <td>${renderNumberInput(variable.key, "altoAlerta", config.altoAlerta)}</td>
-        <td>${renderNumberInput(variable.key, "altoCritico", config.altoCritico)}</td>
-      </tr>
+      <fieldset class="alarm-config-card" data-variable="${variable.key}">
+        <legend>${escapeHtml(variable.nombre)}</legend>
+        <p class="alarm-config-unit">Unidad: ${escapeHtml(config.unidad || variable.unidad || "--")}</p>
+        <div class="alarm-fixed-behavior"><span>Comportamiento de la variable</span><strong>Mantener cerca del objetivo</strong></div>
+        <label>Valor objetivo${renderNumberInput(variable.key, "objetivo", config.objetivo)}</label>
+        <label>Porcentaje de alerta${renderNumberInput(variable.key, "porcentajeAlerta", config.porcentajeAlerta, 0.01)}</label>
+        <label>Porcentaje crítico${renderNumberInput(variable.key, "porcentajeCritico", config.porcentajeCritico, 0.01)}</label>
+        <p class="alarm-range-description">${buildRangeDescription(config)}</p>
+      </fieldset>
     `;
   }).join("");
 
   elements.alarmConfigTableBody.querySelectorAll("input").forEach((input) => {
     input.addEventListener("input", () => {
-      const row = input.closest("tr");
-      updateNormalRange(row);
-      validateRow(row);
+      const card = input.closest(".alarm-config-card");
+      updateRangeDescription(card);
+      validateRow(card);
     });
   });
 }
 
-function renderNumberInput(variableKey, field, value) {
+function renderNumberInput(variableKey, field, value, step = "any") {
   return `
     <input
       class="limit-input"
       type="number"
-      step="any"
+      step="${step}"
       data-variable="${variableKey}"
       data-field="${field}"
       value="${Number.isFinite(Number(value)) ? Number(value) : ""}"
@@ -211,14 +211,9 @@ function renderNumberInput(variableKey, field, value) {
   `;
 }
 
-function updateNormalRange(row) {
-  const lowAlert = getRowNumber(row, "bajoAlerta");
-  const highAlert = getRowNumber(row, "altoAlerta");
-  const normalRange = row.querySelector(".normal-range");
-
-  normalRange.textContent = Number.isFinite(lowAlert) && Number.isFinite(highAlert)
-    ? `${formatLimit(lowAlert)} a ${formatLimit(highAlert)}`
-    : "--";
+function updateRangeDescription(card) {
+  const description = card.querySelector(".alarm-range-description");
+  description.textContent = buildRangeDescription(getRowValues(card));
 }
 
 function validateRow(row) {
@@ -230,15 +225,16 @@ function validateRow(row) {
 
 function collectConfig(elements) {
   return alarmVariables.reduce((config, variable) => {
-    const row = elements.alarmConfigTableBody.querySelector(`tr[data-variable="${variable.key}"]`);
+    const row = elements.alarmConfigTableBody.querySelector(`[data-variable="${variable.key}"]`);
+    const values = getRowValues(row);
+    const limits = calculateLimits(values);
 
     config[variable.key] = {
       nombre: variable.nombre,
       unidad: variable.unidad,
-      bajoCritico: getRowNumber(row, "bajoCritico"),
-      bajoAlerta: getRowNumber(row, "bajoAlerta"),
-      altoAlerta: getRowNumber(row, "altoAlerta"),
-      altoCritico: getRowNumber(row, "altoCritico")
+      comportamiento: "target",
+      ...values,
+      ...limits
     };
 
     return config;
@@ -264,22 +260,22 @@ function validateConfig(config) {
 
 function showValidationErrors(elements, errors) {
   errors.forEach((key) => {
-    const row = elements.alarmConfigTableBody.querySelector(`tr[data-variable="${key}"]`);
+    const row = elements.alarmConfigTableBody.querySelector(`[data-variable="${key}"]`);
     row?.classList.add("has-error");
   });
 }
 
 function clearValidation(elements) {
-  elements.alarmConfigTableBody.querySelectorAll("tr").forEach((row) => {
+  elements.alarmConfigTableBody.querySelectorAll(".alarm-config-card").forEach((row) => {
     row.classList.remove("has-error");
   });
 }
 
 function isOrdered(values) {
   return editableFields.every((field) => Number.isFinite(values[field]))
-    && values.bajoCritico < values.bajoAlerta
-    && values.bajoAlerta < values.altoAlerta
-    && values.altoAlerta < values.altoCritico;
+    && values.objetivo > 0
+    && values.porcentajeAlerta > 0
+    && values.porcentajeCritico > values.porcentajeAlerta;
 }
 
 function getRowValues(row) {
@@ -297,14 +293,14 @@ function getRowNumber(row, field) {
 
 function buildDefaultConfig() {
   return alarmVariables.reduce((config, variable) => {
-    config[variable.key] = {
+    config[variable.key] = normalizePercentageConfig({
       nombre: variable.nombre,
       unidad: variable.unidad,
       bajoCritico: variable.bajoCritico,
       bajoAlerta: variable.bajoAlerta,
       altoAlerta: variable.altoAlerta,
       altoCritico: variable.altoCritico
-    };
+    });
 
     return config;
   }, {});
@@ -318,15 +314,72 @@ function mergeStoredConfig(storedConfig) {
       ? storedConfig?.flujoPLSPila
       : null;
 
-    defaults[variable.key] = {
+    defaults[variable.key] = normalizePercentageConfig({
       ...defaults[variable.key],
       ...(legacyPileConfig || {}),
       ...(storedConfig?.[variable.key] || {}),
       unidad: variable.unidad
-    };
+    });
   });
 
   return defaults;
+}
+
+function normalizePercentageConfig(config) {
+  const bajoAlerta = Number(config.bajoAlerta);
+  const altoAlerta = Number(config.altoAlerta);
+  const bajoCritico = Number(config.bajoCritico);
+  const altoCritico = Number(config.altoCritico);
+  const derivedTarget = Number.isFinite(bajoAlerta) && Number.isFinite(altoAlerta)
+    ? (bajoAlerta + altoAlerta) / 2
+    : NaN;
+  const objetivo = Number.isFinite(Number(config.objetivo)) && Number(config.objetivo) > 0
+    ? Number(config.objetivo)
+    : derivedTarget;
+  const derivedAlert = Number.isFinite(objetivo) && objetivo !== 0
+    ? Math.abs(altoAlerta - objetivo) / objetivo * 100
+    : NaN;
+  const derivedCritical = Number.isFinite(objetivo) && objetivo !== 0
+    ? Math.abs(altoCritico - objetivo) / objetivo * 100
+    : NaN;
+  const porcentajeAlerta = Number.isFinite(Number(config.porcentajeAlerta))
+    ? Number(config.porcentajeAlerta)
+    : derivedAlert;
+  const porcentajeCritico = Number.isFinite(Number(config.porcentajeCritico))
+    ? Number(config.porcentajeCritico)
+    : derivedCritical;
+  const values = { objetivo, porcentajeAlerta, porcentajeCritico };
+
+  return {
+    ...config,
+    comportamiento: "target",
+    ...values,
+    ...calculateLimits(values)
+  };
+}
+
+function calculateLimits(values) {
+  const objetivo = Number(values.objetivo);
+  const alerta = Number(values.porcentajeAlerta) / 100;
+  const critico = Number(values.porcentajeCritico) / 100;
+
+  if (![objetivo, alerta, critico].every(Number.isFinite)) {
+    return { bajoCritico: NaN, bajoAlerta: NaN, altoAlerta: NaN, altoCritico: NaN };
+  }
+
+  return {
+    bajoCritico: objetivo * (1 - critico),
+    bajoAlerta: objetivo * (1 - alerta),
+    altoAlerta: objetivo * (1 + alerta),
+    altoCritico: objetivo * (1 + critico)
+  };
+}
+
+function buildRangeDescription(values) {
+  if (!isOrdered(values)) return "Ingrese un objetivo positivo y porcentajes donde el crítico sea mayor que la alerta.";
+  const limits = calculateLimits(values);
+  return `Normal entre ${formatLimit(limits.bajoAlerta)} y ${formatLimit(limits.altoAlerta)}. `
+    + `Crítico desde ${formatLimit(limits.bajoCritico)} o ${formatLimit(limits.altoCritico)}.`;
 }
 
 function formatLimit(value) {

@@ -22,6 +22,7 @@ export function parseModelingSelection(search = window.location.search) {
 export function preparePredictiveData(records, {
   clienteId,
   implementationId,
+  profileId,
   periodHours,
   unit,
   variables = []
@@ -29,21 +30,31 @@ export function preparePredictiveData(records, {
   const received = Array.isArray(records) ? records.length : 0;
   const normalized = (records || [])
     .map((record) => normalizeRecord(record, variables))
-    .filter(Boolean)
-    .filter((record) => record.clienteId === clienteId)
-    .filter((record) => record.implementationId === implementationId);
-  const referenceTimestamp = getReferenceTimestamp(normalized);
-  const inPeriod = filterRecordsByPeriod(normalized, periodHours);
-  const inUnit = unit === "Planta"
-    ? inPeriod
-    : inPeriod.filter((record) => normalizeText(record.subarea || record.area) === normalizeText(unit));
-  const validRecords = inUnit.filter(hasCompleteModelInput)
+    .filter(Boolean);
+  const clientRecords = normalized.filter((record) => record.clienteId === clienteId);
+  const implementationRecords = clientRecords.filter((record) => matchesImplementation(
+    record, implementationId, clienteId
+  ));
+  const profileRecords = profileId === "lixiviacion" ? implementationRecords : [];
+  const unitRecords = unit === "Planta"
+    ? profileRecords
+    : profileRecords.filter((record) => normalizeText(record.subarea || record.area) === normalizeText(unit));
+  const referenceTimestamp = getReferenceTimestamp(unitRecords);
+  const periodRecords = filterRecordsByPeriod(unitRecords, periodHours);
+  const completeRecords = periodRecords.filter(hasCompleteModelInput);
+  const validRecords = deduplicateRecords(completeRecords)
     .sort((left, right) => left.timestampCreacion - right.timestampCreacion);
 
   return Object.freeze({
     received,
     normalized: normalized.length,
-    considered: inUnit.length,
+    afterClient: clientRecords.length,
+    afterImplementation: implementationRecords.length,
+    afterUnit: unitRecords.length,
+    afterPeriod: periodRecords.length,
+    afterValidation: completeRecords.length,
+    duplicatesRemoved: completeRecords.length - validRecords.length,
+    considered: unitRecords.length,
     validRecords,
     validCount: validRecords.length,
     requiredCount: MODEL_MINIMUM_RECORDS,
@@ -51,6 +62,31 @@ export function preparePredictiveData(records, {
     latestTimestamp: getReferenceTimestamp(validRecords),
     sufficient: validRecords.length >= MODEL_MINIMUM_RECORDS,
     hasVariation: hasNumericVariation(validRecords)
+  });
+}
+
+function matchesImplementation(record, implementationId, clienteId) {
+  if (record.implementationId) return record.implementationId === implementationId;
+  // Compatibilidad con registros históricos: la consulta Firestore ya está limitada
+  // al cliente activo y sólo se admite el faltante cuando cliente e implementación coinciden.
+  return Boolean(implementationId) && implementationId === clienteId;
+}
+
+function deduplicateRecords(records) {
+  const seen = new Set();
+  return records.filter((record) => {
+    const documentId = record.id || record.documentId;
+    const key = documentId
+      ? `document:${documentId}`
+      : `exact:${JSON.stringify([
+          record.timestampCreacion,
+          record.clienteId,
+          record.implementationId,
+          ...MODEL_FEATURES.map((feature) => record[feature])
+        ])}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
