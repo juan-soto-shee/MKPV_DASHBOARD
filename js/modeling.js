@@ -151,7 +151,6 @@ function apiErrorMessage(status, body) {
 
 function renderPredictionResponse(response, prepared) {
   clearPredictiveResults();
-  const metrics = response.metrics || {};
   document.getElementById("modelLastUpdated").textContent = `Último cálculo: ${formatDateTime(response.calculatedAt)}`;
   document.getElementById("cuIndicators").innerHTML = [
     ["Valor actual", `${formatNumber(prepared.validRecords.at(-1)?.cuPls, 3)} ${response.unit}`],
@@ -167,7 +166,7 @@ function renderPredictionResponse(response, prepared) {
     ["Referencia operacional", formatDateTime(response.referenceTimestamp)]
   ]);
   renderFacts("recoveryForecastDetails", [["Estado", "Sin modelo funcional encontrado"]]);
-  document.getElementById("modelMetricsBody").innerHTML = `<tr><th scope="row">${escapeHtml(response.model.name)}</th><td>${formatMetric(metrics.mae)}</td><td>${formatMetric(metrics.rmse)}</td><td>${formatMetric(metrics.r2)}</td><td>--</td><td><span class="model-status">${escapeHtml(response.model.validationStatus)}</span></td></tr>`;
+  renderModelCompetition();
   renderFacts("winningModelFacts", [
     ["Modelo", response.model.name],
     ["Versión", response.model.version],
@@ -200,10 +199,7 @@ function renderLocalModelResult() {
     ["Estado", "Modelo preliminar operativo"]
   ]);
   renderFacts("recoveryForecastDetails", [["Estado", "Pendiente de datos de recuperación"]]);
-  document.getElementById("modelMetricsBody").innerHTML = result.metrics.map((row) => {
-    const winner = row.selected === true || row.selected === "True";
-    return `<tr class="${winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(row.modelName)}</th><td>${formatMetric(row.validation_mae)}</td><td>${formatMetric(row.validation_rmse)}</td><td>${formatMetric(row.validation_r2)}</td><td>--</td><td><span class="model-status">${winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
-  }).join("");
+  renderModelCompetition();
   renderFacts("winningModelFacts", [
     ["Modelo", metadata.modelName],
     ["Versión", metadata.modelVersion],
@@ -215,6 +211,13 @@ function renderLocalModelResult() {
   ]);
   renderCuPredictionChart(result);
   showStatus("Modelo matemático operativo con el histórico local de seis meses.");
+}
+
+function renderModelCompetition() {
+  document.getElementById("modelMetricsBody").innerHTML = LOCAL_MODELING_RESULT.metrics.map((row) => {
+    const winner = row.selected === true || row.selected === "True";
+    return `<tr class="${winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(row.modelName)}</th><td>${formatMetric(row.validation_mae)}</td><td>${formatMetric(row.validation_rmse)}</td><td>${formatMetric(row.validation_r2)}</td><td>--</td><td><span class="model-status">${winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
+  }).join("");
 }
 
 function renderCuPredictionChart(result) {
