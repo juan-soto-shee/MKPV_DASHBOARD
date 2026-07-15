@@ -177,7 +177,7 @@ function renderPredictionResponse(response, prepared) {
     ["Último registro enviado", prepared.latestTimestamp ? formatDateTime(prepared.latestTimestamp) : "--"]
   ]);
   renderCuPredictionChart(LOCAL_MODELING_RESULT);
-  showStatus(`Modelo conectado a Firestore · ${response.recordsUsed} registros válidos recientes.`, "connected");
+  showStatus(`Modelo conectado · ${response.recordsUsed} registros válidos recientes.`, "connected");
 }
 
 function renderLocalModelResult() {
