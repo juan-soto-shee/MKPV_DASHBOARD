@@ -7,9 +7,10 @@ import {
   buildPredictionRequest,
   parseModelingSelection,
   preparePredictiveData
-} from "./modelingDataAdapter.js?v=20260714-2";
+} from "./modelingDataAdapter.js?v=20260715-1";
 import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260714-1";
 import { LOCAL_MODELING_RESULT } from "./modelingLocalResult.js?v=20260715-1";
+import { predictCuPls, TRAINED_MODEL_METADATA } from "./trainedCuPlsModel.js?v=20260715-1";
 
 const selection = parseModelingSelection();
 let dialogBound = false;
@@ -77,21 +78,21 @@ async function handleRealtimeRecords(records) {
     return;
   }
 
-  const sequence = ++requestSequence;
-  activeRequestController?.abort("superseded");
-  const controller = new AbortController();
-  activeRequestController = controller;
-  showStatus("Calculando predicción…");
-
   try {
-    const response = await postPrediction(request, controller);
-    if (sequence !== requestSequence) return;
-    renderPredictionResponse(response, prepared);
+    const latest = prepared.validRecords.at(-1);
+    renderPredictionResponse({
+      status: "ok",
+      prediction: predictCuPls(latest),
+      unit: "g/L",
+      recordsUsed: prepared.validCount,
+      calculatedAt: new Date().toISOString(),
+      referenceTimestamp: new Date(prepared.latestTimestamp).toISOString(),
+      predictionHorizonHours: TRAINED_MODEL_METADATA.predictionHorizonHours,
+      model: TRAINED_MODEL_METADATA,
+      metrics: TRAINED_MODEL_METADATA.metrics
+    }, prepared);
   } catch (error) {
-    if (sequence !== requestSequence || controller.signal.reason === "superseded") return;
     renderApiError(error, prepared);
-  } finally {
-    if (activeRequestController === controller) activeRequestController = null;
   }
 }
 
@@ -153,6 +154,7 @@ function renderPredictionResponse(response, prepared) {
   const metrics = response.metrics || {};
   document.getElementById("modelLastUpdated").textContent = `Último cálculo: ${formatDateTime(response.calculatedAt)}`;
   document.getElementById("cuIndicators").innerHTML = [
+    ["Valor actual", `${formatNumber(prepared.validRecords.at(-1)?.cuPls, 3)} ${response.unit}`],
     ["Predicción a 4 horas", `${formatNumber(response.prediction, 3)} ${response.unit}`],
     ["Registros utilizados", response.recordsUsed],
     ["Estado del modelo", response.model.validationStatus]
@@ -176,7 +178,7 @@ function renderPredictionResponse(response, prepared) {
     ["Último registro enviado", prepared.latestTimestamp ? formatDateTime(prepared.latestTimestamp) : "--"]
   ]);
   renderCuPredictionChart(LOCAL_MODELING_RESULT);
-  showStatus("");
+  showStatus(`Modelo conectado a Firestore · ${response.recordsUsed} registros válidos recientes.`, "connected");
 }
 
 function renderLocalModelResult() {
@@ -344,9 +346,10 @@ function renderFacts(id, facts) {
   document.getElementById(id).innerHTML = facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("");
 }
 
-function showStatus(message) {
+function showStatus(message, state = "warning") {
   const element = document.getElementById("modelingError");
   element.textContent = message;
+  element.classList.toggle("is-connected", state === "connected");
   element.classList.toggle("is-hidden", !message);
 }
 

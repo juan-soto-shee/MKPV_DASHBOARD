@@ -1711,6 +1711,7 @@ td {
 .model-variables-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 20px 0 0; padding: 0; list-style: none; }
 .model-variables-list li { padding: 11px 12px; border: 1px solid var(--line); border-radius: 6px; background: rgba(4, 16, 23, .48); color: var(--text); }
 .modeling-error { padding: 16px; border: 1px solid rgba(245, 158, 11, .45); border-radius: 8px; background: rgba(245, 158, 11, .1); color: var(--amber); font-weight: 800; }
+.modeling-error.is-connected { border-color: rgba(34, 197, 94, .45); background: rgba(34, 197, 94, .1); color: var(--green); }
 .modeling-unavailable { opacity: .45; pointer-events: none; }
 .product-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 12px; margin-top: 22px; padding: 16px 12px 4px; color: var(--muted); font-size: .7rem; line-height: 1.45; text-align: center; }
 .product-footer span:not(:last-child)::after { margin-left: 12px; color: rgba(145, 168, 176, .42); content: "·"; }
