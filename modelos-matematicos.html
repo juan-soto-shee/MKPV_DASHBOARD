@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Modelos Matemáticos | MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260715-4">
+    <link rel="stylesheet" href="css/style.css?v=20260715-5">
     <script src="js/vendor/chart.umd.min.js?v=4.4.9" defer></script>
-    <script type="module" src="js/modeling.js?v=20260715-7"></script>
+    <script type="module" src="js/modeling.js?v=20260715-8"></script>
   </head>
   <body class="modeling-page">
     <div class="shell">
@@ -38,14 +38,12 @@
             <div class="section-heading"><div><p id="cuPredictionHorizon" class="eyebrow">Horizonte de 4 horas</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div></div>
             <div id="cuIndicators" class="model-indicators"></div>
             <div class="model-chart-panel"><h3>Cu²⁺ en PLS — Valor real vs. predicho</h3><p>Ventana de los últimos 7 días</p><div class="model-chart-box"><canvas id="cuPredictionChart"></canvas></div></div>
-            <dl id="cuForecastDetails" class="forecast-details"></dl>
           </section>
 
           <section class="prediction-module" aria-labelledby="poolPredictionTitle">
             <div class="section-heading"><div><p class="eyebrow">Horizonte de 24 horas</p><h2 id="poolPredictionTitle">Predicción de Nivel Piscina PLS</h2></div></div>
             <div id="recoveryIndicators" class="model-indicators"></div>
             <div class="model-chart-panel"><h3>Nivel Piscina PLS — Valor real vs. predicho</h3><p>Validación temporal del modelo</p><div class="model-chart-box"><canvas id="recoveryPredictionChart"></canvas></div></div>
-            <dl id="recoveryForecastDetails" class="forecast-details"></dl>
           </section>
         </div>
 
