@@ -10,13 +10,15 @@ import {
 } from "./modelingDataAdapter.js?v=20260715-1";
 import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260714-1";
 import { LOCAL_MODELING_RESULT } from "./modelingLocalResult.js?v=20260715-1";
-import { predictCuPls, TRAINED_MODEL_METADATA } from "./trainedCuPlsModel.js?v=20260715-1";
+import { getModelMetadata, getTrainedHorizon, predictCuPls } from "./trainedCuPlsModel.js?v=20260715-2";
 
 const selection = parseModelingSelection();
 let dialogBound = false;
 let activeRequestController = null;
 let requestSequence = 0;
 let cuPredictionChart = null;
+let selectedHorizon = 4;
+let latestRealtimeRecords = [];
 
 init().catch(showFatalError);
 
@@ -24,6 +26,7 @@ async function init() {
   configureNavigation();
   renderClientIdentity();
   bindVariablesDialog();
+  bindHorizonSelector();
   clearPredictiveResults();
   await requireWebAccess();
   renderLocalModelResult();
@@ -35,6 +38,7 @@ async function init() {
 }
 
 async function handleRealtimeRecords(records) {
+  latestRealtimeRecords = records;
   showStatus("Calculando disponibilidad de la predicción…");
   const prepared = preparePredictiveData(records, {
     clienteId: clientConfig.clienteId,
@@ -80,16 +84,18 @@ async function handleRealtimeRecords(records) {
 
   try {
     const latest = prepared.validRecords.at(-1);
+    const metadata = getModelMetadata(selectedHorizon);
     renderPredictionResponse({
       status: "ok",
-      prediction: predictCuPls(latest),
+      prediction: predictCuPls(latest, selectedHorizon),
       unit: "g/L",
       recordsUsed: prepared.validCount,
       calculatedAt: new Date().toISOString(),
       referenceTimestamp: new Date(prepared.latestTimestamp).toISOString(),
-      predictionHorizonHours: TRAINED_MODEL_METADATA.predictionHorizonHours,
-      model: TRAINED_MODEL_METADATA,
-      metrics: TRAINED_MODEL_METADATA.metrics
+      predictionHorizonHours: metadata.predictionHorizonHours,
+      model: metadata,
+      metrics: metadata.metrics,
+      horizonData: getTrainedHorizon(selectedHorizon)
     }, prepared);
   } catch (error) {
     renderApiError(error, prepared);
@@ -154,7 +160,7 @@ function renderPredictionResponse(response, prepared) {
   document.getElementById("modelLastUpdated").textContent = `Último cálculo: ${formatDateTime(response.calculatedAt)}`;
   document.getElementById("cuIndicators").innerHTML = [
     ["Valor actual", `${formatNumber(prepared.validRecords.at(-1)?.cuPls, 3)} ${response.unit}`],
-    ["Predicción a 4 horas", `${formatNumber(response.prediction, 3)} ${response.unit}`],
+    [`Predicción a ${response.predictionHorizonHours} horas`, `${formatNumber(response.prediction, 3)} ${response.unit}`],
     ["Registros utilizados", response.recordsUsed],
     ["Estado del modelo", response.model.validationStatus]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
@@ -166,13 +172,13 @@ function renderPredictionResponse(response, prepared) {
     ["Referencia operacional", formatDateTime(response.referenceTimestamp)]
   ]);
   renderFacts("recoveryForecastDetails", [["Estado", "Sin modelo funcional encontrado"]]);
-  renderModelCompetition();
+  renderModelCompetition(response.horizonData);
   renderFacts("winningModelFacts", [
     ["Modelo", response.model.name],
     ["Versión", response.model.version],
     ["Estado", response.model.validationStatus],
     ["Registros utilizados", response.recordsUsed],
-    ["Periodo", `${selection.periodHours} horas`],
+    ["Horizonte", `${response.predictionHorizonHours} horas`],
     ["Unidad", selection.unit],
     ["Último registro enviado", prepared.latestTimestamp ? formatDateTime(prepared.latestTimestamp) : "--"]
   ]);
@@ -213,11 +219,23 @@ function renderLocalModelResult() {
   showStatus("Modelo matemático operativo con el histórico local de seis meses.");
 }
 
-function renderModelCompetition() {
-  document.getElementById("modelMetricsBody").innerHTML = LOCAL_MODELING_RESULT.metrics.map((row) => {
-    const winner = row.selected === true || row.selected === "True";
-    return `<tr class="${winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(row.modelName)}</th><td>${formatMetric(row.validation_mae)}</td><td>${formatMetric(row.validation_rmse)}</td><td>${formatMetric(row.validation_r2)}</td><td>--</td><td><span class="model-status">${winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
+function renderModelCompetition(horizonData = null) {
+  const rows = horizonData
+    ? Object.entries(horizonData.validationMetrics).map(([modelName, metrics]) => ({ modelName, ...metrics, winner: modelName === horizonData.winner }))
+    : LOCAL_MODELING_RESULT.metrics.map((row) => ({ modelName: row.modelName, mae: row.validation_mae, rmse: row.validation_rmse, r2: row.validation_r2, winner: row.selected === true || row.selected === "True" }));
+  document.getElementById("modelMetricsBody").innerHTML = rows.map((row) => {
+    return `<tr class="${row.winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(row.modelName)}</th><td>${formatMetric(row.mae)}</td><td>${formatMetric(row.rmse)}</td><td>${formatMetric(row.r2)}</td><td>--</td><td><span class="model-status">${row.winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
   }).join("");
+}
+
+function bindHorizonSelector() {
+  const select = document.getElementById("predictionHorizon");
+  select.value = String(selectedHorizon);
+  select.addEventListener("change", () => {
+    selectedHorizon = Number(select.value);
+    document.getElementById("cuPredictionHorizon").textContent = `Horizonte de ${selectedHorizon} horas`;
+    if (latestRealtimeRecords.length) handleRealtimeRecords(latestRealtimeRecords);
+  });
 }
 
 function renderCuPredictionChart(result) {

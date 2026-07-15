@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Modelos Matemáticos | MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260715-2">
+    <link rel="stylesheet" href="css/style.css?v=20260715-3">
     <script src="js/vendor/chart.umd.min.js?v=4.4.9" defer></script>
-    <script type="module" src="js/modeling.js?v=20260715-4"></script>
+    <script type="module" src="js/modeling.js?v=20260715-5"></script>
   </head>
   <body class="modeling-page">
     <div class="shell">
@@ -23,6 +23,9 @@
           </div>
         </div>
         <div class="modeling-header-actions">
+          <label class="model-horizon-control">Horizonte de predicción
+            <select id="predictionHorizon"><option value="4">4 horas</option><option value="8">8 horas</option><option value="12">12 horas</option><option value="24">24 horas</option></select>
+          </label>
           <span id="modelLastUpdated" class="data-source">Última actualización del modelo: --</span>
           <a id="backToDashboard" class="secondary-action" href="index.html">Volver al Centro de Monitoreo</a>
         </div>
@@ -32,7 +35,7 @@
         <p id="modelingError" class="modeling-error is-hidden" role="alert">Información de modelamiento no disponible</p>
         <div class="prediction-grid">
           <section class="prediction-module" aria-labelledby="cuPredictionTitle">
-            <div class="section-heading"><div><p class="eyebrow">Horizonte de 4 horas</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div></div>
+            <div class="section-heading"><div><p id="cuPredictionHorizon" class="eyebrow">Horizonte de 4 horas</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div></div>
             <div id="cuIndicators" class="model-indicators"></div>
             <div class="model-chart-panel"><h3>Cu²⁺ en PLS — Valor real vs. predicho</h3><p>Ventana de los últimos 7 días</p><div class="model-chart-box"><canvas id="cuPredictionChart"></canvas></div></div>
             <dl id="cuForecastDetails" class="forecast-details"></dl>
