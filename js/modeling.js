@@ -1,6 +1,7 @@
 import "./productVersion.js?v=20260713-1";
 import { clientConfig } from "./clientConfig.js";
 import { closeRealtimeListener, startRealtimeListener } from "./firestoreService.js?v=20260713-1";
+import { requireWebAccess } from "./webAccess.js?v=auth-v2";
 import {
   MODEL_FEATURES,
   buildPredictionRequest,
@@ -18,6 +19,7 @@ async function init() {
   renderClientIdentity();
   bindVariablesDialog();
   clearPredictiveResults();
+  await requireWebAccess();
   showStatus("Cargando datos operacionales…");
   window.addEventListener("pagehide", closeRealtimeListener, { once: true });
   startRealtimeListener(handleRealtimeRecords, (connected) => {
