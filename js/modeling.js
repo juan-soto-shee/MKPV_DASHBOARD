@@ -7,7 +7,7 @@ import {
   buildPredictionRequest,
   parseModelingSelection,
   preparePredictiveData
-} from "./modelingDataAdapter.js?v=20260715-1";
+} from "./modelingDataAdapter.js?v=20260715-2";
 import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260714-1";
 import { LOCAL_MODELING_RESULT } from "./modelingLocalResult.js?v=20260715-1";
 import { getModelMetadata, getTrainedHorizon, predictCuPls } from "./trainedCuPlsModel.js?v=20260715-2";
@@ -59,6 +59,7 @@ async function handleRealtimeRecords(records) {
     periodHours: selection.periodHours,
     referenceTimestamp: request.context.referenceTimestamp,
     recordsReceived: prepared.received,
+    demoRecordsExcluded: prepared.demoRecordsExcluded,
     recordsAfterClient: prepared.afterClient,
     recordsAfterImplementation: prepared.afterImplementation,
     recordsAfterUnit: prepared.afterUnit,
