@@ -11,12 +11,14 @@ import {
 import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260714-1";
 import { LOCAL_MODELING_RESULT } from "./modelingLocalResult.js?v=20260715-1";
 import { getModelMetadata, getTrainedHorizon, predictCuPls } from "./trainedCuPlsModel.js?v=20260715-2";
+import { predictPoolPls, TRAINED_POOL_PLS } from "./poolPlsModel.js?v=20260715-1";
 
 const selection = parseModelingSelection();
 let dialogBound = false;
 let activeRequestController = null;
 let requestSequence = 0;
 let cuPredictionChart = null;
+let poolPredictionChart = null;
 let selectedHorizon = 4;
 let latestRealtimeRecords = [];
 
@@ -165,14 +167,13 @@ function renderPredictionResponse(response, prepared) {
     ["Registros utilizados", response.recordsUsed],
     ["Estado del modelo", response.model.validationStatus]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
-  renderIndicator("recoveryIndicators", "Modelo funcional de recuperación metalúrgica no disponible.");
+  renderPoolPrediction(prepared.validRecords.at(-1));
   renderFacts("cuForecastDetails", [
     ["Predicción", `${formatNumber(response.prediction, 3)} ${response.unit}`],
     ["Horizonte", `${response.predictionHorizonHours} horas`],
     ["Timestamp del cálculo", formatDateTime(response.calculatedAt)],
     ["Referencia operacional", formatDateTime(response.referenceTimestamp)]
   ]);
-  renderFacts("recoveryForecastDetails", [["Estado", "Sin modelo funcional encontrado"]]);
   renderModelCompetition(response.horizonData);
   renderFacts("winningModelFacts", [
     ["Modelo", response.model.name],
@@ -198,14 +199,13 @@ function renderLocalModelResult() {
     ["Error MAE de prueba", `${formatNumber(metadata.testMetrics.mae, 4)} g/L`],
     ["Precisión R²", formatNumber(metadata.testMetrics.r2, 3)]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
-  renderIndicator("recoveryIndicators", "La recuperación metalúrgica requiere su balance histórico para entrenar un modelo independiente.");
+  renderPoolPrediction();
   renderFacts("cuForecastDetails", [
     ["Fuente", "Histórico local de seis meses"],
     ["Pares válidos", "1.632"],
     ["Horizonte", "4 horas"],
     ["Estado", "Modelo preliminar operativo"]
   ]);
-  renderFacts("recoveryForecastDetails", [["Estado", "Pendiente de datos de recuperación"]]);
   renderModelCompetition();
   renderFacts("winningModelFacts", [
     ["Modelo", metadata.modelName],
@@ -227,6 +227,41 @@ function renderModelCompetition(horizonData = null) {
   document.getElementById("modelMetricsBody").innerHTML = rows.map((row) => {
     return `<tr class="${row.winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(row.modelName)}</th><td>${formatMetric(row.mae)}</td><td>${formatMetric(row.rmse)}</td><td>${formatMetric(row.r2)}</td><td>--</td><td><span class="model-status">${row.winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
   }).join("");
+}
+
+function renderPoolPrediction(record = null) {
+  const result = TRAINED_POOL_PLS;
+  const current = record?.nivelPiscinaPLS ?? result.chart.actual.at(-1);
+  const predicted = record ? predictPoolPls(record) : result.chart.predicted.at(-1);
+  const variation = predicted - current;
+  document.getElementById("recoveryIndicators").innerHTML = [
+    ["Nivel actual", `${formatNumber(current, 1)} %`],
+    ["Nivel proyectado a 24 h", `${formatNumber(predicted, 1)} %`],
+    ["Variación esperada", `${variation >= 0 ? "+" : ""}${formatNumber(variation, 1)} puntos`],
+    ["Riesgo operacional", poolRisk(predicted)]
+  ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
+  renderFacts("recoveryForecastDetails", [["Horizonte", "24 horas"], ["Modelo activo", result.winner], ["MAE prueba", `${formatNumber(result.testMetrics.mae, 2)} puntos`], ["Estado", "Activo"]]);
+  document.getElementById("poolModelMetricsBody").innerHTML = Object.entries(result.validationMetrics).map(([name, metrics]) => {
+    const winner = name === result.winner;
+    return `<tr class="${winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(name)}</th><td>${formatMetric(metrics.mae)}</td><td>${formatMetric(metrics.rmse)}</td><td>${formatMetric(metrics.r2)}</td><td>--</td><td><span class="model-status">${winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
+  }).join("");
+  renderPoolChart(result.chart);
+}
+
+function poolRisk(value) {
+  if (value >= 92 || value <= 20) return "Crítico";
+  if (value >= 82 || value <= 35) return "Atención";
+  return "Normal";
+}
+
+function renderPoolChart(chart) {
+  const canvas = document.getElementById("recoveryPredictionChart");
+  if (!canvas || typeof Chart === "undefined") return;
+  poolPredictionChart?.destroy();
+  poolPredictionChart = new Chart(canvas, { type: "line", data: { labels: chart.labels.map((value) => new Date(value).toLocaleDateString("es-CL")), datasets: [
+    { label: "Nivel real", data: chart.actual, borderColor: "#28d7f4", borderWidth: 2, pointRadius: 1, tension: .25 },
+    { label: "Nivel predicho", data: chart.predicted, borderColor: "#ffb000", borderWidth: 2, borderDash: [6, 4], pointRadius: 1, tension: .25 }
+  ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#c9dde5" } } }, scales: { x: { ticks: { color: "#8eabb5", maxTicksLimit: 8 } }, y: { title: { display: true, text: "Nivel Piscina PLS (%)", color: "#8eabb5" }, ticks: { color: "#8eabb5" } } } } });
 }
 
 function bindHorizonSelector() {
@@ -294,12 +329,11 @@ function renderAvailability(prepared) {
       : "Motor predictivo pendiente de conexión con el servicio de modelado.";
 
   renderIndicator("cuIndicators", availabilityMessage);
-  renderIndicator("recoveryIndicators", "Modelo funcional de recuperación metalúrgica no disponible.");
+  renderPoolPrediction();
   renderFacts("cuForecastDetails", [
     ["Estado", availabilityMessage],
     ["Registros válidos", `${prepared.validCount} de ${prepared.requiredCount} requeridos`]
   ]);
-  renderFacts("recoveryForecastDetails", [["Estado", "Sin modelo funcional encontrado"]]);
   document.getElementById("modelMetricsBody").innerHTML = "<tr><td colspan=\"6\">No hay métricas de producción disponibles. El artefacto existente fue validado sólo con datos demostrativos.</td></tr>";
   renderFacts("winningModelFacts", [
     ["Modelo disponible", profileAvailable ? "Cu²⁺ PLS a 4 horas (Python, preliminar)" : "No disponible para este perfil"],

@@ -1704,7 +1704,8 @@ td {
 .model-table thead th { color: var(--cyan); font-size: .72rem; text-transform: uppercase; }
 .model-table tbody th { color: var(--text); }
 .model-table tr.is-winner { background: rgba(34, 197, 94, .08); box-shadow: inset 3px 0 var(--green); }
-.model-table tr.is-winner .model-status { color: var(--green); border-color: rgba(34, 197, 94, .35); }
+.model-table tr.is-winner .model-status, .model-table tr.winner-row .model-status { color: var(--green); border-color: rgba(34, 197, 94, .55); background: rgba(34, 197, 94, .1); }
+.model-table tr.winner-row { background: rgba(34, 197, 94, .06); }
 .model-status { display: inline-block; padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: .72rem; font-weight: 800; }
 .winner-information { display: grid; grid-template-columns: minmax(180px, .65fr) minmax(0, 2fr) auto; align-items: center; gap: 20px; }
 .winner-information .winner-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
