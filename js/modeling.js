@@ -204,7 +204,7 @@ function renderLocalModelResult() {
     ["R² prueba", formatNumber(metadata.testMetrics.r2, 4)]
   ]);
   renderCuPredictionChart(result);
-  showStatus("Modelo matemático operativo con el histórico local de seis meses.");
+  showStatus("");
 }
 
 function renderModelCompetition(horizonData = null) {

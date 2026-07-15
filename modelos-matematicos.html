@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Modelos Matemáticos | MetKinetics PlantView</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="css/style.css?v=20260715-5">
+    <link rel="stylesheet" href="css/style.css?v=20260715-6">
     <script src="js/vendor/chart.umd.min.js?v=4.4.9" defer></script>
-    <script type="module" src="js/modeling.js?v=20260715-8"></script>
+    <script type="module" src="js/modeling.js?v=20260715-9"></script>
   </head>
   <body class="modeling-page">
     <div class="shell">
@@ -23,8 +23,11 @@
           </div>
         </div>
         <div class="modeling-header-actions">
-          <label class="model-horizon-control">Horizonte de predicción
-            <select id="predictionHorizon"><option value="4">4 horas</option><option value="8">8 horas</option><option value="12">12 horas</option><option value="24">24 horas</option></select>
+          <label class="model-horizon-control">
+            <span class="model-horizon-label">Horizonte de predicción</span>
+            <span class="model-horizon-select">
+              <select id="predictionHorizon" aria-label="Seleccionar horizonte de predicción"><option value="4">Próximas 4 horas</option><option value="8">Próximas 8 horas</option><option value="12">Próximas 12 horas</option><option value="24">Próximas 24 horas</option></select>
+            </span>
           </label>
           <span id="modelLastUpdated" class="data-source">Última actualización del modelo: --</span>
           <a id="backToDashboard" class="secondary-action" href="index.html">Volver al Centro de Monitoreo</a>

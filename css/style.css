@@ -1676,8 +1676,14 @@ td {
 .modeling-header .brand-block h1 { white-space: normal; }
 .modeling-subtitle { max-width: 760px; margin: 12px 0 18px; color: var(--muted); font-size: 1rem; }
 .modeling-header-actions { display: grid; justify-items: end; gap: 14px; text-align: right; }
-.model-horizon-control { display: grid; gap: 6px; color: var(--muted); font-size: .78rem; font-weight: 800; text-align: left; }
-.model-horizon-control select { min-width: 190px; padding: 10px 36px 10px 12px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--panel-deep); color: var(--text); font: inherit; }
+.model-horizon-control { display: grid; min-width: 245px; gap: 7px; text-align: left; }
+.model-horizon-label { color: var(--cyan); font-size: .68rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+.model-horizon-select { position: relative; display: block; }
+.model-horizon-select::before { position: absolute; z-index: 1; top: 50%; left: 14px; width: 8px; height: 8px; border: 2px solid var(--cyan); border-radius: 50%; box-shadow: 0 0 0 4px rgba(50, 213, 232, .08); content: ""; pointer-events: none; transform: translateY(-50%); }
+.model-horizon-select::after { position: absolute; top: 50%; right: 15px; width: 8px; height: 8px; border-right: 2px solid var(--cyan); border-bottom: 2px solid var(--cyan); content: ""; pointer-events: none; transform: translateY(-70%) rotate(45deg); }
+.model-horizon-control select { width: 100%; min-height: 48px; padding: 11px 42px 11px 38px; border: 1px solid rgba(50, 213, 232, .38); border-radius: 9px; outline: none; appearance: none; background: linear-gradient(135deg, rgba(17, 49, 62, .98), rgba(7, 28, 37, .98)); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 8px 20px rgba(0, 0, 0, .16); cursor: pointer; font: inherit; font-size: .86rem; font-weight: 800; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.model-horizon-control select:hover { border-color: rgba(50, 213, 232, .72); }
+.model-horizon-control select:focus-visible { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(50, 213, 232, .14), 0 8px 20px rgba(0, 0, 0, .2); }
 .modeling-header-actions .secondary-action { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .modeling-main { display: grid; gap: 18px; margin-top: 18px; }
 .prediction-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
