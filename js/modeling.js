@@ -31,7 +31,6 @@ async function init() {
   bindHorizonSelector();
   clearPredictiveResults();
   await requireWebAccess();
-  renderLocalModelResult();
   showStatus("Cargando datos operacionales…");
   window.addEventListener("pagehide", closeRealtimeListener, { once: true });
   startRealtimeListener(handleRealtimeRecords, (connected) => {
@@ -80,8 +79,7 @@ async function handleRealtimeRecords(records) {
 
   if (clientConfig.profileId !== "lixiviacion" || !prepared.sufficient || !prepared.hasVariation) {
     activeRequestController?.abort("superseded");
-    if (clientConfig.profileId === "lixiviacion") renderLocalModelResult();
-    else renderAvailability(prepared);
+    renderAvailability(prepared);
     return;
   }
 
@@ -192,7 +190,9 @@ function renderLocalModelResult() {
     ["Error MAE de prueba", `${formatNumber(metadata.testMetrics.mae, 4)} g/L`],
     ["Precisión R²", formatNumber(metadata.testMetrics.r2, 3)]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
-  renderPoolPrediction();
+  const latest = prepared.validRecords.at(-1);
+  if (latest) renderPoolPrediction(latest);
+  else renderIndicator("recoveryIndicators", availabilityMessage);
   renderModelCompetition();
   renderFacts("winningModelFacts", [
     ["Modelo", metadata.modelName],
