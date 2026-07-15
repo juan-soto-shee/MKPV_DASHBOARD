@@ -164,16 +164,9 @@ function renderPredictionResponse(response, prepared) {
   document.getElementById("cuIndicators").innerHTML = [
     ["Valor actual", `${formatNumber(prepared.validRecords.at(-1)?.cuPls, 3)} ${response.unit}`],
     [`Predicción a ${response.predictionHorizonHours} horas`, `${formatNumber(response.prediction, 3)} ${response.unit}`],
-    ["Registros utilizados", response.recordsUsed],
-    ["Estado del modelo", response.model.validationStatus]
+    ["Registros utilizados", response.recordsUsed]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
   renderPoolPrediction(prepared.validRecords.at(-1));
-  renderFacts("cuForecastDetails", [
-    ["Predicción", `${formatNumber(response.prediction, 3)} ${response.unit}`],
-    ["Horizonte", `${response.predictionHorizonHours} horas`],
-    ["Timestamp del cálculo", formatDateTime(response.calculatedAt)],
-    ["Referencia operacional", formatDateTime(response.referenceTimestamp)]
-  ]);
   renderModelCompetition(response.horizonData);
   renderFacts("winningModelFacts", [
     ["Modelo", response.model.name],
@@ -200,12 +193,6 @@ function renderLocalModelResult() {
     ["Precisión R²", formatNumber(metadata.testMetrics.r2, 3)]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
   renderPoolPrediction();
-  renderFacts("cuForecastDetails", [
-    ["Fuente", "Histórico local de seis meses"],
-    ["Pares válidos", "1.632"],
-    ["Horizonte", "4 horas"],
-    ["Estado", "Modelo preliminar operativo"]
-  ]);
   renderModelCompetition();
   renderFacts("winningModelFacts", [
     ["Modelo", metadata.modelName],
@@ -240,7 +227,6 @@ function renderPoolPrediction(record = null) {
     ["Variación esperada", `${variation >= 0 ? "+" : ""}${formatNumber(variation, 1)} puntos`],
     ["Riesgo operacional", poolRisk(predicted)]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
-  renderFacts("recoveryForecastDetails", [["Horizonte", "24 horas"], ["Modelo activo", result.winner], ["MAE prueba", `${formatNumber(result.testMetrics.mae, 2)} puntos`], ["Estado", "Activo"]]);
   document.getElementById("poolModelMetricsBody").innerHTML = Object.entries(result.validationMetrics).map(([name, metrics]) => {
     const winner = name === result.winner;
     return `<tr class="${winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(name)}</th><td>${formatMetric(metrics.mae)}</td><td>${formatMetric(metrics.rmse)}</td><td>${formatMetric(metrics.r2)}</td><td>--</td><td><span class="model-status">${winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
@@ -330,10 +316,6 @@ function renderAvailability(prepared) {
 
   renderIndicator("cuIndicators", availabilityMessage);
   renderPoolPrediction();
-  renderFacts("cuForecastDetails", [
-    ["Estado", availabilityMessage],
-    ["Registros válidos", `${prepared.validCount} de ${prepared.requiredCount} requeridos`]
-  ]);
   document.getElementById("modelMetricsBody").innerHTML = "<tr><td colspan=\"6\">No hay métricas de producción disponibles. El artefacto existente fue validado sólo con datos demostrativos.</td></tr>";
   renderFacts("winningModelFacts", [
     ["Modelo disponible", profileAvailable ? "Cu²⁺ PLS a 4 horas (Python, preliminar)" : "No disponible para este perfil"],
@@ -360,8 +342,6 @@ function clearPredictiveResults() {
   }
   renderIndicator("cuIndicators", "Sin predicción calculada");
   renderIndicator("recoveryIndicators", "Sin predicción calculada");
-  renderFacts("cuForecastDetails", [["Resultado", "--"]]);
-  renderFacts("recoveryForecastDetails", [["Resultado", "--"]]);
 }
 
 function configureNavigation() {

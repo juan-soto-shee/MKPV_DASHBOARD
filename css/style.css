@@ -1685,7 +1685,7 @@ td {
 .modeling-section.collapsible-section { padding: 0; }
 .prediction-module > .section-heading { align-items: flex-start; margin-bottom: 18px; }
 .sample-badge { padding: 5px 8px; border: 1px solid rgba(50, 213, 232, .3); border-radius: 999px; color: var(--cyan); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.model-indicators { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.model-indicators { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .model-indicator { min-height: 92px; padding: 13px; border: 1px solid rgba(145, 168, 176, .16); border-radius: 7px; background: rgba(4, 16, 23, .48); }
 .model-indicator span { display: block; min-height: 34px; color: var(--muted); font-size: .72rem; line-height: 1.25; }
 .model-indicator strong { display: block; margin-top: 8px; color: var(--text); font-size: 1.05rem; line-height: 1.2; }
