@@ -31,7 +31,8 @@ export function preparePredictiveData(records, {
   const normalized = (records || [])
     .map((record) => normalizeRecord(record, variables))
     .filter(Boolean);
-  const clientRecords = normalized.filter((record) => record.clienteId === clienteId);
+  const operationalRecords = normalized.filter((record) => record.isDemo !== true);
+  const clientRecords = operationalRecords.filter((record) => record.clienteId === clienteId);
   const implementationRecords = clientRecords.filter((record) => matchesImplementation(
     record, implementationId, clienteId
   ));
@@ -48,6 +49,7 @@ export function preparePredictiveData(records, {
   return Object.freeze({
     received,
     normalized: normalized.length,
+    demoRecordsExcluded: normalized.length - operationalRecords.length,
     afterClient: clientRecords.length,
     afterImplementation: implementationRecords.length,
     afterUnit: unitRecords.length,
