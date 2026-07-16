@@ -10,7 +10,12 @@ from plantview_predictive.main import app
 def test_prediction_requires_firebase_token():
     response = TestClient(app).post("/v1/plantview/predictions/cu-pls", json={
         "implementationId": "impl_a", "clienteId": "client_a", "profileId": "lixiviacion",
-        "horizonHours": 4, "records": [{"cuPls": 2.5}],
+        "horizonHours": 4, "records": [{
+            "timestampCreacion": "2026-01-01T00:00:00Z", "cuPls": 2.5,
+            "flujoPLS": 80, "flujoRefino": 50, "acidezRefino": 16,
+            "nivelPiscinaPLS": 55, "nivelPiscinaRefino": 62,
+            "subarea": "Pila 1", "turno": "Turno A",
+        }],
     })
     assert response.status_code == 401
 

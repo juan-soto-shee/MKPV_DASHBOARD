@@ -1,11 +1,8 @@
-from typing import Annotated
-
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException
 
 from .auth import authenticated_user, authorize_context
-from .modeling import InsufficientDataError
 from .repository import FirebaseRepository
-from .schemas import ModelContext, PredictionRequest, RetrainRequest
+from .schemas import PredictionRequest, RetrainRequest
 from .service import PredictiveService
 
 app = FastAPI(title="MetKinetics PlantView Predictive Service", version="1.0.0")
@@ -20,7 +17,8 @@ def cu_pls(request: PredictionRequest, user=Depends(authenticated_user), service
     context = request.model_dump(include={"implementationId", "clienteId", "profileId"})
     authorize_context(user, context)
     try:
-        return service.infer_cu(context, request.horizonHours, request.records)
+        records = [record.model_dump() for record in request.records]
+        return service.infer_cu(context, request.horizonHours, records)
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     except LookupError as error:
@@ -41,7 +39,7 @@ def retrain(request: RetrainRequest, user=Depends(authenticated_user), service=D
     authorize_context(user, context, technical=True)
     try:
         return service.retrain(context, user)
-    except InsufficientDataError as error:
-        raise HTTPException(422, str(error)) from error
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
+    except LookupError as error:
+        raise HTTPException(503, str(error)) from error

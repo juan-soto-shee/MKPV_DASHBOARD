@@ -5,18 +5,20 @@ import pytest
 from plantview_predictive.modeling import InsufficientDataError, build_pairs, predict, train_competition
 
 
-def records(count=140, step_hours=4):
+def records(count=140, step_hours=4, subareas=("Pila 1",)):
     start = datetime(2026, 1, 1, tzinfo=timezone.utc)
     result = []
-    for index in range(count):
-        flow = 80 + (index % 17)
-        result.append({
-            "timestampCreacion": (start + timedelta(hours=index * step_hours)).isoformat(),
-            "cuPls": 2.1 + .006 * index + .02 * (index % 5),
-            "flujoRiego": flow, "flujoRefino": 50 + index % 9,
-            "nivelPiscinaPLS": 55 + .03 * index + .2 * (index % 7),
-            "acido": 16 + index % 4, "mineral": 1200 + index % 23,
-        })
+    for subarea in subareas:
+        for index in range(count):
+            result.append({
+                "timestampCreacion": (start + timedelta(hours=index * step_hours)).isoformat(),
+                "cuPls": 2.1 + .006 * index + .02 * (index % 5),
+                "flujoPLS": 80 + index % 17, "flujoRefino": 50 + index % 9,
+                "acidezRefino": 16 + index % 4,
+                "nivelPiscinaPLS": 55 + .03 * index + .2 * (index % 7),
+                "nivelPiscinaRefino": 62 + .02 * index,
+                "subarea": subarea, "turno": "Turno A" if index % 2 else "Turno B",
+            })
     return result
 
 
@@ -45,3 +47,11 @@ def test_competition_trains_and_artifact_inferrs():
 def test_insufficient_data_never_trains():
     with pytest.raises(InsufficientDataError, match="500 pares"):
         train_competition(records(20), "cu_pls", 4, minimum_pairs=500)
+
+
+def test_pairs_never_cross_subareas():
+    source = records(2, step_hours=4, subareas=("Pila 1", "Pila 2"))
+    source = [row for row in source if not (row["subarea"] == "Pila 2" and row["timestampCreacion"].endswith("04:00:00+00:00"))]
+    x, y = build_pairs(source, "cu_pls", 4)
+    assert len(y) == 1
+    assert set(x["subarea"]) == {"Pila 1"}
