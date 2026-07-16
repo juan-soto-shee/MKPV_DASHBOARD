@@ -111,6 +111,11 @@ export function canManageConfiguration(authorization = currentAuthorization) {
   return authorization?.activo === true && TECHNICAL_ROLES.has(authorization.rol);
 }
 
+export async function getFirebaseIdToken() {
+  if (!auth.currentUser) throw new Error("No existe una sesión Firebase activa.");
+  return auth.currentUser.getIdToken();
+}
+
 async function getViewerAuthorization(user) {
   const email = user.email?.trim().toLowerCase();
   if (email) {

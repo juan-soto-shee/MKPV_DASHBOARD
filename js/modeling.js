@@ -1,7 +1,7 @@
 import "./productVersion.js?v=20260713-1";
 import { clientConfig } from "./clientConfig.js";
 import { closeRealtimeListener, startRealtimeListener } from "./firestoreService.js?v=20260713-1";
-import { requireWebAccess } from "./webAccess.js?v=auth-v2";
+import { getFirebaseIdToken, requireWebAccess } from "./webAccess.js?v=auth-v3";
 import {
   MODEL_FEATURES,
   buildPredictionRequest,
@@ -9,8 +9,6 @@ import {
   preparePredictiveData
 } from "./modelingDataAdapter.js?v=20260715-2";
 import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260714-1";
-import { getModelMetadata, getTrainedHorizon, predictCuPls } from "./trainedCuPlsModel.js?v=20260715-2";
-import { predictPoolPls, TRAINED_POOL_PLS } from "./poolPlsModel.js?v=20260715-1";
 
 const selection = parseModelingSelection();
 let dialogBound = false;
@@ -83,20 +81,18 @@ async function handleRealtimeRecords(records) {
   }
 
   try {
-    const latest = prepared.validRecords.at(-1);
-    const metadata = getModelMetadata(selectedHorizon);
-    renderPredictionResponse({
-      status: "ok",
-      prediction: predictCuPls(latest, selectedHorizon),
-      unit: "g/L",
-      recordsUsed: prepared.validCount,
-      calculatedAt: new Date().toISOString(),
-      referenceTimestamp: new Date(prepared.latestTimestamp).toISOString(),
-      predictionHorizonHours: metadata.predictionHorizonHours,
-      model: metadata,
-      metrics: metadata.metrics,
-      horizonData: getTrainedHorizon(selectedHorizon)
-    }, prepared);
+    activeRequestController?.abort("superseded");
+    const controller = new AbortController();
+    activeRequestController = controller;
+    const response = await postPrediction({
+      implementationId: clientConfig.implementationId,
+      clienteId: clientConfig.clienteId,
+      profileId: clientConfig.profileId,
+      horizonHours: selectedHorizon,
+      records: request.records
+    }, controller);
+    if (controller !== activeRequestController) return;
+    renderPredictionResponse(response, prepared);
   } catch (error) {
     renderApiError(error, prepared);
   }
@@ -105,9 +101,10 @@ async function handleRealtimeRecords(records) {
 async function postPrediction(payload, controller) {
   const timeoutId = window.setTimeout(() => controller.abort("timeout"), MODELING_API_TIMEOUT_MS);
   try {
-    const response = await fetch(`${BASE_API_URL}/v1/plantview/predictions/cu-pls-4h`, {
+    const token = await getFirebaseIdToken();
+    const response = await fetch(`${BASE_API_URL}/v1/plantview/predictions/cu-pls`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify(payload),
       signal: controller.signal
     });
@@ -163,7 +160,7 @@ function renderPredictionResponse(response, prepared) {
     [`Predicción a ${response.predictionHorizonHours} horas`, `${formatNumber(response.prediction, 3)} ${response.unit}`],
     ["Registros utilizados", response.recordsUsed]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
-  renderPoolPrediction(prepared.validRecords.at(-1));
+  renderPoolPrediction(response.poolPrediction, prepared.validRecords.at(-1));
   renderModelCompetition(response.horizonData);
   renderFacts("winningModelFacts", [
     ["Modelo", response.model.name],
@@ -191,17 +188,16 @@ function renderModelCompetition(horizonData) {
   }).join("");
 }
 
-function renderPoolPrediction(record = null) {
-  if (!record) {
+function renderPoolPrediction(pool, record) {
+  if (!pool || !record) {
     renderIndicator("recoveryIndicators", "Datos insuficientes");
     document.getElementById("poolModelMetricsBody").innerHTML = "";
     poolPredictionChart?.destroy();
     poolPredictionChart = null;
     return;
   }
-  const result = TRAINED_POOL_PLS;
   const current = record.nivelPiscinaPLS;
-  const predicted = predictPoolPls(record);
+  const predicted = pool.prediction;
   const variation = predicted - current;
   document.getElementById("recoveryIndicators").innerHTML = [
     ["Nivel actual", `${formatNumber(current, 1)} %`],
@@ -209,8 +205,8 @@ function renderPoolPrediction(record = null) {
     ["Variación esperada", `${variation >= 0 ? "+" : ""}${formatNumber(variation, 1)} puntos`],
     ["Riesgo operacional", poolRisk(predicted)]
   ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
-  document.getElementById("poolModelMetricsBody").innerHTML = Object.entries(result.validationMetrics).map(([name, metrics]) => {
-    const winner = name === result.winner;
+  document.getElementById("poolModelMetricsBody").innerHTML = Object.entries(pool.competition).map(([name, metrics]) => {
+    const winner = name === pool.model;
     return `<tr class="${winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(name)}</th><td>${formatMetric(metrics.mae)}</td><td>${formatMetric(metrics.rmse)}</td><td>${formatMetric(metrics.r2)}</td><td>--</td><td><span class="model-status">${winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
   }).join("");
   renderPoolChart({ labels: [new Date(record.timestampCreacion).toISOString()], actual: [current], predicted: [predicted] });
@@ -275,12 +271,6 @@ function renderApiError(error, prepared) {
     response: error.body || null
   });
   clearPredictiveResults();
-  renderFacts("winningModelFacts", [
-    ["Estado", error.message],
-    ["Registros válidos", prepared.validCount],
-    ["Unidad", selection.unit],
-    ["Periodo", `${selection.periodHours} horas`]
-  ]);
   showStatus(error.message);
 }
 
