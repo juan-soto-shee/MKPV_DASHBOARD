@@ -7,7 +7,7 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="css/style.css?v=20260715-6">
     <script src="js/vendor/chart.umd.min.js?v=4.4.9" defer></script>
-    <script type="module" src="js/modeling.js?v=20260716-1"></script>
+    <script type="module" src="js/modeling.js?v=20260716-3"></script>
   </head>
   <body class="modeling-page">
     <div class="shell">
@@ -23,12 +23,6 @@
           </div>
         </div>
         <div class="modeling-header-actions">
-          <label class="model-horizon-control">
-            <span class="model-horizon-label">Horizonte de predicción</span>
-            <span class="model-horizon-select">
-              <select id="predictionHorizon" aria-label="Seleccionar horizonte de predicción"><option value="4">Próximas 4 horas</option><option value="8">Próximas 8 horas</option><option value="12">Próximas 12 horas</option><option value="24">Próximas 24 horas</option></select>
-            </span>
-          </label>
           <span id="modelLastUpdated" class="data-source">Última actualización del modelo: --</span>
           <a id="backToDashboard" class="secondary-action" href="index.html">Volver al Centro de Monitoreo</a>
         </div>
@@ -36,32 +30,13 @@
 
       <main id="modelingContent" class="modeling-main">
         <p id="modelingError" class="modeling-error is-hidden" role="alert">Información de modelamiento no disponible</p>
-        <div class="prediction-grid">
-          <section class="prediction-module" aria-labelledby="cuPredictionTitle">
-            <div class="section-heading"><div><p id="cuPredictionHorizon" class="eyebrow">Horizonte de 4 horas</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div></div>
-            <div id="cuIndicators" class="model-indicators"></div>
-            <div class="model-chart-panel"><h3>Cu²⁺ en PLS — Valor real vs. predicho</h3><p>Ventana de los últimos 7 días</p><div class="model-chart-box"><canvas id="cuPredictionChart"></canvas></div></div>
-          </section>
-
-          <section class="prediction-module" aria-labelledby="poolPredictionTitle">
-            <div class="section-heading"><div><p class="eyebrow">Horizonte de 24 horas</p><h2 id="poolPredictionTitle">Predicción de Nivel Piscina PLS</h2></div></div>
-            <div id="recoveryIndicators" class="model-indicators"></div>
-            <div class="model-chart-panel"><h3>Nivel Piscina PLS — Valor real vs. predicho</h3><p>Validación temporal del modelo</p><div class="model-chart-box"><canvas id="recoveryPredictionChart"></canvas></div></div>
-          </section>
-        </div>
-
-        <details class="modeling-section collapsible-section" aria-labelledby="competitionTitle">
-          <summary class="section-heading collapsible-summary"><div><p class="eyebrow">Ciencia de Datos</p><h2 id="competitionTitle">Competencia de Modelos — Cu²⁺ en PLS</h2></div><span class="collapse-chevron" aria-hidden="true"></span></summary>
-          <div class="collapsible-content"><div class="model-table-wrap"><table class="model-table"><thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Tiempo de entrenamiento</th><th>Estado</th></tr></thead><tbody id="modelMetricsBody"></tbody></table></div></div>
-        </details>
-
-        <details class="modeling-section collapsible-section" aria-labelledby="poolCompetitionTitle">
-          <summary class="section-heading collapsible-summary"><div><p class="eyebrow">Ciencia de Datos</p><h2 id="poolCompetitionTitle">Competencia de Modelos — Nivel Piscina PLS</h2></div><span class="collapse-chevron" aria-hidden="true"></span></summary>
-          <div class="collapsible-content"><div class="model-table-wrap"><table class="model-table"><thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Tiempo de entrenamiento</th><th>Estado</th></tr></thead><tbody id="poolModelMetricsBody"></tbody></table></div></div>
-        </details>
+        <section class="prediction-module" aria-labelledby="cuPredictionTitle">
+          <div class="section-heading"><div><p class="eyebrow">Horizontes aprobados</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div></div>
+          <div id="cuIndicators" class="model-indicators"></div>
+        </section>
 
         <section class="modeling-section winner-information" aria-labelledby="winnerTitle">
-          <div><p class="eyebrow">Resultado de evaluación</p><h2 id="winnerTitle">Modelo activo</h2></div>
+          <div><p class="eyebrow">Resultado de evaluación</p><h2 id="winnerTitle">Modelos activos</h2></div>
           <dl id="winningModelFacts" class="winner-facts"></dl>
           <button id="showModelVariables" class="primary-action" type="button" aria-controls="modelVariablesOverlay">Ver variables del modelo</button>
         </section>

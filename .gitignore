@@ -1,0 +1,13 @@
+predictive_service/.venv/
+predictive_service/.pytest_cache/
+predictive_service/**/__pycache__/
+predictive_service/*.egg-info/
+.env
+predictive_service/artifacts/*
+!predictive_service/artifacts/candidates/
+predictive_service/artifacts/candidates/*
+!predictive_service/artifacts/candidates/v20260716T195727256557Z/
+predictive_service/artifacts/candidates/v20260716T195727256557Z/*
+!predictive_service/artifacts/candidates/v20260716T195727256557Z/cu_pls_4h.joblib
+!predictive_service/artifacts/candidates/v20260716T195727256557Z/cu_pls_8h.joblib
+!predictive_service/artifacts/candidates/v20260716T195727256557Z/cu_pls_12h.joblib
