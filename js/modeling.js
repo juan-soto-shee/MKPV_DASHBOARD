@@ -9,7 +9,6 @@ import {
   preparePredictiveData
 } from "./modelingDataAdapter.js?v=20260715-2";
 import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260714-1";
-import { LOCAL_MODELING_RESULT } from "./modelingLocalResult.js?v=20260715-1";
 import { getModelMetadata, getTrainedHorizon, predictCuPls } from "./trainedCuPlsModel.js?v=20260715-2";
 import { predictPoolPls, TRAINED_POOL_PLS } from "./poolPlsModel.js?v=20260715-1";
 
@@ -175,51 +174,34 @@ function renderPredictionResponse(response, prepared) {
     ["Unidad", selection.unit],
     ["Último registro enviado", prepared.latestTimestamp ? formatDateTime(prepared.latestTimestamp) : "--"]
   ]);
-  renderCuPredictionChart(LOCAL_MODELING_RESULT);
+  const latest = prepared.validRecords.at(-1);
+  renderCuPredictionChart({
+    labels: [new Date(latest.timestampCreacion).toISOString()],
+    actual: [latest.cuPls],
+    predicted: [response.prediction]
+  });
   showStatus(`Modelo conectado · ${response.recordsUsed} registros válidos recientes.`, "connected");
 }
 
-function renderLocalModelResult() {
-  const result = LOCAL_MODELING_RESULT;
-  const metadata = result.metadata;
-  clearPredictiveResults();
-  document.getElementById("modelLastUpdated").textContent = `Modelo entrenado: ${formatDateTime(metadata.trainedAt)}`;
-  document.getElementById("cuIndicators").innerHTML = [
-    ["Valor actual", `${formatNumber(result.currentCuPls, 3)} g/L`],
-    ["Predicción a 4 horas", `${formatNumber(result.predictedCuPls, 3)} g/L`],
-    ["Error MAE de prueba", `${formatNumber(metadata.testMetrics.mae, 4)} g/L`],
-    ["Precisión R²", formatNumber(metadata.testMetrics.r2, 3)]
-  ].map(([label, value]) => `<article class="model-indicator"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
-  const latest = prepared.validRecords.at(-1);
-  if (latest) renderPoolPrediction(latest);
-  else renderIndicator("recoveryIndicators", availabilityMessage);
-  renderModelCompetition();
-  renderFacts("winningModelFacts", [
-    ["Modelo", metadata.modelName],
-    ["Versión", metadata.modelVersion],
-    ["Registros de entrenamiento", metadata.trainingRows],
-    ["Registros de validación", metadata.validationRows],
-    ["Registros de prueba", metadata.testRows],
-    ["MAE prueba", `${formatNumber(metadata.testMetrics.mae, 4)} g/L`],
-    ["R² prueba", formatNumber(metadata.testMetrics.r2, 4)]
-  ]);
-  renderCuPredictionChart(result);
-  showStatus("");
-}
-
-function renderModelCompetition(horizonData = null) {
-  const rows = horizonData
-    ? Object.entries(horizonData.validationMetrics).map(([modelName, metrics]) => ({ modelName, ...metrics, winner: modelName === horizonData.winner }))
-    : LOCAL_MODELING_RESULT.metrics.map((row) => ({ modelName: row.modelName, mae: row.validation_mae, rmse: row.validation_rmse, r2: row.validation_r2, winner: row.selected === true || row.selected === "True" }));
+function renderModelCompetition(horizonData) {
+  const rows = Object.entries(horizonData.validationMetrics)
+    .map(([modelName, metrics]) => ({ modelName, ...metrics, winner: modelName === horizonData.winner }));
   document.getElementById("modelMetricsBody").innerHTML = rows.map((row) => {
     return `<tr class="${row.winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(row.modelName)}</th><td>${formatMetric(row.mae)}</td><td>${formatMetric(row.rmse)}</td><td>${formatMetric(row.r2)}</td><td>--</td><td><span class="model-status">${row.winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
   }).join("");
 }
 
 function renderPoolPrediction(record = null) {
+  if (!record) {
+    renderIndicator("recoveryIndicators", "Datos insuficientes");
+    document.getElementById("poolModelMetricsBody").innerHTML = "";
+    poolPredictionChart?.destroy();
+    poolPredictionChart = null;
+    return;
+  }
   const result = TRAINED_POOL_PLS;
-  const current = record?.nivelPiscinaPLS ?? result.chart.actual.at(-1);
-  const predicted = record ? predictPoolPls(record) : result.chart.predicted.at(-1);
+  const current = record.nivelPiscinaPLS;
+  const predicted = predictPoolPls(record);
   const variation = predicted - current;
   document.getElementById("recoveryIndicators").innerHTML = [
     ["Nivel actual", `${formatNumber(current, 1)} %`],
@@ -231,7 +213,7 @@ function renderPoolPrediction(record = null) {
     const winner = name === result.winner;
     return `<tr class="${winner ? "winner-row" : ""}"><th scope="row">${escapeHtml(name)}</th><td>${formatMetric(metrics.mae)}</td><td>${formatMetric(metrics.rmse)}</td><td>${formatMetric(metrics.r2)}</td><td>--</td><td><span class="model-status">${winner ? "Ganador" : "Evaluado"}</span></td></tr>`;
   }).join("");
-  renderPoolChart(result.chart);
+  renderPoolChart({ labels: [new Date(record.timestampCreacion).toISOString()], actual: [current], predicted: [predicted] });
 }
 
 function poolRisk(value) {
@@ -314,17 +296,6 @@ function renderAvailability(prepared) {
       ? `Datos insuficientes para actualizar la predicción. Registros válidos: ${prepared.validCount} de ${prepared.requiredCount} requeridos.`
       : "Motor predictivo pendiente de conexión con el servicio de modelado.";
 
-  renderIndicator("cuIndicators", availabilityMessage);
-  renderPoolPrediction();
-  document.getElementById("modelMetricsBody").innerHTML = "<tr><td colspan=\"6\">No hay métricas de producción disponibles. El artefacto existente fue validado sólo con datos demostrativos.</td></tr>";
-  renderFacts("winningModelFacts", [
-    ["Modelo disponible", profileAvailable ? "Cu²⁺ PLS a 4 horas (Python, preliminar)" : "No disponible para este perfil"],
-    ["Ejecución", "Backend Python requerido"],
-    ["Periodo", `${selection.periodHours} horas`],
-    ["Unidad", selection.unit],
-    ["Registros considerados", prepared.considered],
-    ["Registros válidos", prepared.validCount]
-  ]);
   showStatus(availabilityMessage);
 }
 
@@ -336,12 +307,19 @@ function rejectionReason(prepared) {
 }
 
 function clearPredictiveResults() {
+  cuPredictionChart?.destroy();
+  poolPredictionChart?.destroy();
+  cuPredictionChart = null;
+  poolPredictionChart = null;
   for (const id of ["cuPredictionChart", "recoveryPredictionChart"]) {
     const canvas = document.getElementById(id);
     canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
   }
-  renderIndicator("cuIndicators", "Sin predicción calculada");
-  renderIndicator("recoveryIndicators", "Sin predicción calculada");
+  document.getElementById("cuIndicators").innerHTML = "";
+  document.getElementById("recoveryIndicators").innerHTML = "";
+  document.getElementById("modelMetricsBody").innerHTML = "";
+  document.getElementById("poolModelMetricsBody").innerHTML = "";
+  document.getElementById("winningModelFacts").innerHTML = "";
 }
 
 function configureNavigation() {
