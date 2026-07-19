@@ -1,6 +1,7 @@
 import { filterRecordsByPeriod, getReferenceTimestamp } from "./dateTime.js";
 
-export const MODEL_MINIMUM_RECORDS = 50;
+// Los artefactos productivos infieren a partir del ultimo registro operacional completo.
+export const MODEL_MINIMUM_RECORDS = 1;
 export const SUPPORTED_PERIODS = Object.freeze([24, 168, 720]);
 export const MODEL_FEATURES = Object.freeze([
   "cuPls", "flujoPLS", "flujoRefino", "acidezRefino",

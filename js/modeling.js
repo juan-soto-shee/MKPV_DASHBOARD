@@ -4,7 +4,7 @@ import { closeRealtimeListener, startRealtimeListener } from "./firestoreService
 import { getFirebaseIdToken, requireWebAccess } from "./webAccess.js?v=auth-v3";
 import {
   MODEL_FEATURES, buildPredictionRequest, parseModelingSelection, preparePredictiveData
-} from "./modelingDataAdapter.js?v=20260719-1";
+} from "./modelingDataAdapter.js?v=20260719-2";
 import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260714-1";
 
 const APPROVED_HORIZONS = Object.freeze([4, 8, 12]);
@@ -57,10 +57,10 @@ async function handleRealtimeRecords(records) {
     }
   });
 
-  if (clientConfig.profileId !== "lixiviacion" || !prepared.sufficient || !prepared.hasVariation) {
+  if (clientConfig.profileId !== "lixiviacion" || !prepared.sufficient) {
     activeRequestController?.abort("superseded");
     clearPredictiveResults();
-    showStatus("Datos insuficientes");
+    showStatus(`Datos insuficientes: ${prepared.validCount}/${prepared.requiredCount} registros validos`);
     return;
   }
 
