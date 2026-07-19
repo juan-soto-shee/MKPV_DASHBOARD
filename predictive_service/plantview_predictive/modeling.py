@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -24,6 +25,8 @@ CATEGORICAL_FEATURES = ["subarea", "turno"]
 FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 TARGETS = {"cu_pls": "cuPls", "pool_pls": "nivelPiscinaPLS"}
 HORIZONS = {"cu_pls": (4, 8, 12, 24), "pool_pls": (24,)}
+
+logger = logging.getLogger(__name__)
 
 
 class InsufficientDataError(ValueError):
@@ -65,6 +68,25 @@ def _timestamp(value: Any) -> pd.Timestamp:
 
 
 def normalize_records(records: list[dict[str, Any]]) -> pd.DataFrame:
+    logger.info("FILTROS before=%d", len(records))
+    required = ["timestampCreacion", *NUMERIC_FEATURES[:6], *CATEGORICAL_FEATURES]
+    for record in records:
+        missing = [field for field in required if field not in record or record.get(field) is None]
+        invalid = []
+        if "timestampCreacion" not in missing and pd.isna(_timestamp(record.get("timestampCreacion"))):
+            invalid.append("timestampCreacion invalido")
+        for field in NUMERIC_FEATURES[:6]:
+            if field not in missing and pd.isna(pd.to_numeric(record.get(field), errors="coerce")):
+                invalid.append(f"{field} no numerico ({type(record.get(field)).__name__})")
+        for field in CATEGORICAL_FEATURES:
+            if field not in missing and not str(record.get(field)).strip():
+                invalid.append(f"{field} vacio")
+        if missing or invalid:
+            logger.warning(
+                "VALIDACION discard id=%s fecha=%s hora=%s subarea=%s missing=%s invalid=%s",
+                record.get("id", "--"), record.get("fecha", "--"), record.get("hora", "--"),
+                record.get("subarea", "--"), missing, invalid,
+            )
     frame = pd.DataFrame(records)
     if "timestampCreacion" not in frame:
         raise InsufficientDataError("Los registros no contienen timestampCreacion")
@@ -77,9 +99,15 @@ def normalize_records(records: list[dict[str, Any]]) -> pd.DataFrame:
     frame["diaSemana"] = frame["timestampCreacion"].dt.dayofweek
     frame = frame.dropna(subset=["timestampCreacion", *NUMERIC_FEATURES[:6], *CATEGORICAL_FEATURES])
     frame = frame[(frame["subarea"] != "") & (frame["turno"] != "")]
-    return frame.sort_values(["timestampCreacion", "subarea"]).drop_duplicates(
+    valid = frame.sort_values(["timestampCreacion", "subarea"]).drop_duplicates(
         subset=["timestampCreacion", "subarea"], keep="last"
     )
+    logger.info(
+        "DATASET valid=%d discarded=%d available=%s missing=%s",
+        len(valid), len(records) - len(valid), sorted(valid.columns),
+        sorted(set(FEATURES) - set(valid.columns)),
+    )
+    return valid
 
 
 def _paired_frame(records: list[dict[str, Any]], target_name: str, horizon: int) -> pd.DataFrame:
@@ -92,7 +120,9 @@ def _paired_frame(records: list[dict[str, Any]], target_name: str, horizon: int)
         paired_groups.append(unit.merge(future, on="timestampCreacion", how="inner", validate="one_to_one"))
     if not paired_groups:
         return pd.DataFrame(columns=["timestampCreacion", *FEATURES, "target"])
-    return pd.concat(paired_groups, ignore_index=True).sort_values(["timestampCreacion", "subarea"])
+    paired = pd.concat(paired_groups, ignore_index=True).sort_values(["timestampCreacion", "subarea"])
+    logger.info("GENERACION_PARES target=%s horizon_hours=%d pairs=%d", target_name, horizon, len(paired))
+    return paired
 
 
 def build_pairs(
@@ -172,7 +202,9 @@ def predict(artifact: bytes, record: dict[str, Any]) -> float:
     normalized = normalize_records([record])
     if normalized.empty:
         raise ValueError("El registro no contiene todas las variables predictoras requeridas")
-    return float(bundle["estimator"].predict(normalized[bundle["features"]])[0])
+    result = float(bundle["estimator"].predict(normalized[bundle["features"]])[0])
+    logger.info("MODELO inference_records=1 features=%s prediction=%s", bundle["features"], result)
+    return result
 
 
 def new_version() -> str:

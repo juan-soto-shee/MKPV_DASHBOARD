@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import logging
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -8,6 +9,8 @@ import firebase_admin
 from firebase_admin import firestore
 
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 LOCAL_MODEL_VERSION = "v20260716T195727256557Z"
 LOCAL_ARTIFACTS = {
@@ -38,7 +41,14 @@ class FirebaseRepository:
                  .where("clienteId", "==", context["clienteId"])
                  .where("implementationId", "==", context["implementationId"])
                  .where("profileId", "==", context["profileId"]))
-        return [{"id": item.id, **item.to_dict()} for item in query.stream()]
+        logger.info(
+            "FIRESTORE project=%s collection=%s query=clienteId==%s AND implementationId==%s AND profileId==%s",
+            settings.firebase_project_id, settings.records_collection, context["clienteId"],
+            context["implementationId"], context["profileId"],
+        )
+        records = [{"id": item.id, **item.to_dict()} for item in query.stream()]
+        logger.info("FIRESTORE documents=%d", len(records))
+        return records
 
     def upload_artifact(self, path: str, data: bytes) -> None:
         raise RuntimeError(
@@ -55,6 +65,10 @@ class FirebaseRepository:
         artifact_path = LOCAL_ARTIFACT_DIR / logical_path.name
         if not artifact_path.is_file():
             raise LookupError("La versiÃ³n activa no existe en los artefactos locales")
+        logger.info(
+            "MODELO artifact_loaded=true version=%s logical_path=%s local_path=%s",
+            LOCAL_MODEL_VERSION, path, artifact_path,
+        )
         return artifact_path.read_bytes()
 
     def get_active_version(self, context: dict[str, str]) -> dict[str, Any] | None:
