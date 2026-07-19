@@ -31,7 +31,10 @@ export function preparePredictiveData(records, {
   const normalized = (records || [])
     .map((record) => normalizeRecord(record, variables))
     .filter(Boolean);
-  const operationalRecords = normalized.filter((record) => record.isDemo !== true);
+  // La implementacion demo se entrena y opera con su dataset sintetico marcado isDemo.
+  // En cualquier otra implementacion los registros demo siguen excluidos.
+  const allowDemoRecords = implementationId === "demo_lixiviacion";
+  const operationalRecords = normalized.filter((record) => allowDemoRecords || record.isDemo !== true);
   const clientRecords = operationalRecords.filter((record) => record.clienteId === clienteId);
   const implementationRecords = clientRecords.filter((record) => matchesImplementation(
     record, implementationId, clienteId

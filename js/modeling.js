@@ -38,6 +38,25 @@ async function handleRealtimeRecords(records) {
   });
   const request = buildPredictionRequest(prepared, { ...selection, ...clientConfig });
 
+  console.info("[PlantViewModel] pipeline de datos", {
+    firestore: { collection: clientConfig.identity.firebase.coleccionRegistros, received: prepared.received },
+    filters: {
+      normalized: prepared.normalized,
+      demoRecordsExcluded: prepared.demoRecordsExcluded,
+      afterClient: prepared.afterClient,
+      afterImplementation: prepared.afterImplementation,
+      afterUnit: prepared.afterUnit,
+      afterPeriod: prepared.afterPeriod
+    },
+    validation: {
+      valid: prepared.afterValidation,
+      duplicatesRemoved: prepared.duplicatesRemoved,
+      variables: MODEL_FEATURES,
+      sufficient: prepared.sufficient,
+      hasVariation: prepared.hasVariation
+    }
+  });
+
   if (clientConfig.profileId !== "lixiviacion" || !prepared.sufficient || !prepared.hasVariation) {
     activeRequestController?.abort("superseded");
     clearPredictiveResults();

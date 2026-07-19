@@ -68,6 +68,25 @@ def test_approved_model_infers_from_matching_local_version(monkeypatch):
 
 
 @pytest.mark.parametrize("horizon", [4, 8, 12])
+def test_packaged_models_generate_predictions(horizon):
+    repository = FakeRepository(active=active_model(
+        horizon=horizon, winner=service_module.APPROVED_MODELS[horizon]
+    ))
+    repository.download_artifact = lambda path: FirebaseRepository.__new__(
+        FirebaseRepository
+    ).download_artifact(path)
+    record = {
+        "timestampCreacion": "2026-07-15T01:00:00Z", "cuPls": 4.1,
+        "flujoPLS": 980, "flujoRefino": 770, "acidezRefino": 8.7,
+        "nivelPiscinaPLS": 68, "nivelPiscinaRefino": 68,
+        "subarea": "Pila 1", "turno": "Turno A",
+    }
+    response = PredictiveService(repository).infer_cu(CONTEXT, horizon, [record])
+    assert response["status"] == "ok"
+    assert isinstance(response["prediction"], float)
+
+
+@pytest.mark.parametrize("horizon", [4, 8, 12])
 def test_local_approved_artifacts_are_packaged(horizon):
     path = (
         "plantview-models/client_a/impl_a/lixiviacion/"
