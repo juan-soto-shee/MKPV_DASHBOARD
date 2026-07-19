@@ -139,8 +139,8 @@ function renderPredictionCharts(responses) {
   predictionCharts.clear();
   container.innerHTML = responses.map((response) => `
     <article class="model-chart-panel">
-      <h3>Serie real vs. modelada Â· +${response.predictionHorizonHours} h</h3>
-      <p>CuÂ²âº de planta ponderado por flujo PLS</p>
+      <h3>Serie real vs. modelada · +${response.predictionHorizonHours} h</h3>
+      <p>Cu²⁺ de planta ponderado por caudal PLS</p>
       <div class="model-chart-box"><canvas id="predictionChart${response.predictionHorizonHours}"></canvas></div>
     </article>
   `).join("");
@@ -159,15 +159,18 @@ function renderPredictionChart(response) {
     data: {
       labels: labels.map(shortDateTime),
       datasets: [
-        { label: "CuÂ²âº real", data: labels.map((label) => actual.get(label) ?? null), borderColor: "#28d7f4", backgroundColor: "transparent", borderWidth: 2, pointRadius: 1, tension: .22, spanGaps: true },
-        { label: `CuÂ²âº modelado +${response.predictionHorizonHours} h`, data: labels.map((label) => modeled.get(label) ?? null), borderColor: "#ffb000", backgroundColor: "transparent", borderWidth: 2, borderDash: [6, 4], pointRadius: 1, tension: .22, spanGaps: true }
+        { label: "Cu²⁺ real", data: labels.map((label) => actual.get(label) ?? null), borderColor: "#28d7f4", backgroundColor: "transparent", borderWidth: 2, pointRadius: 1, pointStyle: "line", tension: .22, spanGaps: true },
+        { label: `Cu²⁺ modelado +${response.predictionHorizonHours} h`, data: labels.map((label) => modeled.get(label) ?? null), borderColor: "#ffb000", backgroundColor: "transparent", borderWidth: 2, borderDash: [6, 4], pointRadius: 1, pointStyle: "line", tension: .22, spanGaps: true }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
-      plugins: { legend: { labels: { color: "#c9dde5" } } },
+      plugins: {
+        legend: { labels: { color: "#c9dde5", usePointStyle: true, pointStyle: "line", boxWidth: 42 } },
+        tooltip: { usePointStyle: true }
+      },
       scales: {
         x: { ticks: { color: "#8eabb5", maxTicksLimit: 8 }, grid: { color: "rgba(83, 121, 135, .12)" } },
         y: { ticks: { color: "#8eabb5" }, grid: { color: "rgba(83, 121, 135, .16)" } }
