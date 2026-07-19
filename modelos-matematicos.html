@@ -36,15 +36,20 @@
           <div id="predictionCharts" class="prediction-chart-grid" aria-label="Series reales y modeladas"></div>
         </section>
 
-        <section class="modeling-section" aria-labelledby="competitionTitle">
-          <div class="section-heading"><div><p class="eyebrow">Ciencia de datos</p><h2 id="competitionTitle">Análisis de modelos ganadores</h2></div></div>
-          <div class="model-table-wrap">
-            <table class="model-table">
-              <thead><tr><th>Horizonte</th><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Entrenamiento</th><th>Resultado</th></tr></thead>
-              <tbody id="modelMetricsBody"></tbody>
-            </table>
+        <details class="modeling-section collapsible-section" aria-labelledby="competitionTitle" open>
+          <summary class="section-heading collapsible-summary">
+            <div><p class="eyebrow">Ciencia de datos</p><h2 id="competitionTitle">Análisis de modelos ganadores</h2></div>
+            <span class="collapse-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="collapsible-content">
+            <div class="model-table-wrap">
+              <table class="model-table">
+                <thead><tr><th>Horizonte</th><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Entrenamiento</th><th>Resultado</th></tr></thead>
+                <tbody id="modelMetricsBody"></tbody>
+              </table>
+            </div>
           </div>
-        </section>
+        </details>
 
         <section class="modeling-section winner-information" aria-labelledby="winnerTitle" hidden>
           <div><p class="eyebrow">Resultado de evaluación</p><h2 id="winnerTitle">Modelos activos</h2></div>
