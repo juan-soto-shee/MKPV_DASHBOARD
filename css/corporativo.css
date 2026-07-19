@@ -23,23 +23,14 @@
 .corporate-brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
   text-decoration: none;
 }
 
-.brand-mark {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border: 1px solid var(--cyan);
-  border-radius: 8px;
-  color: var(--cyan);
-  font-size: 0.82rem;
-  box-shadow: inset 0 0 18px rgba(50, 213, 232, 0.1);
+.corporate-brand img {
+  width: 180px;
+  height: 76px;
+  object-fit: contain;
+  object-position: left center;
 }
 
 .header-contact {
@@ -136,9 +127,17 @@
   box-shadow: 0 0 60px rgba(50, 213, 232, 0.12);
 }
 
+.hero-brand-logo {
+  display: block;
+  width: min(250px, 86%);
+  max-height: 150px;
+  margin: -10px auto 18px;
+  object-fit: contain;
+}
+
 .panel-label { color: var(--cyan); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-.hero-panel strong { display: block; max-width: 300px; margin-top: 24px; font-size: 1.7rem; line-height: 1.2; }
-.signal-lines { display: grid; gap: 10px; margin-top: 44px; }
+.hero-panel strong { display: block; max-width: 300px; margin-top: 18px; font-size: 1.7rem; line-height: 1.2; }
+.signal-lines { display: grid; gap: 10px; margin-top: 30px; }
 .signal-lines i { display: block; width: var(--width, 78%); height: 3px; background: linear-gradient(90deg, var(--cyan), transparent); }
 .signal-lines i:nth-child(2) { --width: 52%; }
 .signal-lines i:nth-child(3) { --width: 88%; }
@@ -167,6 +166,7 @@
 @media (max-width: 760px) {
   .corporate-header, .corporate-page main, .corporate-page footer { width: min(100% - 28px, 1180px); }
   .header-contact { display: none; }
+  .corporate-brand img { width: 150px; height: 64px; }
   .hero { min-height: auto; grid-template-columns: 1fr; gap: 42px; padding: 64px 0 72px; }
   .hero-panel { min-height: 240px; }
   .hero-actions, .hero-actions .button { width: 100%; }
