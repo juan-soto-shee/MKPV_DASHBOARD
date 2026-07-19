@@ -1,6 +1,6 @@
 import { closeRealtimeListener, getRecordsForPeriod, startRealtimeListener } from "./firestoreService.js?v=20260713-1";
 import { updateCharts } from "./charts.js?v=20260709-1";
-import { PLANT_AREA, buildPlantRecords, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260709-7";
+import { PLANT_AREA, buildPlantRecords, getCurrentState, getWorstState, normalizeStateClass, renderProcessMap } from "./processMap.js?v=20260719-1";
 import { getAlarmConfig, initAlarmAdmin, onAlarmConfigChange, updateAdminStats } from "./alarmAdmin.js?v=20260715-1";
 import { clientConfig } from "./clientConfig.js";
 import { filterRecordsByPeriod, normalizeRecordDateTime } from "./dateTime.js?v=20260712-3";
@@ -129,7 +129,7 @@ function render() {
   const selectedRecords = filterRawRecordsByArea(recentRecords, state.selectedArea);
   const chartRecords = filterByArea(recentRecords, state.selectedArea);
   const alarmConfig = getAlarmConfig();
-  const plantState = getWorstState(recentRecords, alarmConfig);
+  const plantState = getCurrentState(recentRecords, alarmConfig);
 
   elements.plantStatusLabel.textContent = plantState;
   elements.plantStatusDot.className = `status-dot ${normalizeStateClass(plantState)}`;
@@ -663,7 +663,7 @@ function renderMobileSummary(records, alarmConfig) {
 
     const areaRecords = filterRawRecordsByArea(records, area);
     const stateClass = areaRecords.length
-      ? normalizeStateClass(getWorstState(areaRecords, alarmConfig))
+      ? normalizeStateClass(getCurrentState(areaRecords, alarmConfig))
       : "sin-datos";
     const item = counter.closest("span");
 

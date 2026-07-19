@@ -5,7 +5,7 @@ import { getFirebaseIdToken, requireWebAccess } from "./webAccess.js?v=auth-v3";
 import {
   MODEL_FEATURES, buildPredictionRequest, parseModelingSelection, preparePredictiveData
 } from "./modelingDataAdapter.js?v=20260719-2";
-import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260714-1";
+import { BASE_API_URL, MODELING_API_TIMEOUT_MS } from "./modelingConfig.js?v=20260719-2";
 
 const APPROVED_HORIZONS = Object.freeze([4, 8, 12]);
 const selection = parseModelingSelection();

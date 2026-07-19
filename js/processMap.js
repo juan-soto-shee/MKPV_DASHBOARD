@@ -19,6 +19,16 @@ export function getWorstState(records, alarmConfig = null) {
   }, "Normal");
 }
 
+export function getCurrentState(records, alarmConfig = null) {
+  const latestRecords = [...getLatestBySubarea(records).values()];
+  if (latestRecords.length) return getWorstState(latestRecords, alarmConfig);
+
+  const latest = records.reduce((current, record) => (
+    !current || record.timestampCreacion > current.timestampCreacion ? record : current
+  ), null);
+  return latest ? getWorstState([latest], alarmConfig) : "Sin datos";
+}
+
 export function buildPlantRecords(records) {
   if (!pileAreas.length) {
     return [...records].sort((a, b) => a.timestampCreacion - b.timestampCreacion);
@@ -230,7 +240,9 @@ function getLatestBySubarea(records) {
   const latestBySubarea = new Map();
 
   records.forEach((record) => {
-    if (monitoredAreas.includes(record.subarea) && !latestBySubarea.has(record.subarea)) {
+    const current = latestBySubarea.get(record.subarea);
+    if (monitoredAreas.includes(record.subarea)
+        && (!current || record.timestampCreacion > current.timestampCreacion)) {
       latestBySubarea.set(record.subarea, record);
     }
     if (!pileAreas.length) {
@@ -244,7 +256,9 @@ function getLatestBySubarea(records) {
         const hasEquipmentValue = variableKeys.some((key) =>
           Number.isFinite(record[key]) || String(record[key] || "").trim()
         );
-        if (hasEquipmentValue && !latestBySubarea.has(equipment.nombre)) {
+        const currentEquipment = latestBySubarea.get(equipment.nombre);
+        if (hasEquipmentValue
+            && (!currentEquipment || record.timestampCreacion > currentEquipment.timestampCreacion)) {
           latestBySubarea.set(equipment.nombre, record);
         }
       });
