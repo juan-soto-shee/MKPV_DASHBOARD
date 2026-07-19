@@ -7,7 +7,7 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="css/style.css?v=20260715-6">
     <script src="js/vendor/chart.umd.min.js?v=4.4.9" defer></script>
-  <script type="module" src="js/modeling.js?v=20260719-5"></script>
+    <script type="module" src="js/modeling.js?v=20260719-6"></script>
   </head>
   <body class="modeling-page">
     <div class="shell">
@@ -34,6 +34,16 @@
           <div class="section-heading"><div><p class="eyebrow">Horizontes aprobados</p><h2 id="cuPredictionTitle">Predicción de Cu²⁺ en PLS</h2></div></div>
           <div id="cuIndicators" class="model-indicators"></div>
           <div id="predictionCharts" class="prediction-chart-grid" aria-label="Series reales y modeladas"></div>
+        </section>
+
+        <section class="modeling-section" aria-labelledby="competitionTitle">
+          <div class="section-heading"><div><p class="eyebrow">Ciencia de datos</p><h2 id="competitionTitle">Análisis de modelos ganadores</h2></div></div>
+          <div class="model-table-wrap">
+            <table class="model-table">
+              <thead><tr><th>Horizonte</th><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Entrenamiento</th><th>Resultado</th></tr></thead>
+              <tbody id="modelMetricsBody"></tbody>
+            </table>
+          </div>
         </section>
 
         <section class="modeling-section winner-information" aria-labelledby="winnerTitle">

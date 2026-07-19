@@ -129,8 +129,32 @@ function renderPredictionResponses(responses) {
   document.getElementById("winningModelFacts").innerHTML = responses.map((response) => `
     <div><dt>Cu²⁺ +${response.predictionHorizonHours} h</dt><dd>${escapeHtml(response.model.name)} · ${escapeHtml(response.model.version)}</dd></div>
   `).join("");
+  renderModelAnalysis(responses);
   renderPredictionCharts(responses);
   showStatus("Servicio predictivo conectado", "connected");
+}
+
+function renderModelAnalysis(responses) {
+  const rows = responses.flatMap((response) => {
+    const winner = response.horizonData?.winner || response.model?.name;
+    const competition = response.horizonData?.validationMetrics || {};
+    return Object.entries(competition).map(([modelName, metrics]) => ({
+      horizon: response.predictionHorizonHours,
+      modelName,
+      winner: modelName === winner,
+      ...metrics
+    }));
+  });
+  document.getElementById("modelMetricsBody").innerHTML = rows.length ? rows.map((row) => `
+    <tr class="${row.winner ? "winner-row" : ""}">
+      <td>+${escapeHtml(row.horizon)} h</td>
+      <th scope="row">${escapeHtml(row.modelName)}</th>
+      <td>${formatMetric(row.mae)}</td>
+      <td>${formatMetric(row.rmse)}</td>
+      <td>${formatMetric(row.r2)}</td>
+      <td>${Number.isFinite(Number(row.durationSeconds)) ? `${formatNumber(row.durationSeconds, 3)} s` : "--"}</td>
+      <td><span class="model-status">${row.winner ? "Ganador" : "Evaluado"}</span></td>
+    </tr>`).join("") : '<tr><td colspan="7">No hay métricas de evaluación disponibles.</td></tr>';
 }
 
 function renderPredictionCharts(responses) {
@@ -190,6 +214,7 @@ function clearPredictiveResults() {
   predictionCharts.clear();
   document.getElementById("predictionCharts").innerHTML = "";
   document.getElementById("cuIndicators").innerHTML = "";
+  document.getElementById("modelMetricsBody").innerHTML = "";
   document.getElementById("winningModelFacts").innerHTML = "";
   document.getElementById("modelLastUpdated").textContent = "Último cálculo: --";
 }
@@ -245,6 +270,7 @@ function formatNumber(value, decimals) {
     minimumFractionDigits: decimals, maximumFractionDigits: decimals
   });
 }
+function formatMetric(value) { return Number.isFinite(Number(value)) ? formatNumber(Number(value), 3) : "--"; }
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
