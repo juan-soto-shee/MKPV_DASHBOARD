@@ -20,8 +20,28 @@ export function getWorstState(records, alarmConfig = null) {
 }
 
 export function getCurrentState(records, alarmConfig = null) {
-  const latestRecords = [...getLatestBySubarea(records).values()];
-  if (latestRecords.length) return getWorstState(latestRecords, alarmConfig);
+  const latestBySubarea = getLatestBySubarea(records);
+  const latestRecords = [...latestBySubarea.values()];
+  if (alarmConfig && latestRecords.length) {
+    const plantRecords = buildPlantRecords(records);
+    const latestPlant = plantRecords[plantRecords.length - 1];
+
+    return Object.keys(alarmConfig).reduce((worst, variableKey) => {
+      const alarmDefinition = clientConfig.alarmVariables.find((item) => item.key === variableKey);
+      if (!alarmDefinition) return worst;
+
+      const sourceRecord = alarmDefinition.equipo
+        ? latestBySubarea.get(alarmDefinition.equipo)
+        : latestPlant;
+      const current = evaluateAlarmState(
+        variableKey,
+        sourceRecord?.[alarmDefinition.variable],
+        alarmConfig
+      );
+      return severityValue(current) > severityValue(worst) ? current : worst;
+    }, "Normal");
+  }
+  if (latestRecords.length) return getWorstState(latestRecords);
 
   const latest = records.reduce((current, record) => (
     !current || record.timestampCreacion > current.timestampCreacion ? record : current
