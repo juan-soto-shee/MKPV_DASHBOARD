@@ -61,10 +61,21 @@ def test_missing_local_active_version_returns_unavailable():
 def test_approved_model_infers_from_matching_local_version(monkeypatch):
     repository = FakeRepository(active=active_model())
     monkeypatch.setattr(service_module, "predict", lambda artifact, record: 1.234)
+    monkeypatch.setattr(service_module, "predict_series", lambda artifact, records, horizon: [])
     response = PredictiveService(repository).infer_cu(CONTEXT, 4, [{"cuPls": 1.2}])
     assert response["prediction"] == 1.234
     assert response["model"]["version"] == LOCAL_MODEL_VERSION
     assert repository.downloads[0].endswith("cu_pls_4h.joblib")
+
+
+def test_prediction_response_includes_real_and_modeled_series(monkeypatch):
+    repository = FakeRepository(active=active_model())
+    point = {"timestamp": "2026-07-15T01:00:00+00:00", "targetTimestamp": "2026-07-15T05:00:00+00:00",
+             "actual": 1.2, "predicted": 1.234}
+    monkeypatch.setattr(service_module, "predict", lambda artifact, record: 1.234)
+    monkeypatch.setattr(service_module, "predict_series", lambda artifact, records, horizon: [point])
+    response = PredictiveService(repository).infer_cu(CONTEXT, 4, [{"cuPls": 1.2}])
+    assert response["series"] == [point]
 
 
 @pytest.mark.parametrize("horizon", [4, 8, 12])
