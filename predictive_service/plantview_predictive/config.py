@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     audits_collection: str = "prediction_model_audits"
     minimum_pairs: int = 500
     allowed_profile_id: str = "lixiviacion"
+    cors_allowed_origins: str = "https://juan-soto-shee.github.io"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
 
 
 settings = Settings()

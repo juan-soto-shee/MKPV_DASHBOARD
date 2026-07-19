@@ -7,6 +7,33 @@ from plantview_predictive.auth import authorize_context
 from plantview_predictive.main import app
 
 
+def test_github_pages_preflight_is_allowed():
+    response = TestClient(app).options(
+        "/v1/plantview/predictions/cu-pls",
+        headers={
+            "Origin": "https://juan-soto-shee.github.io",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://juan-soto-shee.github.io"
+    assert "POST" in response.headers["access-control-allow-methods"]
+
+
+def test_untrusted_origin_preflight_is_rejected():
+    response = TestClient(app).options(
+        "/v1/plantview/predictions/cu-pls",
+        headers={
+            "Origin": "https://attacker.example",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
+
+
 def test_prediction_requires_firebase_token():
     response = TestClient(app).post("/v1/plantview/predictions/cu-pls", json={
         "implementationId": "impl_a", "clienteId": "client_a", "profileId": "lixiviacion",

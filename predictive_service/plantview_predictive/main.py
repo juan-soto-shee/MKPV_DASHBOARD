@@ -1,14 +1,23 @@
 import logging
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import authenticated_user, authorize_context
+from .config import settings
 from .repository import FirebaseRepository
 from .schemas import PredictionRequest, RetrainRequest
 from .service import PredictiveService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 app = FastAPI(title="MetKinetics PlantView Predictive Service", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 
 def get_service() -> PredictiveService:
