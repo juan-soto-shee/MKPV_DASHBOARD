@@ -207,5 +207,27 @@ def predict(artifact: bytes, record: dict[str, Any]) -> float:
     return result
 
 
+def predict_series(artifact: bytes, records: list[dict[str, Any]], horizon: int) -> list[dict[str, Any]]:
+    bundle = joblib.load(io.BytesIO(artifact))
+    normalized = normalize_records(records)
+    if normalized.empty:
+        return []
+    normalized = normalized.copy()
+    normalized["predicted"] = bundle["estimator"].predict(normalized[bundle["features"]])
+    points = []
+    for timestamp, group in normalized.groupby("timestampCreacion", sort=True):
+        weights = group["flujoPLS"].clip(lower=0)
+        denominator = float(weights.sum())
+        if denominator <= 0:
+            continue
+        points.append({
+            "timestamp": timestamp.isoformat(),
+            "targetTimestamp": (timestamp + pd.Timedelta(hours=horizon)).isoformat(),
+            "actual": float((group["cuPls"] * weights).sum() / denominator),
+            "predicted": float((group["predicted"] * weights).sum() / denominator),
+        })
+    return points[-42:]
+
+
 def new_version() -> str:
     return datetime.now(timezone.utc).strftime("v%Y%m%dT%H%M%S%fZ")

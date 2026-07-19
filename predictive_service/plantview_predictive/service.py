@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import logging
 from typing import Any
 
-from .modeling import predict
+from .modeling import predict, predict_series
 from .repository import LOCAL_MODEL_VERSION
 
 APPROVED_MODELS = {4: "Extra Trees", 8: "Random Forest", 12: "Gradient Boosting"}
@@ -40,6 +40,7 @@ class PredictiveService:
             raise LookupError("El algoritmo activo no coincide con el modelo aprobado")
         artifact = self.repository.download_artifact(active["artifactPath"])
         prediction = predict(artifact, records[-1])
+        series = predict_series(artifact, records, horizon)
         logger.info(
             "MODELO active=%s version=%s artifact=%s prediction=%s",
             active["winner"], active["version"], active["artifactPath"], prediction,
@@ -49,4 +50,5 @@ class PredictiveService:
                 "model": {"name": active["winner"], "version": active["version"],
                           "validationStatus": active.get("validationStatus", "approved")},
                 "metrics": {"mae": active["mae"], "rmse": active["rmse"], "r2": active["r2"]},
-                "horizonData": {"winner": active["winner"], "validationMetrics": active["competition"]}}
+                "horizonData": {"winner": active["winner"], "validationMetrics": active["competition"]},
+                "series": series}

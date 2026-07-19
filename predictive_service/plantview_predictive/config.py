@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     audits_collection: str = "prediction_model_audits"
     minimum_pairs: int = 500
     allowed_profile_id: str = "lixiviacion"
-    cors_allowed_origins: str = "https://juan-soto-shee.github.io"
+    cors_allowed_origins: str = "https://juan-soto-shee.github.io,https://metkinetics.cl"
 
     @property
     def cors_origins(self) -> list[str]:

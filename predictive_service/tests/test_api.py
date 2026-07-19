@@ -34,6 +34,19 @@ def test_untrusted_origin_preflight_is_rejected():
     assert "access-control-allow-origin" not in response.headers
 
 
+def test_production_domain_preflight_is_allowed():
+    response = TestClient(app).options(
+        "/v1/plantview/predictions/cu-pls",
+        headers={
+            "Origin": "https://metkinetics.cl",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://metkinetics.cl"
+
+
 def test_prediction_requires_firebase_token():
     response = TestClient(app).post("/v1/plantview/predictions/cu-pls", json={
         "implementationId": "impl_a", "clienteId": "client_a", "profileId": "lixiviacion",

@@ -11,6 +11,7 @@ const APPROVED_HORIZONS = Object.freeze([4, 8, 12]);
 const selection = parseModelingSelection();
 let dialogBound = false;
 let activeRequestController = null;
+const predictionCharts = new Map();
 
 init().catch(showFatalError);
 
@@ -128,7 +129,52 @@ function renderPredictionResponses(responses) {
   document.getElementById("winningModelFacts").innerHTML = responses.map((response) => `
     <div><dt>Cu²⁺ +${response.predictionHorizonHours} h</dt><dd>${escapeHtml(response.model.name)} · ${escapeHtml(response.model.version)}</dd></div>
   `).join("");
+  renderPredictionCharts(responses);
   showStatus("Servicio predictivo conectado", "connected");
+}
+
+function renderPredictionCharts(responses) {
+  const container = document.getElementById("predictionCharts");
+  predictionCharts.forEach((chart) => chart.destroy());
+  predictionCharts.clear();
+  container.innerHTML = responses.map((response) => `
+    <article class="model-chart-panel">
+      <h3>Serie real vs. modelada Â· +${response.predictionHorizonHours} h</h3>
+      <p>CuÂ²âº de planta ponderado por flujo PLS</p>
+      <div class="model-chart-box"><canvas id="predictionChart${response.predictionHorizonHours}"></canvas></div>
+    </article>
+  `).join("");
+  responses.forEach(renderPredictionChart);
+}
+
+function renderPredictionChart(response) {
+  const points = Array.isArray(response.series) ? response.series : [];
+  const canvas = document.getElementById(`predictionChart${response.predictionHorizonHours}`);
+  if (!canvas || typeof Chart === "undefined" || !points.length) return;
+  const labels = [...new Set(points.flatMap((point) => [point.timestamp, point.targetTimestamp]))].sort();
+  const actual = new Map(points.map((point) => [point.timestamp, point.actual]));
+  const modeled = new Map(points.map((point) => [point.targetTimestamp, point.predicted]));
+  const chart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: labels.map(shortDateTime),
+      datasets: [
+        { label: "CuÂ²âº real", data: labels.map((label) => actual.get(label) ?? null), borderColor: "#28d7f4", backgroundColor: "transparent", borderWidth: 2, pointRadius: 1, tension: .22, spanGaps: true },
+        { label: `CuÂ²âº modelado +${response.predictionHorizonHours} h`, data: labels.map((label) => modeled.get(label) ?? null), borderColor: "#ffb000", backgroundColor: "transparent", borderWidth: 2, borderDash: [6, 4], pointRadius: 1, tension: .22, spanGaps: true }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { labels: { color: "#c9dde5" } } },
+      scales: {
+        x: { ticks: { color: "#8eabb5", maxTicksLimit: 8 }, grid: { color: "rgba(83, 121, 135, .12)" } },
+        y: { ticks: { color: "#8eabb5" }, grid: { color: "rgba(83, 121, 135, .16)" } }
+      }
+    }
+  });
+  predictionCharts.set(response.predictionHorizonHours, chart);
 }
 
 function showServiceUnavailable() {
@@ -137,6 +183,9 @@ function showServiceUnavailable() {
 }
 
 function clearPredictiveResults() {
+  predictionCharts.forEach((chart) => chart.destroy());
+  predictionCharts.clear();
+  document.getElementById("predictionCharts").innerHTML = "";
   document.getElementById("cuIndicators").innerHTML = "";
   document.getElementById("winningModelFacts").innerHTML = "";
   document.getElementById("modelLastUpdated").textContent = "Último cálculo: --";
@@ -187,6 +236,7 @@ function showFatalError(error) {
 
 function setText(id, value) { document.getElementById(id).textContent = value; }
 function formatDateTime(value) { return new Date(value).toLocaleString("es-CL"); }
+function shortDateTime(value) { return new Date(value).toLocaleString("es-CL", { day: "2-digit", month: "2-digit", hour: "2-digit" }); }
 function formatNumber(value, decimals) {
   return Number(value).toLocaleString("es-CL", {
     minimumFractionDigits: decimals, maximumFractionDigits: decimals
