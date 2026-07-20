@@ -122,9 +122,6 @@ function renderPredictionResponses(responses) {
       <span>Cu²⁺ +${response.predictionHorizonHours} h</span>
       <strong>${formatNumber(response.prediction, 3)} ${escapeHtml(response.unit)}</strong>
       <small>Modelo: ${escapeHtml(response.model.name)}</small>
-      <small>Timestamp: ${escapeHtml(formatDateTime(response.calculatedAt))}</small>
-      <small>Registros utilizados: ${escapeHtml(response.recordsUsed)}</small>
-      <small>Estado de validación: ${escapeHtml(response.model.validationStatus)}</small>
     </article>`).join("");
   document.getElementById("winningModelFacts").innerHTML = responses.map((response) => `
     <div><dt>Cu²⁺ +${response.predictionHorizonHours} h</dt><dd>${escapeHtml(response.model.name)} · ${escapeHtml(response.model.version)}</dd></div>
