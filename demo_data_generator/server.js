@@ -37,7 +37,15 @@ http.createServer(async (req, res) => {
     if (req.method === "GET" && path === "/health") return json(res, 200, { health: "ok" });
     if (req.method === "GET" && path === "/status") {
       const result = await (await getService()).status();
-      return json(res, 200, { ...result, generatorEnabled: config.enabled });
+      return json(res, 200, {
+        ...result,
+        state: result.state ?? result.estado ?? "STOPPED",
+        schedulerActive: result.schedulerActive === true,
+        processMode: result.processMode ?? null,
+        sessionId: result.sessionId ?? null,
+        ultimoError: result.ultimoError ?? null,
+        generatorEnabled: config.enabled
+      });
     }
     if (req.method !== "POST") return json(res, 404, { error: "Ruta no encontrada" });
     if (!generationAllowed(path)) return text(res, 403, "Generator disabled");
