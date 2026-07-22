@@ -8,7 +8,11 @@ const bool = (env, key, fallback) => env[key] == null ? fallback : String(env[ke
 
 export function loadConfig(env = process.env) {
   return Object.freeze({
-    enabled: bool(env, "DEMO_GENERATOR_ENABLED", false),
+    enabled: bool(env, "GENERATOR_ENABLED", bool(env, "DEMO_GENERATOR_ENABLED", false)),
+    schedulerEnabled: bool(env, "SCHEDULER_ENABLED", false),
+    demoEnabled: bool(env, "DEMO_ENABLED", false),
+    allowNormalGeneration: bool(env, "ALLOW_NORMAL_GENERATION", false),
+    allowAcceleratedDemo: bool(env, "ALLOW_ACCELERATED_DEMO", false),
     clientId: env.DEMO_GENERATOR_CLIENT_ID || DEMO_CLIENT,
     normalIntervalMinutes: number(env, "DEMO_GENERATOR_NORMAL_INTERVAL_MINUTES", 240),
     acceleratedIntervalSeconds: number(env, "DEMO_GENERATOR_ACCELERATED_INTERVAL_SECONDS", 10),
@@ -20,6 +24,6 @@ export function loadConfig(env = process.env) {
     heartbeatIntervalSeconds: number(env, "DEMO_GENERATOR_HEARTBEAT_INTERVAL_SECONDS", 30),
     heartbeatTimeoutSeconds: number(env, "DEMO_GENERATOR_HEARTBEAT_TIMEOUT_SECONDS", 90),
     timeZone: env.DEMO_GENERATOR_TIME_ZONE || "America/Santiago",
-    port: number(env, "DEMO_GENERATOR_API_PORT", 8080)
+    port: number(env, "PORT", number(env, "DEMO_GENERATOR_API_PORT", 8080))
   });
 }
