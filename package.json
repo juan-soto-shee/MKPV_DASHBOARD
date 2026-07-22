@@ -1,0 +1,20 @@
+{
+  "name": "plantview-demo-generator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test demo_data_generator/tests/*.test.js",
+    "lint": "node demo_data_generator/checkSyntax.js",
+    "build": "node demo_data_generator/cli.js validate",
+    "demo-generator:normal-once": "node demo_data_generator/cli.js normal-once",
+    "demo-generator:normal-start": "node demo_data_generator/cli.js normal-start",
+    "demo-generator:accelerated-start": "node demo_data_generator/cli.js accelerated-start",
+    "demo-generator:status": "node demo_data_generator/cli.js status",
+    "demo-generator:stop": "node demo_data_generator/cli.js stop",
+    "demo-generator:restore": "node demo_data_generator/cli.js restore",
+    "demo-generator:reconcile-state": "node demo_data_generator/cli.js reconcile-state",
+    "demo-generator:server": "node demo_data_generator/server.js"
+  },
+  "dependencies": { "firebase-admin": "^13.4.0" },
+  "engines": { "node": ">=20" }
+}

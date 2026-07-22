@@ -30,7 +30,9 @@ def cu_pls(request: PredictionRequest, user=Depends(authenticated_user), service
     authorize_context(user, context)
     try:
         records = [record.model_dump() for record in request.records]
-        return service.infer_cu(context, request.horizonHours, records)
+        result = service.infer_cu(context, request.horizonHours, records)
+        result.update({"predictionMode": request.predictionMode, "sessionId": request.sessionId})
+        return result
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     except LookupError as error:

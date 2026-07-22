@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="admin.css?v=20260713-3">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-  <script type="module" src="admin.js?v=20260714-6"></script>
+  <script type="module" src="admin.js?v=20260722-1"></script>
 </head>
 <body>
   <section id="authScreen" class="auth-screen" aria-live="polite">
@@ -37,6 +37,7 @@
       <nav aria-label="Administración MetKinetics">
         <a href="#clientes">Clientes</a><a href="#implementaciones">Implementaciones</a>
         <a id="bulkImportNav" href="#importacion">Importación Masiva</a><a id="deleteHistoryNav" href="#historico">Eliminar Histórico</a>
+        <a id="demoGeneratorNav" href="#generador-demo">Generador Demo</a>
         <a href="#variables">Variables</a><a href="#layout">Layout</a><a href="#usuarios">Usuarios</a>
         <a href="#licencias">Licencias</a><a href="#branding">Branding</a><a href="#respaldos">Respaldos</a>
         <a href="#versiones">Versiones</a><a href="#global">Configuración Global</a>
@@ -71,6 +72,12 @@
         <section id="deleteHistoryPreview" class="preview-card" hidden><h3>Vista previa</h3><dl><div><dt>Cliente</dt><dd id="previewClient">--</dd></div><div><dt>Fecha desde</dt><dd id="previewFrom">--</dd></div><div><dt>Fecha hasta</dt><dd id="previewTo">--</dd></div><div><dt>Registros encontrados</dt><dd id="previewCount">0</dd></div><div><dt>Registro más antiguo</dt><dd id="previewOldest">--</dd></div><div><dt>Registro más reciente</dt><dd id="previewNewest">--</dd></div></dl></section>
         <button id="deleteHistoryButton" class="danger-button" type="button" disabled>Eliminar registros</button>
         <section id="deleteHistoryConfirmation" class="confirmation-card" hidden><h3>Confirmación requerida</h3><p id="deleteHistorySummary"></p><label><span>Escriba <strong>ELIMINAR</strong> para continuar</span><input id="deleteHistoryConfirmationInput" type="text" autocomplete="off"></label><div class="confirmation-actions"><button id="cancelHistoryDeletion" type="button">Cancelar</button><button id="confirmHistoryDeletion" class="danger-button" type="button" disabled>Confirmar eliminación</button></div></section>
+      </section>
+      <section id="demoGeneratorSection" class="module-section" hidden aria-labelledby="demoGeneratorTitle">
+        <p class="eyebrow">Demo Lixiviación</p><h2 id="demoGeneratorTitle">Generador Demo</h2><p>Control backend exclusivo para la línea automática y sesiones aceleradas.</p>
+        <dl class="import-summary-grid"><div><dt>Estado lógico</dt><dd id="generatorState">STOPPED</dd></div><div><dt>Modo actual</dt><dd id="generatorMode">stopped</dd></div><div><dt>Scheduler</dt><dd id="generatorScheduler">Detenido</dd></div><div><dt>Proceso continuo</dt><dd id="generatorProcess">No activo</dd></div><div><dt>Último heartbeat</dt><dd id="generatorHeartbeat">No disponible</dd></div><div><dt>Último ping</dt><dd id="generatorLastPing">No disponible</dd></div><div><dt>Cliente</dt><dd id="generatorClient">demo_lixiviacion</dd></div><div><dt>Última ejecución normal</dt><dd id="generatorLastNormal">No disponible</dd></div><div><dt>Último resultado</dt><dd id="generatorLastResult">No disponible</dd></div><div><dt>Sesión activa</dt><dd id="generatorSession">Ninguna</dd></div><div><dt>Factor</dt><dd id="generatorFactor">No aplica</dd></div><div><dt>Tiempo simulado</dt><dd id="generatorSimulatedTime">No disponible</dd></div><div><dt>Registros generados</dt><dd id="generatorRecordCount">0</dd></div><div><dt>Punto de retorno</dt><dd id="generatorReturnPoint">No disponible</dd></div><div><dt>Próximo horario normal</dt><dd id="generatorNextNormal">No disponible</dd></div><div><dt>Último error</dt><dd id="generatorLastError">Ninguno</dd></div></dl><p id="generatorActivityWarning" class="module-message" role="status">Generador continuo detenido</p>
+        <div class="bulk-import-controls"><label><span>Escenario</span><select id="demoScenario"><option>estable</option><option>degradacion_progresiva</option><option>baja_ley</option><option>bajo_flujo</option><option>acidez_alta</option><option>nivel_anormal</option><option>detencion_bomba</option><option>recuperacion_operacional</option></select></label><label><span>Factor</span><select id="demoFactor"><option value="1">x1</option><option value="4">x4</option><option value="12">x12</option><option value="24">x24</option><option value="240" selected>x240</option></select></label></div>
+        <div class="import-actions"><button id="startNormalGenerator" class="primary-button">Iniciar automático normal</button><button id="pauseNormalGenerator">Pausar automático normal</button><button id="startAcceleratedDemo" class="primary-button">Iniciar demo acelerada</button><button id="pauseAcceleratedDemo">Pausar demo</button><button id="restoreNormalTimeline" class="danger-button">Finalizar demo y volver a operación normal</button><button id="generateTestCycle">Generar ciclo de prueba</button></div><p id="demoGeneratorMessage" class="module-message" role="status"></p>
       </section>
     </main>
   </div>

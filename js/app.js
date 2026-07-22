@@ -371,7 +371,6 @@ function initKpiControls() {
   document.getElementById("mathematicalModelingButton")?.addEventListener("click", () => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has("implementation")) params.set("implementation", clientConfig.implementationId);
-    params.set("period", String(state.selectedPeriodHours));
     params.set("area", state.selectedArea);
     window.location.href = `modelos-matematicos.html?${params.toString()}`;
   });
@@ -401,7 +400,7 @@ function renderKpiConfigGrid(grid, definitions) {
     return `<fieldset class="kpi-admin-card" data-kpi="${key}"><legend>${label}</legend><p class="kpi-admin-unit">Unidad: <strong>${objective.unit}</strong></p>
       <label>Comportamiento de la variable<select class="kpi-alarm-mode"><option value="target_range">Mantener cerca del objetivo</option><option value="higher_is_better">Mientras más alto, mejor</option><option value="lower_is_better">Mientras más bajo, mejor</option><option value="operating_range">Mantener dentro de un rango</option></select></label>
       <div class="kpi-percentage-fields"><label>${targetLabel}<input class="kpi-target-input" type="number" step="any" value="${objective.target}"></label><label>Porcentaje de alerta<input class="kpi-alert-threshold" type="number" step="0.1" value="${objective.warningDeviationPercent}"></label><label>Porcentaje crítico<input class="kpi-critical-threshold" type="number" step="0.1" value="${objective.criticalDeviationPercent}"></label></div>
-      <div class="kpi-range-fields">${[["criticalMin","Mínimo crítico"],["criticalMax","Máximo crítico"],["warningMin","Mínimo de alerta"],["warningMax","Máximo de alerta"],["normalMin","Mínimo normal"],["normalMax","Máximo normal"]].map(([field,text]) => `<label>${text}<input data-range="${field}" type="number" step="any" value="${objective[field] ?? ""}"></label>`).join("")}</div>
+      <div class="kpi-range-fields">${[["criticalMin","Mínimo crítico"],["criticalMax","Máximo crítico"],["warningMin","Mínimo de alerta"],["warningMax","Máximo de alerta"],["normalMin","Mínimo normal"],["normalMax","Máximo normal"]].map(([field,text]) => `<label>${text}<input data-range="${field}" type="number" step="any" value="${Number.isFinite(Number(objective[field])) ? objective[field] : ""}"></label>`).join("")}</div>
       <div class="kpi-limit-preview" role="status"></div>
     </fieldset>`;
   }).join("");
