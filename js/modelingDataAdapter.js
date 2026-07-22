@@ -3,6 +3,8 @@ import { filterRecordsByPeriod, getReferenceTimestamp } from "./dateTime.js";
 // Los artefactos productivos infieren a partir del ultimo registro operacional completo.
 export const MODEL_MINIMUM_RECORDS = 1;
 export const SUPPORTED_PERIODS = Object.freeze([24, 168, 720]);
+export const MODEL_HISTORY_PERIOD_HOURS = 24 * 365;
+export const MODEL_FETCH_RECORDS = 5000;
 export const MODEL_FEATURES = Object.freeze([
   "cuPls", "flujoPLS", "flujoRefino", "acidezRefino",
   "nivelPiscinaPLS", "nivelPiscinaRefino", "hora", "diaSemana",
@@ -44,11 +46,13 @@ export function preparePredictiveData(records, {
   const unitRecords = unit === "Planta"
     ? profileRecords
     : profileRecords.filter((record) => normalizeText(record.subarea || record.area) === normalizeText(unit));
+  const historyPeriodHours = Math.max(periodHours, MODEL_HISTORY_PERIOD_HOURS);
   const referenceTimestamp = getReferenceTimestamp(unitRecords);
-  const periodRecords = filterRecordsByPeriod(unitRecords, periodHours);
+  const periodRecords = filterRecordsByPeriod(unitRecords, historyPeriodHours);
   const completeRecords = periodRecords.filter(hasCompleteModelInput);
-  const validRecords = deduplicateRecords(completeRecords)
+  const deduplicatedRecords = deduplicateRecords(completeRecords)
     .sort((left, right) => left.timestampCreacion - right.timestampCreacion);
+  const validRecords = deduplicatedRecords.slice(-MODEL_FETCH_RECORDS);
 
   return Object.freeze({
     received,
@@ -59,7 +63,9 @@ export function preparePredictiveData(records, {
     afterUnit: unitRecords.length,
     afterPeriod: periodRecords.length,
     afterValidation: completeRecords.length,
-    duplicatesRemoved: completeRecords.length - validRecords.length,
+    afterSlice: validRecords.length,
+    duplicatesRemoved: completeRecords.length - deduplicatedRecords.length,
+    truncatedRecords: Math.max(0, deduplicatedRecords.length - validRecords.length),
     considered: unitRecords.length,
     validRecords,
     validCount: validRecords.length,

@@ -9,6 +9,7 @@ import {
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { initializeDeleteHistory } from "./modules/deleteHistory.js";
 import { initializeBulkImport } from "./modules/bulkImport.js?v=20260714-4";
+import { initializeDemoGenerator } from "./modules/demoGenerator.js?v=20260722-3";
 
 const ADMIN_ROLE = "metkinetics_admin";
 
@@ -31,6 +32,7 @@ const elements = {
 let signingOutUnauthorizedUser = false;
 let deleteHistoryController = null;
 let bulkImportController = null;
+let demoGeneratorController = null;
 
 elements.googleSignInButton.addEventListener("click", async () => {
   setCheckingState("Abriendo Google...");
@@ -138,6 +140,9 @@ function showConsole(user, authorization) {
   if (!bulkImportController) bulkImportController = initializeBulkImport(db, activeAdmin);
   else bulkImportController.setAdmin(activeAdmin);
   bulkImportController.showRequestedSection();
+  if (!demoGeneratorController) demoGeneratorController = initializeDemoGenerator(auth, activeAdmin);
+  else demoGeneratorController.setAdmin(activeAdmin);
+  demoGeneratorController.showRequestedSection();
 }
 
 function hideConsole() {

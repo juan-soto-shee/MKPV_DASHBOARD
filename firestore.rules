@@ -75,6 +75,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /demo_generator_state/{documentId} {
+      allow read: if canAccess(resource.data.clientId);
+      allow write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

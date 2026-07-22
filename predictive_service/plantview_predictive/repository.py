@@ -46,7 +46,9 @@ class FirebaseRepository:
             settings.firebase_project_id, settings.records_collection, context["clienteId"],
             context["implementationId"], context["profileId"],
         )
-        records = [{"id": item.id, **item.to_dict()} for item in query.stream()]
+        records = [{"id": item.id, **item.to_dict()} for item in query.stream()
+                   if item.to_dict().get("visibleOperacional", True) is not False
+                   and item.to_dict().get("tipoRegistro") != "demo_acelerada"]
         logger.info("FIRESTORE documents=%d", len(records))
         return records
 

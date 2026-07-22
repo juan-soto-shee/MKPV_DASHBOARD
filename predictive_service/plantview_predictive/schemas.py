@@ -23,6 +23,8 @@ class OperationalRecord(BaseModel):
 
 class PredictionRequest(ModelContext):
     horizonHours: int = Field(default=4)
+    predictionMode: str = Field(default="normal", pattern=r"^(normal|demo)$")
+    sessionId: str | None = None
     records: list[OperationalRecord] = Field(min_length=1)
 
 

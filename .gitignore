@@ -2,6 +2,7 @@ predictive_service/.venv/
 predictive_service/.pytest_cache/
 predictive_service/**/__pycache__/
 predictive_service/*.egg-info/
+node_modules/
 .env
 predictive_service/artifacts/*
 !predictive_service/artifacts/candidates/

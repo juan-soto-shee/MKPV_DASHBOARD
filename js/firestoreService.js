@@ -20,20 +20,30 @@ const debugLog = (...args) => {
 };
 
 let activeListener = null;
+let activeGeneratorStateListener = null;
 let activeListenerClientId = null;
 let lastRealtimeRecords = [];
+let activeDemoSessionId = null;
 const recordsCache = new Map();
 
 export function startRealtimeListener(callback, onConnectionChange = () => {}) {
   console.info("[PlantView] clienteId activo:", CLIENTE_ACTIVO);
   if (activeListener && activeListenerClientId === CLIENTE_ACTIVO) {
     debugLog("listener reutilizado", { clienteId: CLIENTE_ACTIVO });
-    callback(lastRealtimeRecords);
+    callback(lastRealtimeRecords.filter(isOperationalRecord));
     onConnectionChange(true);
     return activeListener;
   }
 
   closeRealtimeListener();
+
+  if (CLIENTE_ACTIVO === "demo_lixiviacion") {
+    activeGeneratorStateListener = onSnapshot(doc(db, "demo_generator_state", "current"), (snapshot) => {
+      const state = snapshot.data();
+      activeDemoSessionId = state?.estado === "DEMO_RUNNING" ? state.sessionId : null;
+      if (lastRealtimeRecords.length) callback(lastRealtimeRecords.filter(isOperationalRecord));
+    });
+  }
 
   const recordsQuery = query(
     collection(db, RECORDS_COLLECTION),
@@ -58,7 +68,7 @@ export function startRealtimeListener(callback, onConnectionChange = () => {}) {
     });
     console.info("[PlantView] registros encontrados:", snapshot.size);
     onConnectionChange(true);
-    callback(records);
+    callback(records.filter(isOperationalRecord));
   }, (error) => {
     console.error("[PlantView] error Firestore:", error);
     onConnectionChange(false);
@@ -69,6 +79,9 @@ export function startRealtimeListener(callback, onConnectionChange = () => {}) {
 }
 
 export function closeRealtimeListener() {
+  if (activeGeneratorStateListener) activeGeneratorStateListener();
+  activeGeneratorStateListener = null;
+  activeDemoSessionId = null;
   if (!activeListener) return;
   activeListener();
   debugLog("listener cerrado", { clienteId: activeListenerClientId });
@@ -84,13 +97,13 @@ export async function getRecordsForPeriod(hours) {
   if (lastRealtimeRecords.length) {
     debugLog("cache hit desde listener", { key: cacheKey, count: lastRealtimeRecords.length });
     cacheRecords(cacheKey, lastRealtimeRecords);
-    return lastRealtimeRecords;
+    return lastRealtimeRecords.filter(isOperationalRecord);
   }
 
   const cached = recordsCache.get(cacheKey);
   if (cached) {
     debugLog("cache hit", { key: cacheKey, count: cached.records.length });
-    return cached.records;
+    return cached.records.filter(isOperationalRecord);
   }
 
   debugLog("cache miss; consulta puntual", {
@@ -105,7 +118,7 @@ export async function getRecordsForPeriod(hours) {
   ));
   const records = snapshot.docs.map(toRecord).filter(Boolean).sort(compareRecordsNewestFirst);
   cacheRecords(cacheKey, records);
-  return records;
+  return records.filter(isOperationalRecord);
 }
 
 // Borra exclusivamente documentos del cliente activo, en lotes bajo el limite de Firestore.
@@ -233,11 +246,23 @@ function periodCacheKey(hours) {
 
 function toRecord(record) {
   const data = { id: record.id, ...record.data() };
-  try { return { ...data, ...normalizeRecordDateTime(data) }; }
+  try {
+    const audit = normalizeRecordDateTime(data, { rejectFuture: false });
+    const process = data.timestampProceso
+      ? normalizeRecordDateTime({ timestampCreacion: data.timestampProceso }, { rejectFuture: false })
+      : audit;
+    return { ...data, timestampAuditoria: audit.timestampCreacion, ...process };
+  }
   catch (error) {
     debugLog("registro omitido por fecha inválida o futura", { id: record.id, reason: error.message });
     return null;
   }
+}
+
+function isOperationalRecord(record) {
+  if (record.visibleOperacional === false) return false;
+  if (record.tipoRegistro !== "demo_acelerada") return true;
+  return Boolean(activeDemoSessionId) && record.sessionId === activeDemoSessionId;
 }
 
 function compareRecordsNewestFirst(left, right) {

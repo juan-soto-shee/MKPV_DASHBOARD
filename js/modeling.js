@@ -74,6 +74,8 @@ async function handleRealtimeRecords(records) {
       implementationId: clientConfig.implementationId,
       clienteId: clientConfig.clienteId,
       profileId: clientConfig.profileId,
+      predictionMode: prepared.validRecords.some((record) => record.modoSimulacion === "acelerado") ? "demo" : "normal",
+      sessionId: prepared.validRecords.find((record) => record.modoSimulacion === "acelerado")?.sessionId || null,
       horizonHours,
       records: request.records
     }, token, controller)));
