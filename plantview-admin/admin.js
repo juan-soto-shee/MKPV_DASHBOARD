@@ -9,7 +9,7 @@ import {
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { initializeDeleteHistory } from "./modules/deleteHistory.js";
 import { initializeBulkImport } from "./modules/bulkImport.js?v=20260714-4";
-import { initializeDemoGenerator } from "./modules/demoGenerator.js?v=20260722-3";
+import { initializeDemoGenerator } from "./modules/demoGenerator.js?v=20260723-1";
 
 const ADMIN_ROLE = "metkinetics_admin";
 

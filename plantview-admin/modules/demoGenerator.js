@@ -1,7 +1,15 @@
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { db } from "../../js/firebaseConfig.js";
 
-const API_URL = globalThis.PLANTVIEW_DEMO_GENERATOR_API_URL || "";
+const DEFAULT_API_URL =
+  "https://plantview-demo-generator-636253344962.southamerica-west1.run.app";
+
+function getApiUrl() {
+  return (
+    globalThis.PLANTVIEW_DEMO_GENERATOR_API_URL ||
+    DEFAULT_API_URL
+  ).replace(/\/+$/, "");
+}
 const STATE_REF = doc(db, "demo_generator_state", "current");
 const HEARTBEAT_TIMEOUT_MS = 90_000;
 const IDS = [
@@ -52,9 +60,9 @@ export function initializeDemoGenerator(auth, initialAdmin) {
 
   async function requestBackend(path, body) {
     if (admin?.rol !== "metkinetics_admin") throw new Error("Rol metkinetics_admin requerido");
-    if (!API_URL) throw new Error("El backend no está disponible para ejecutar acciones");
+    if (!getApiUrl()) throw new Error("El backend no está disponible para ejecutar acciones");
     const token = await auth.currentUser?.getIdToken();
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await fetch(`${getApiUrl()}${path}`, {
       method: path === "/status" ? "GET" : "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: path === "/status" ? undefined : JSON.stringify(body)
@@ -68,7 +76,7 @@ export function initializeDemoGenerator(auth, initialAdmin) {
     try {
       const persisted = await readPersistedState();
       let state = persisted;
-      if (API_URL) {
+      if (getApiUrl()) {
         try {
           const live = await requestBackend("/status");
           state = { ...persisted,
