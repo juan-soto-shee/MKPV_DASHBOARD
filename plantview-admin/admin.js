@@ -10,6 +10,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase
 import { initializeDeleteHistory } from "./modules/deleteHistory.js";
 import { initializeBulkImport } from "./modules/bulkImport.js?v=20260714-4";
 import { initializeDemoGenerator } from "./modules/demoGenerator.js?v=20260723-1";
+import { initializeMkSdm } from "./modules/mkSdm.js";
 
 const ADMIN_ROLE = "metkinetics_admin";
 
@@ -33,6 +34,7 @@ let signingOutUnauthorizedUser = false;
 let deleteHistoryController = null;
 let bulkImportController = null;
 let demoGeneratorController = null;
+let mkSdmController = null;
 
 elements.googleSignInButton.addEventListener("click", async () => {
   setCheckingState("Abriendo Google...");
@@ -143,6 +145,9 @@ function showConsole(user, authorization) {
   if (!demoGeneratorController) demoGeneratorController = initializeDemoGenerator(auth, activeAdmin);
   else demoGeneratorController.setAdmin(activeAdmin);
   demoGeneratorController.showRequestedSection();
+  if (!mkSdmController) mkSdmController = initializeMkSdm(db, activeAdmin);
+  else mkSdmController.setAdmin(activeAdmin);
+  mkSdmController.showRequestedSection();
 }
 
 function hideConsole() {
