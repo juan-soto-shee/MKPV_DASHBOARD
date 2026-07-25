@@ -2,8 +2,8 @@ export const PROFILES = Object.freeze({
   "Lixiviación Demo": Object.freeze({
     flujoPLS: { min: 950, max: 1050, unit: "m3/h" },
     flujoRefino: { min: 950, max: 1050, unit: "m3/h" },
-    cuPls: { min: 1.10, max: 1.30, unit: "g/L" },
-    acidezRefino: { min: 14.0, max: 16.0, unit: "g/L" },
+    cuPls: { min: 0.9, max: 2.1, unit: "g/L" },
+    acidezRefino: { min: 13.5, max: 21.5, unit: "g/L" },
     nivelPiscinaPLS: { min: 45, max: 75, unit: "%" },
     nivelPiscinaRefino: { min: 45, max: 75, unit: "%" }
   })
