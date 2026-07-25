@@ -25,7 +25,9 @@ class FakeRepository:
         return b"artifact"
 
 
-def active_model(horizon=4, winner="Extra Trees"):
+def active_model(horizon=4, winner=None):
+    if winner is None:
+        winner = service_module.APPROVED_MODELS[horizon]
     return {
         "artifactPath": (
             "plantview-models/client_a/impl_a/lixiviacion/"

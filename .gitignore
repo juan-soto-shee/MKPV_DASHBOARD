@@ -12,3 +12,8 @@ predictive_service/artifacts/candidates/v20260716T195727256557Z/*
 !predictive_service/artifacts/candidates/v20260716T195727256557Z/cu_pls_4h.joblib
 !predictive_service/artifacts/candidates/v20260716T195727256557Z/cu_pls_8h.joblib
 !predictive_service/artifacts/candidates/v20260716T195727256557Z/cu_pls_12h.joblib
+!predictive_service/artifacts/candidates/v20260725T203506447051Z/
+predictive_service/artifacts/candidates/v20260725T203506447051Z/*
+!predictive_service/artifacts/candidates/v20260725T203506447051Z/cu_pls_4h.joblib
+!predictive_service/artifacts/candidates/v20260725T203506447051Z/cu_pls_8h.joblib
+!predictive_service/artifacts/candidates/v20260725T203506447051Z/cu_pls_12h.joblib

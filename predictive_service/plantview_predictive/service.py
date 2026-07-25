@@ -7,7 +7,7 @@ from typing import Any
 from .modeling import predict, predict_series
 from .repository import LOCAL_MODEL_VERSION
 
-APPROVED_MODELS = {4: "Extra Trees", 8: "Random Forest", 12: "Gradient Boosting"}
+APPROVED_MODELS = {4: "Linear Regression", 8: "Linear Regression", 12: "Linear Regression"}
 
 logger = logging.getLogger(__name__)
 

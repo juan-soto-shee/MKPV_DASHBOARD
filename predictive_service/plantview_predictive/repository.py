@@ -12,7 +12,7 @@ from .config import settings
 
 logger = logging.getLogger(__name__)
 
-LOCAL_MODEL_VERSION = "v20260716T195727256557Z"
+LOCAL_MODEL_VERSION = "v20260725T203506447051Z"
 LOCAL_ARTIFACTS = {
     4: "cu_pls_4h.joblib",
     8: "cu_pls_8h.joblib",
