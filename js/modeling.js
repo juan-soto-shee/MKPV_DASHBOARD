@@ -160,13 +160,32 @@ function renderPredictionCharts(responses) {
   const container = document.getElementById("predictionCharts");
   predictionCharts.forEach((chart) => chart.destroy());
   predictionCharts.clear();
-  container.innerHTML = responses.map((response) => `
-    <article class="model-chart-panel">
-      <h3>Serie real vs. modelada · +${response.predictionHorizonHours} h</h3>
-      <p>Cu²⁺ de planta ponderado por caudal PLS</p>
-      <div class="model-chart-box"><canvas id="predictionChart${response.predictionHorizonHours}"></canvas></div>
-    </article>
-  `).join("");
+  container.innerHTML = responses.map((response) => {
+    const series = Array.isArray(response.series) ? response.series : [];
+    const last = series.length ? series[series.length - 1] : null;
+    const actualLast = last ? last.actual : null;
+    const predictedLast = last ? last.predicted : (Number.isFinite(response.prediction) ? response.prediction : null);
+    let variationHtml = `<span class="model-variation">Variación respecto al valor real: —</span>`;
+    if (actualLast != null && predictedLast != null && Number.isFinite(actualLast) && Number.isFinite(predictedLast)) {
+      const diff = predictedLast - actualLast;
+      const arrow = diff > 0.0005 ? "↑" : diff < -0.0005 ? "↓" : "→";
+      const sign = diff >= 0 ? "+" : "";
+      const pct = actualLast !== 0 ? ` (${sign}${(diff / Math.abs(actualLast) * 100).toFixed(2)}%)` : "";
+      variationHtml = `<span class="model-variation">Variación respecto al valor real: <strong>${arrow} ${sign}${formatNumber(diff, 3)} g/L${pct}</strong></span>`;
+    }
+    return `
+      <article class="model-chart-panel">
+        <h3>Serie real vs. modelada · +${response.predictionHorizonHours} h</h3>
+        <p>Cu²⁺ de planta ponderado por caudal PLS</p>
+        <div class="model-chart-meta">
+          <div><span class="model-meta-label">Modelo:</span> <strong>+${response.predictionHorizonHours} h</strong></div>
+          <div><span class="model-meta-label">Última predicción:</span> <strong>${Number.isFinite(predictedLast) ? formatNumber(predictedLast, 3) : "--"} g/L</strong></div>
+          ${variationHtml}
+        </div>
+        <div class="model-chart-box"><canvas id="predictionChart${response.predictionHorizonHours}"></canvas></div>
+      </article>
+    `;
+  }).join("");
   responses.forEach(renderPredictionChart);
 }
 
@@ -177,13 +196,45 @@ function renderPredictionChart(response) {
   const labels = [...new Set(points.flatMap((point) => [point.timestamp, point.targetTimestamp]))].sort();
   const actual = new Map(points.map((point) => [point.timestamp, point.actual]));
   const modeled = new Map(points.map((point) => [point.targetTimestamp, point.predicted]));
+  const dataValues = labels.map((label) => actual.get(label) ?? modeled.get(label)).filter((value) => Number.isFinite(value));
+  let yMin, yMax;
+  if (dataValues.length) {
+    const dataMin = Math.min(...dataValues);
+    const dataMax = Math.max(...dataValues);
+    const span = dataMax - dataMin;
+    if (span === 0) { yMin = dataMin - 0.05; yMax = dataMax + 0.05; }
+    else { yMin = dataMin - 0.1 * span; yMax = dataMax + 0.1 * span; }
+  } else { yMin = undefined; yMax = undefined; }
+  const firstModeledIndex = labels.findIndex((label) => modeled.get(label) !== null);
+  const firstModeledLabel = firstModeledIndex === -1 ? null : labels[firstModeledIndex];
+  const actualPointRadius = 1;
+  const modeledPointRadius = labels.map((label) => label === firstModeledLabel && modeled.get(label) !== null ? 6 : 1);
+  const verticalCutPlugin = {
+    id: `verticalCutLine-${response.predictionHorizonHours}`,
+    afterDraw(chart) {
+      if (firstModeledIndex === -1) return;
+      const ctx = chart.ctx;
+      const xScale = chart.scales.x;
+      const yScale = chart.scales.y;
+      const x = xScale.getPixelForValue(firstModeledIndex);
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      ctx.lineWidth = 1;
+      ctx.moveTo(x, yScale.top);
+      ctx.lineTo(x, yScale.bottom);
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
   const chart = new Chart(canvas, {
     type: "line",
     data: {
       labels: labels.map(shortDateTime),
       datasets: [
-        { label: "Cu²⁺ real", data: labels.map((label) => actual.get(label) ?? null), borderColor: "#28d7f4", backgroundColor: "transparent", borderWidth: 2, pointRadius: 1, pointStyle: "line", tension: .22, spanGaps: true },
-        { label: `Cu²⁺ modelado +${response.predictionHorizonHours} h`, data: labels.map((label) => modeled.get(label) ?? null), borderColor: "#ffb000", backgroundColor: "transparent", borderWidth: 2, borderDash: [6, 4], pointRadius: 1, pointStyle: "line", tension: .22, spanGaps: true }
+        { label: "Datos reales", data: labels.map((label) => actual.get(label) ?? null), borderColor: "#28d7f4", backgroundColor: "transparent", borderWidth: 2, pointRadius: actualPointRadius, pointStyle: "line", tension: 0, spanGaps: true },
+        { label: `Predicción +${response.predictionHorizonHours} h`, data: labels.map((label) => modeled.get(label) ?? null), borderColor: "#ffb000", backgroundColor: "transparent", borderWidth: 2, borderDash: [6, 4], pointRadius: modeledPointRadius, pointStyle: "line", tension: 0, spanGaps: true }
       ]
     },
     options: {
@@ -196,9 +247,10 @@ function renderPredictionChart(response) {
       },
       scales: {
         x: { ticks: { color: "#8eabb5", maxTicksLimit: 8 }, grid: { color: "rgba(83, 121, 135, .12)" } },
-        y: { ticks: { color: "#8eabb5" }, grid: { color: "rgba(83, 121, 135, .16)" } }
+        y: { min: yMin, max: yMax, ticks: { color: "#8eabb5" }, grid: { color: "rgba(83, 121, 135, .16)" } }
       }
-    }
+    },
+    plugins: [verticalCutPlugin]
   });
   predictionCharts.set(response.predictionHorizonHours, chart);
 }
