@@ -4,7 +4,7 @@ import io
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import joblib
@@ -25,6 +25,7 @@ CATEGORICAL_FEATURES = ["subarea", "turno"]
 FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 TARGETS = {"cu_pls": "cuPls", "pool_pls": "nivelPiscinaPLS"}
 HORIZONS = {"cu_pls": (4, 8, 12, 24), "pool_pls": (24,)}
+SANTIAGO_TZ = timezone(timedelta(hours=-4))
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,9 @@ def normalize_records(records: list[dict[str, Any]]) -> pd.DataFrame:
         frame[column] = pd.to_numeric(frame.get(column), errors="coerce")
     for column in CATEGORICAL_FEATURES:
         frame[column] = frame.get(column, pd.Series(index=frame.index, dtype="object")).astype("string").str.strip()
-    frame["hora"] = frame["timestampCreacion"].dt.hour
+    frame["fecha"] = frame["timestampCreacion"].dt.tz_convert(SANTIAGO_TZ).dt.strftime("%Y-%m-%d")
+    frame["hora_str"] = frame["timestampCreacion"].dt.tz_convert(SANTIAGO_TZ).dt.strftime("%H:%M:%S")
+    frame["hora"] = pd.to_numeric(frame["hora_str"].str.slice(0, 2), errors="coerce")
     frame["diaSemana"] = frame["timestampCreacion"].dt.dayofweek
     frame = frame.dropna(subset=["timestampCreacion", *NUMERIC_FEATURES[:6], *CATEGORICAL_FEATURES])
     frame = frame[(frame["subarea"] != "") & (frame["turno"] != "")]
@@ -214,8 +217,14 @@ def predict_series(artifact: bytes, records: list[dict[str, Any]], horizon: int)
         return []
     normalized = normalized.copy()
     normalized["predicted"] = bundle["estimator"].predict(normalized[bundle["features"]])
+    normalized["operationalKey"] = normalized["fecha"].str.cat(normalized["hora_str"], sep=" ")
+    santiago_naive = pd.to_datetime(normalized["fecha"] + " " + normalized["hora_str"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
+    normalized["operationalTimestamp"] = santiago_naive.dt.tz_localize(SANTIAGO_TZ).dt.tz_convert("UTC")
     points = []
-    for timestamp, group in normalized.groupby("timestampCreacion", sort=True):
+    for operationalKey, group in normalized.groupby("operationalKey", sort=True):
+        timestamp = group["operationalTimestamp"].iloc[0]
+        if pd.isna(timestamp):
+            continue
         weights = group["flujoPLS"].clip(lower=0)
         denominator = float(weights.sum())
         if denominator <= 0:

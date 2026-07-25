@@ -5,7 +5,16 @@ let charts = {};
 function uniqueByTimestamp(records) {
   const seen = new Map();
   for (const record of records) {
-    seen.set(record.timestampCreacion, record);
+    const fecha = record.fecha || "";
+    const hora = record.hora || "";
+    const subarea = record.subarea || record.area || "";
+    const key = fecha && hora
+      ? `${fecha}|${hora}|${subarea}`
+      : `${record.timestampCreacion}|${subarea}`;
+    const existing = seen.get(key);
+    if (!existing || (existing.timestampCreacion < record.timestampCreacion)) {
+      seen.set(key, record);
+    }
   }
   return Array.from(seen.values());
 }
@@ -222,12 +231,13 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
           color: chartTextColor,
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: 6,
+          maxTicksLimit: useLinearScale ? 8 : 6,
           callback: xScaleMode === "time"
             ? (value) => formatLabel(Number(value))
             : undefined
         },
-        grid: { color: gridColor, drawBorder: false }
+        grid: { color: gridColor, drawBorder: false },
+        bounds: "data"
       },
       y: {
         ticks: { color: chartTextColor },
