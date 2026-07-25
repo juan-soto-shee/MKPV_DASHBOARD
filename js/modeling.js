@@ -179,7 +179,6 @@ function renderPredictionCharts(responses) {
         <p>Cu²⁺ de planta ponderado por caudal PLS</p>
         <div class="model-chart-meta">
           <div><span class="model-meta-label">Modelo:</span> <strong>+${response.predictionHorizonHours} h</strong></div>
-          <div><span class="model-meta-label">Última predicción:</span> <strong>${Number.isFinite(predictedLast) ? formatNumber(predictedLast, 3) : "--"} g/L</strong></div>
           ${variationHtml}
         </div>
         <div class="model-chart-box"><canvas id="predictionChart${response.predictionHorizonHours}"></canvas></div>
