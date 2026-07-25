@@ -38,9 +38,20 @@ export function initializeDeleteHistory(db, admin) {
         query(collection(db, "leach_records"), where("implementationId", "==", clientId), where("fecha", ">=", fromValue), where("fecha", "<=", toValue)),
         query(collection(db, "leach_records"), where("clienteId", "==", clientId), where("fecha", ">=", fromValue), where("fecha", "<=", toValue))
       ];
-      const [implSnap, clientSnap] = await Promise.all(queries.map((q) => getDocs(q).catch((error) => { console.error("Error en consulta Firestore:", error); throw error; })));
-      implSnap.docs.forEach((docSnapshot) => results.set(docSnapshot.id, docSnapshot));
-      clientSnap.docs.forEach((docSnapshot) => results.set(docSnapshot.id, docSnapshot));
+      console.log("[DeleteHistory] Parámetros:", { clientId, fromValue, toValue, coleccion: "leach_records", consultaImplementacion: "implementationId==clientId, fecha>=fromValue, fecha<=toValue", consultaCliente: "clienteId==clientId, fecha>=fromValue, fecha<=toValue" });
+      const [implResult, clientResult] = await Promise.allSettled(queries.map((q) => getDocs(q)));
+      if (implResult.status === "fulfilled") {
+        console.log("[DeleteHistory] implementationId recibidos=" + implResult.value.docs.length + " error.code=null error.message=null");
+        implResult.value.docs.forEach((docSnapshot) => results.set(docSnapshot.id, docSnapshot));
+      } else {
+        console.log("[DeleteHistory] implementationId recibidos=0 error.code=" + implResult.reason.code + " error.message=" + implResult.reason.message);
+      }
+      if (clientResult.status === "fulfilled") {
+        console.log("[DeleteHistory] clienteId recibidos=" + clientResult.value.docs.length + " error.code=null error.message=null");
+        clientResult.value.docs.forEach((docSnapshot) => results.set(docSnapshot.id, docSnapshot));
+      } else {
+        console.log("[DeleteHistory] clienteId recibidos=0 error.code=" + clientResult.reason.code + " error.message=" + clientResult.reason.message);
+      }
       matches = Array.from(results.values());
       range = { clientId, fromValue, toValue };
       preview();
