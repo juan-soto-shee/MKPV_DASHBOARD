@@ -30,15 +30,19 @@ export function initializeDeleteHistory(db, admin) {
     const clientId = el.historyClient.value, fromValue = el.historyDateFrom.value, toValue = el.historyDateTo.value;
     if (!clientId) return message("Seleccione un cliente.", true);
     if (!fromValue || !toValue) return message("Ingrese la fecha desde y la fecha hasta.", true);
-    const inicioDelDia = boundary(fromValue, false), finDelDia = boundary(toValue, true);
-    if (inicioDelDia > finDelDia) return message("La fecha desde no puede ser posterior a la fecha hasta.", true);
-    console.log("Inicio:", inicioDelDia);
-    console.log("Fin:", finDelDia);
+    if (fromValue > toValue) return message("La fecha desde no puede ser posterior a la fecha hasta.", true);
     setBusy(true); message("Buscando registros...");
     try {
-      const safeQuery = query(collection(db, "leach_records"), where("clienteId", "==", clientId), where("timestampCreacion", ">=", inicioDelDia.getTime()), where("timestampCreacion", "<=", finDelDia.getTime()));
-      const snapshot = await getDocs(safeQuery);
-      matches = snapshot.docs; range = { clientId, fromValue, toValue };
+      const results = new Map();
+      const queries = [
+        query(collection(db, "leach_records"), where("implementationId", "==", clientId), where("fecha", ">=", fromValue), where("fecha", "<=", toValue)),
+        query(collection(db, "leach_records"), where("clienteId", "==", clientId), where("fecha", ">=", fromValue), where("fecha", "<=", toValue))
+      ];
+      const [implSnap, clientSnap] = await Promise.all(queries.map((q) => getDocs(q).catch((error) => { console.error("Error en consulta Firestore:", error); throw error; })));
+      implSnap.docs.forEach((docSnapshot) => results.set(docSnapshot.id, docSnapshot));
+      clientSnap.docs.forEach((docSnapshot) => results.set(docSnapshot.id, docSnapshot));
+      matches = Array.from(results.values());
+      range = { clientId, fromValue, toValue };
       preview();
       message(matches.length ? `Se encontraron ${matches.length} registros. Revise la vista previa antes de eliminar.` : "No se encontraron registros para el rango seleccionado.");
     } catch (error) {
@@ -57,17 +61,17 @@ export function initializeDeleteHistory(db, admin) {
   }
 
   function preview() {
-    const dates = matches.map((item) => new Date(item.data().timestampCreacion)).filter((date) => !Number.isNaN(date.valueOf())).sort((a, b) => a - b);
-    console.log("Primer timestamp encontrado:", dates[0]);
-    console.log("Último timestamp encontrado:", dates.at(-1));
-    el.previewClient.textContent = CLIENTS[range.clientId]; el.previewFrom.textContent = dateLabel(range.fromValue); el.previewTo.textContent = dateLabel(range.toValue); el.previewCount.textContent = matches.length;
-    el.previewOldest.textContent = dates.length ? dates[0].toLocaleString("es-CL") : "--"; el.previewNewest.textContent = dates.length ? dates.at(-1).toLocaleString("es-CL") : "--";
+    const parsedDates = matches.map((item) => { const data = item.data(); const combined = `${data.fecha || ""}T${data.hora || "00:00:00"}`; const date = new Date(combined); return Number.isNaN(date.valueOf()) ? null : date; }).filter((date) => date !== null).sort((a, b) => a - b);
+    console.log("Primer timestamp encontrado:", parsedDates[0]);
+    console.log("Último timestamp encontrado:", parsedDates.at(-1));
+    el.previewClient.textContent = CLIENTS[range.clientId] || range.clientId; el.previewFrom.textContent = dateLabel(range.fromValue); el.previewTo.textContent = dateLabel(range.toValue); el.previewCount.textContent = matches.length;
+    el.previewOldest.textContent = parsedDates.length ? parsedDates[0].toLocaleString("es-CL") : "--"; el.previewNewest.textContent = parsedDates.length ? parsedDates.at(-1).toLocaleString("es-CL") : "--";
     el.deleteHistoryPreview.hidden = false; el.deleteHistoryButton.disabled = matches.length === 0;
   }
 
   function openConfirmation() {
     if (busy || !matches.length || !range) return;
-    el.deleteHistorySummary.textContent = `Se eliminarán ${matches.length} registros del cliente ${CLIENTS[range.clientId]} entre ${dateLabel(range.fromValue)} y ${dateLabel(range.toValue)}.`;
+    el.deleteHistorySummary.textContent = `Se eliminarán ${matches.length} registros del cliente ${CLIENTS[range.clientId] || range.clientId} entre ${dateLabel(range.fromValue)} y ${dateLabel(range.toValue)}.`;
     el.deleteHistoryConfirmation.hidden = false; el.deleteHistoryConfirmationInput.value = ""; updateConfirmation(); el.deleteHistoryConfirmationInput.focus();
   }
   function closeConfirmation() { el.deleteHistoryConfirmation.hidden = true; el.deleteHistoryConfirmationInput.value = ""; el.confirmHistoryDeletion.disabled = true; }
@@ -97,8 +101,7 @@ export function initializeDeleteHistory(db, admin) {
   function resetResult() { matches = []; range = null; el.deleteHistoryPreview.hidden = true; el.deleteHistoryButton.disabled = true; createIndexLink.hidden = true; createIndexLink.removeAttribute("href"); closeConfirmation(); }
   function setBusy(value) { busy = value; el.searchHistoryButton.disabled = value; el.historyClient.disabled = value; el.historyDateFrom.disabled = value; el.historyDateTo.disabled = value; el.deleteHistoryButton.disabled = value || !matches.length; el.cancelHistoryDeletion.disabled = value; updateConfirmation(); }
   function message(text, error = false) { el.deleteHistoryMessage.textContent = text; el.deleteHistoryMessage.classList.toggle("is-error", error); }
-  function boundary(value, end) { const [y, m, d] = value.split("-").map(Number); const date = new Date(y, m - 1, d); date.setHours(end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0); return date; }
-  function dateLabel(value) { return boundary(value, false).toLocaleDateString("es-CL"); }
+  function dateLabel(value) { const [y, m, d] = value.split("-").map(Number); const date = new Date(y, m - 1, d); return date.toLocaleDateString("es-CL"); }
   function firebaseIndexUrl(text = "") { const match = text.match(/https:\/\/console\.firebase\.google\.com\/[^\s]+/); return match?.[0] || ""; }
   function errorText(error, operation) { if (error?.code === "permission-denied") return `No tiene permisos para realizar esta ${operation}.`; if (["unavailable", "deadline-exceeded"].includes(error?.code)) return "No fue posible conectar con Firestore. Revise la red e intente nuevamente."; if (error?.code === "failed-precondition") return "La consulta requiere un índice de Firestore. Contacte al administrador del sistema."; return `Ocurrió un error durante la ${operation}. Intente nuevamente.`; }
   return { showRequestedSection, setAdmin(value) { admin = value; } };
