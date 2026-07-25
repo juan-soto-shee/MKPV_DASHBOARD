@@ -31,37 +31,31 @@ const elements = {
 };
 
 let signingOutUnauthorizedUser = false;
+let activeAdmin = null;
 let deleteHistoryController = null;
 let bulkImportController = null;
 let demoGeneratorController = null;
 let mkSdmController = null;
 
-elements.googleSignInButton.addEventListener("click", async () => {
-  setCheckingState("Abriendo Google...");
-  elements.googleSignInButton.disabled = true;
-  elements.authMessage.textContent = "";
+function restoreActiveAdmin() {
   try {
-    await signInWithPopup(auth, provider);
-  } catch (error) {
-    console.error("====== FIREBASE AUTH ======");
-    console.error(error);
-    console.error("code:", error.code);
-    console.error("message:", error.message);
-    showLogin(`${error.code}\n${error.message}`);
-  } finally {
-    elements.googleSignInButton.disabled = false;
-  }
-});
+    const cached = sessionStorage.getItem("plantview_active_admin");
+    if (cached) activeAdmin = JSON.parse(cached);
+  } catch {}
+}
+function persistActiveAdmin(admin) {
+  activeAdmin = admin;
+  try { sessionStorage.setItem("plantview_active_admin", JSON.stringify(admin)); } catch {}
+}
+function clearActiveAdmin() {
+  activeAdmin = null;
+  try { sessionStorage.removeItem("plantview_active_admin"); } catch {}
+}
 
-elements.signOutButton.addEventListener("click", async () => {
-  hideConsole();
-  showLogin();
-  try {
-    await signOut(auth);
-  } catch (error) {
-    elements.authMessage.textContent = "No fue posible cerrar la sesión. Intente nuevamente.";
-  }
-});
+restoreActiveAdmin();
+if (activeAdmin && auth.currentUser) {
+  showConsole(auth.currentUser, activeAdmin);
+}
 
 onAuthStateChanged(auth, async (user) => {
   hideConsole();
@@ -70,24 +64,32 @@ onAuthStateChanged(auth, async (user) => {
       signingOutUnauthorizedUser = false;
       return;
     }
+    clearActiveAdmin();
     showLogin();
     return;
   }
 
-  setCheckingState("Verificando autorización...");
   try {
     const authorization = await getAdminAuthorization(user);
     if (!authorization) {
       signingOutUnauthorizedUser = true;
       await signOut(auth);
+      clearActiveAdmin();
       showLogin("Esta cuenta no está autorizada para acceder a PlantView Admin.");
       return;
     }
+    persistActiveAdmin({
+      email: authorization.email || user.email || "",
+      nombre: authorization.nombre || user.displayName || "Administrador",
+      rol: authorization.rol,
+      implementationIds: Array.isArray(authorization.implementationIds) ? [...authorization.implementationIds] : null
+    });
     showConsole(user, authorization);
   } catch (error) {
     console.error("No se pudo validar el acceso administrativo:", error);
     signingOutUnauthorizedUser = true;
     await signOut(auth).catch(() => {});
+    clearActiveAdmin();
     showLogin("No fue posible verificar la autorización. Intente nuevamente.");
   }
 });
@@ -136,6 +138,7 @@ function showConsole(user, authorization) {
       ? [...authorization.implementationIds]
       : null
   };
+  persistActiveAdmin(activeAdmin);
   if (!deleteHistoryController) deleteHistoryController = initializeDeleteHistory(db, activeAdmin);
   else deleteHistoryController.setAdmin(activeAdmin);
   deleteHistoryController.showRequestedSection();
@@ -153,6 +156,33 @@ function showConsole(user, authorization) {
 function hideConsole() {
   elements.adminConsole.hidden = true;
 }
+
+elements.googleSignInButton.addEventListener("click", async () => {
+  setCheckingState("Abriendo Google...");
+  elements.googleSignInButton.disabled = true;
+  elements.authMessage.textContent = "";
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    console.error("====== FIREBASE AUTH ======");
+    console.error(error);
+    console.error("code:", error.code);
+    console.error("message:", error.message);
+    showLogin(`${error.code}\n${error.message}`);
+  } finally {
+    elements.googleSignInButton.disabled = false;
+  }
+});
+
+elements.signOutButton.addEventListener("click", async () => {
+  hideConsole();
+  showLogin();
+  try {
+    await signOut(auth);
+  } catch (error) {
+    elements.authMessage.textContent = "No fue posible cerrar la sesión. Intente nuevamente.";
+  }
+});
 
 function authErrorMessage(error) {
   if (error?.code === "auth/popup-closed-by-user") return "Se cerró la ventana de Google antes de completar el acceso.";
