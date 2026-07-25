@@ -262,8 +262,8 @@ function showFatalError(error) {
 }
 
 function setText(id, value) { document.getElementById(id).textContent = value; }
-function formatDateTime(value) { return new Date(value).toLocaleString("es-CL"); }
-function shortDateTime(value) { return new Date(value).toLocaleString("es-CL", { day: "2-digit", month: "2-digit", hour: "2-digit" }); }
+function formatDateTime(value) { return new Date(value).toLocaleString("es-CL", { timeZone: "UTC" }); }
+function shortDateTime(value) { return new Date(value).toLocaleString("es-CL", { day: "2-digit", month: "2-digit", hour: "2-digit", timeZone: "UTC" }); }
 function formatNumber(value, decimals) {
   return Number(value).toLocaleString("es-CL", {
     minimumFractionDigits: decimals, maximumFractionDigits: decimals
