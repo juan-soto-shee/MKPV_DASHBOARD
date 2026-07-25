@@ -2,6 +2,14 @@ import { clientConfig, PLANT_AREA } from "./clientConfig.js";
 
 let charts = {};
 
+function uniqueByTimestamp(records) {
+  const seen = new Map();
+  for (const record of records) {
+    seen.set(record.timestampCreacion, record);
+  }
+  return Array.from(seen.values());
+}
+
 const chartTextColor = "#d9f7ff";
 const gridColor = "rgba(127, 208, 226, 0.12)";
 const pileAreas = clientConfig.equipment.filter((item) => item.tipo === "pila").map((item) => item.nombre);
@@ -33,7 +41,7 @@ export function updateCharts(records, context = {}) {
     return;
   }
 
-  const chronological = [...records].sort((a, b) => a.timestampCreacion - b.timestampCreacion);
+  const chronological = uniqueByTimestamp([...records]).sort((a, b) => a.timestampCreacion - b.timestampCreacion);
 
   chartDefinitions.forEach((definition) => {
     const configKey = definition.perEquipment && context.selectedArea !== PLANT_AREA
@@ -66,7 +74,7 @@ export function updateCharts(records, context = {}) {
 }
 
 function buildSplitSeries(records, field) {
-  const chronological = [...records].sort((a, b) => a.timestampCreacion - b.timestampCreacion);
+  const chronological = uniqueByTimestamp([...records]).sort((a, b) => a.timestampCreacion - b.timestampCreacion);
 
   return pileAreas.map((area, index) => ({
     label: area,
@@ -93,8 +101,8 @@ function upsertLineChart(definition, series, alarmConfig) {
       data: series.map((point) => point.value),
       borderColor: lineColor(pointStates, definition.color),
       backgroundColor: transparentize(definition.color),
-      fill: true,
-      tension: 0.32,
+      fill: false,
+      tension: 0,
       borderWidth: 2,
       pointRadius: pointRadii,
       pointHoverRadius: 5,
@@ -135,7 +143,7 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
           borderColor: lineColor(alarmStates, group.color),
           backgroundColor: transparentize(group.color),
           fill: false,
-          tension: 0.32,
+          tension: 0,
           borderWidth: 2,
           pointRadius: pointRadii,
           pointBackgroundColor: alarmStates.map((state, index) =>
@@ -383,9 +391,9 @@ function buildMarkerRadii(states) {
     const isLast = index === states.length - 1;
     const startsAlarm = state.state !== "normal" && state.state !== previousState;
 
-    if (startsAlarm) return state.state === "alarm" ? 4 : 3.5;
-    if (isLast) return state.state === "normal" ? 2.5 : 3.5;
-    return 0;
+    if (startsAlarm) return state.state === "alarm" ? 5 : 4;
+    if (isLast) return state.state === "normal" ? 3 : 4.5;
+    return state.state === "normal" ? 2 : 3;
   });
 }
 
