@@ -102,7 +102,7 @@ function upsertLineChart(definition, series, alarmConfig) {
       borderColor: lineColor(pointStates, definition.color),
       backgroundColor: transparentize(definition.color),
       fill: false,
-      tension: 0,
+      tension: 0.35,
       borderWidth: 2,
       pointRadius: pointRadii,
       pointHoverRadius: 5,
@@ -143,7 +143,7 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
           borderColor: lineColor(alarmStates, group.color),
           backgroundColor: transparentize(group.color),
           fill: false,
-          tension: 0,
+          tension: 0.35,
           borderWidth: 2,
           pointRadius: pointRadii,
           pointBackgroundColor: alarmStates.map((state, index) =>
@@ -386,15 +386,7 @@ function segmentColor(context, states, fallback) {
 }
 
 function buildMarkerRadii(states) {
-  return states.map((state, index) => {
-    const previousState = states[index - 1]?.state;
-    const isLast = index === states.length - 1;
-    const startsAlarm = state.state !== "normal" && state.state !== previousState;
-
-    if (startsAlarm) return state.state === "alarm" ? 5 : 4;
-    if (isLast) return state.state === "normal" ? 3 : 4.5;
-    return state.state === "normal" ? 2 : 3;
-  });
+  return states.map((_, index) => index === states.length - 1 ? 4 : 0);
 }
 
 function isMobileChartView() {
