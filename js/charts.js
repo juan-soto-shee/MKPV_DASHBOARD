@@ -71,8 +71,10 @@ export function updateCharts(records, context = {}) {
     const series = chronological
       .filter((record) => Number.isFinite(record[definition.field]))
       .map((record) => ({
-        label: formatLabel(record.timestampCreacion),
+        x: new Date(record.timestampCreacion).getTime(),
+        y: record[definition.field],
         value: record[definition.field],
+        label: formatLabel(record.timestampCreacion),
         record
       }));
 
@@ -102,12 +104,14 @@ function buildSplitSeries(records, field) {
 function upsertLineChart(definition, series, alarmConfig) {
   const pointStates = series.map((point) => getPointAlarm(point, definition, alarmConfig));
   const pointRadii = buildMarkerRadii(pointStates);
-  const thresholdDatasets = buildThresholdDatasets(series.length, alarmConfig);
+  const timestamps = series.map((point) => point.x).filter(Number.isFinite);
+  const timeRange = timestamps.length
+    ? { min: Math.min(...timestamps), max: Math.max(...timestamps) }
+    : null;
   const data = {
-    labels: series.map((point) => point.label),
     datasets: [{
       label: `${definition.label} (${definition.unit})`,
-      data: series.map((point) => point.value),
+      data: series.map((point) => ({ x: point.x, y: point.y })),
       borderColor: lineColor(pointStates, definition.color),
       backgroundColor: transparentize(definition.color),
       fill: false,
@@ -126,10 +130,10 @@ function upsertLineChart(definition, series, alarmConfig) {
         borderColor: (context) => segmentColor(context, pointStates, definition.color)
       },
       pointData: series
-    }, ...thresholdDatasets]
+    }, ...buildTimeThresholdDatasets(timeRange, alarmConfig)]
   };
 
-  const options = commonOptions(definition.unit, false, definition, alarmConfig);
+  const options = commonOptions(definition.unit, false, definition, alarmConfig, "time");
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
@@ -176,8 +180,8 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
-function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null, xScaleMode = "category") {
-  const useLinearScale = xScaleMode !== "category";
+function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null, xScaleMode = "time") {
+  const useTimeScale = xScaleMode === "time";
   const mobile = isMobileChartView();
 
   return {
@@ -221,7 +225,7 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
     },
     scales: {
       x: {
-        type: useLinearScale ? "linear" : "category",
+        type: useTimeScale ? "time" : "category",
         title: {
           display: false,
           text: "",
@@ -231,8 +235,8 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
           color: chartTextColor,
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: useLinearScale ? 8 : 6,
-          callback: xScaleMode === "time"
+          maxTicksLimit: useTimeScale ? 8 : 6,
+          callback: useTimeScale
             ? (value) => formatLabel(Number(value))
             : undefined
         },
@@ -252,25 +256,6 @@ function formatTooltipNumber(value) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
   });
-}
-
-function buildThresholdDatasets(length, config) {
-  if (!config) return [];
-  return [
-    ["Bajo critico", "bajoCritico", "#ef4444"],
-    ["Bajo alerta", "bajoAlerta", "#f59e0b"],
-    ["Alto alerta", "altoAlerta", "#f59e0b"],
-    ["Alto critico", "altoCritico", "#ef4444"]
-  ].filter(([, key]) => Number.isFinite(Number(config[key]))).map(([label, key, color]) => ({
-    label,
-    data: Array(length).fill(Number(config[key])),
-    borderColor: color,
-    borderWidth: 1,
-    borderDash: [4, 5],
-    pointRadius: 0,
-    fill: false,
-    isThreshold: true
-  }));
 }
 
 function buildTimeThresholdDatasets(timeRange, config) {
