@@ -2,18 +2,44 @@ import { clientConfig, PLANT_AREA } from "./clientConfig.js";
 
 let charts = {};
 
+function normalizeTimestamp(record) {
+  const raw =
+    record.timestamp ??
+    record.fechaHora ??
+    record.datetime ??
+    record.createdAt ??
+    record.timestampCreacion;
+
+  if (!raw) return null;
+
+  const date =
+    typeof raw?.toDate === "function"
+      ? raw.toDate()
+      : new Date(raw);
+
+  const time = date.getTime();
+
+  return Number.isFinite(time) ? time : null;
+}
+
 function uniqueByTimestamp(records) {
   const seen = new Map();
   for (const record of records) {
-    const fecha = record.fecha || "";
-    const hora = record.hora || "";
+    const timestamp = normalizeTimestamp(record);
+    if (!Number.isFinite(timestamp)) continue;
+
     const subarea = record.subarea || record.area || "";
-    const key = fecha && hora
-      ? `${fecha}|${hora}|${subarea}`
-      : `${record.timestampCreacion}|${subarea}`;
+    const variableKey =
+      record.variable ??
+      record.campo ??
+      record.nombre ??
+      record.key ??
+      "";
+
+    const key = `${variableKey}|${subarea}|${timestamp}`;
     const existing = seen.get(key);
-    if (!existing || (existing.timestampCreacion < record.timestampCreacion)) {
-      seen.set(key, record);
+    if (!existing || (existing.timestamp < timestamp)) {
+      seen.set(key, { ...record, timestamp });
     }
   }
   return Array.from(seen.values());
@@ -50,7 +76,14 @@ export function updateCharts(records, context = {}) {
     return;
   }
 
-  const chronological = uniqueByTimestamp([...records]).sort((a, b) => a.timestampCreacion - b.timestampCreacion);
+  const chronological = uniqueByTimestamp([...records]).sort((a, b) => a.timestamp - b.timestamp);
+  const sourceForRange = context.sourceRecords || records;
+  const sourceTimestamps = uniqueByTimestamp([...sourceForRange])
+    .map((record) => normalizeTimestamp(record))
+    .filter(Number.isFinite);
+  const globalTimeRange = sourceTimestamps.length
+    ? { min: Math.min(...sourceTimestamps), max: Math.max(...sourceTimestamps) }
+    : null;
 
   chartDefinitions.forEach((definition) => {
     const configKey = definition.perEquipment && context.selectedArea !== PLANT_AREA
@@ -62,7 +95,7 @@ export function updateCharts(records, context = {}) {
 
     if (definition.splitAtPlant && context.selectedArea === PLANT_AREA) {
       const plantAcidSeries = buildSplitSeries(context.sourceRecords || [], definition.field);
-      upsertMultiLineChart(definition, plantAcidSeries, variableConfig);
+      upsertMultiLineChart(definition, plantAcidSeries, variableConfig, globalTimeRange);
       renderSplitTrendAnalysis(definition, plantAcidSeries);
       renderAlarmPresentation(definition, plantAcidSeries.flatMap((group) => group.points), variableConfig);
       return;
@@ -70,38 +103,58 @@ export function updateCharts(records, context = {}) {
 
     const series = chronological
       .filter((record) => Number.isFinite(record[definition.field]))
-      .map((record) => ({
-        x: new Date(record.timestampCreacion).getTime(),
-        y: record[definition.field],
-        value: record[definition.field],
-        label: formatLabel(record.timestampCreacion),
-        record
-      }));
+      .map((record) => {
+        const x = normalizeTimestamp(record);
+        const y = Number(record[definition.field]);
 
-    upsertLineChart(definition, series, variableConfig);
+        if (x === null || !Number.isFinite(y)) {
+          return null;
+        }
+
+        return { x, y, value: y, record };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.x - b.x);
+
+    if (series.length) {
+      console.table(
+        series.map((point) => ({
+          fecha: new Date(point.x).toISOString(),
+          valor: point.y,
+        }))
+      );
+    }
+
+    upsertLineChart(definition, series, variableConfig, globalTimeRange);
     renderTrendAnalysis(definition, series);
     renderAlarmPresentation(definition, series, variableConfig);
   });
 }
 
 function buildSplitSeries(records, field) {
-  const chronological = uniqueByTimestamp([...records]).sort((a, b) => a.timestampCreacion - b.timestampCreacion);
+  const chronological = uniqueByTimestamp([...records]).sort((a, b) => a.timestamp - b.timestamp);
 
   return pileAreas.map((area, index) => ({
     label: area,
     color: pileColors[index],
     points: chronological
       .filter((record) => record.subarea === area && Number.isFinite(record[field]))
-      .map((record) => ({
-        timestamp: new Date(record.timestampCreacion).getTime(),
-        label: formatLabel(record.timestampCreacion),
-        value: record[field],
-        record
-      }))
+      .map((record) => {
+        const x = normalizeTimestamp(record);
+        const y = Number(record[field]);
+
+        if (x === null || !Number.isFinite(y)) {
+          return null;
+        }
+
+        return { timestamp: x, x, y, value: y, record };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.x - b.x)
   }));
 }
 
-function upsertLineChart(definition, series, alarmConfig) {
+function upsertLineChart(definition, series, alarmConfig, globalTimeRange) {
   const pointStates = series.map((point) => getPointAlarm(point, definition, alarmConfig));
   const pointRadii = buildMarkerRadii(pointStates);
   const timestamps = series.map((point) => point.x).filter(Number.isFinite);
@@ -129,17 +182,20 @@ function upsertLineChart(definition, series, alarmConfig) {
       segment: {
         borderColor: (context) => segmentColor(context, pointStates, definition.color)
       },
+      parsing: false,
+      normalized: true,
+      spanGaps: false,
       pointData: series
     }, ...buildTimeThresholdDatasets(timeRange, alarmConfig)]
   };
 
-  const options = commonOptions(definition.unit, false, definition, alarmConfig, "time");
+  const options = commonOptions(definition.unit, false, definition, alarmConfig, "time", globalTimeRange);
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
-function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
+function upsertMultiLineChart(definition, seriesGroups, alarmConfig, globalTimeRange) {
   const allPoints = seriesGroups.flatMap((group) => group.points);
-  const timestamps = allPoints.map((point) => point.timestamp).filter(Number.isFinite);
+  const timestamps = allPoints.map((point) => point.x || point.timestamp).filter(Number.isFinite);
   const timeRange = timestamps.length
     ? { min: Math.min(...timestamps), max: Math.max(...timestamps) }
     : null;
@@ -152,13 +208,15 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
         return {
           alarmStates,
           label: group.label,
-          data: group.points.map((point) => ({ x: point.timestamp, y: point.value })),
+          data: group.points.map((point) => ({ x: point.x, y: point.y })),
           borderColor: lineColor(alarmStates, group.color),
           backgroundColor: transparentize(group.color),
           fill: false,
           tension: 0.35,
           borderWidth: 2,
           pointRadius: pointRadii,
+          pointHoverRadius: 5,
+          pointHitRadius: 8,
           pointBackgroundColor: alarmStates.map((state, index) =>
             pointRadii[index] ? state.color : "transparent"
           ),
@@ -168,21 +226,24 @@ function upsertMultiLineChart(definition, seriesGroups, alarmConfig) {
           segment: {
             borderColor: (context) => segmentColor(context, alarmStates, group.color)
           },
-          pointHoverRadius: 5,
-          pointHitRadius: 8,
+          parsing: false,
+          normalized: true,
+          spanGaps: false,
           pointData: group.points
         };
       })
       .concat(buildTimeThresholdDatasets(timeRange, alarmConfig))
   };
 
-  const options = commonOptions(definition.unit, true, definition, alarmConfig, "time");
+  const options = commonOptions(definition.unit, true, definition, alarmConfig, "time", globalTimeRange);
   upsertChart(definition.canvasId, { type: "line", data, options });
 }
 
-function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null, xScaleMode = "time") {
+function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = null, xScaleMode = "time", globalTimeRange = null) {
   const useTimeScale = xScaleMode === "time";
   const mobile = isMobileChartView();
+  const endTime = globalTimeRange?.max;
+  const startTime = globalTimeRange?.min;
 
   return {
     responsive: true,
@@ -207,7 +268,12 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
         position: "nearest",
         filter: (context) => !context.dataset.isThreshold,
         callbacks: {
-          title: () => "",
+          title(items) {
+            const timestamp = items[0]?.parsed?.x;
+            return timestamp
+              ? new Date(timestamp).toLocaleString("es-CL")
+              : "";
+          },
           label: (context) => {
             if (context.parsed.y === null) return null;
             const seriesName = showLegend ? `${context.dataset.label} — ` : "";
@@ -226,22 +292,28 @@ function commonOptions(unit, showLegend = false, definition = {}, alarmConfig = 
     scales: {
       x: {
         type: useTimeScale ? "time" : "category",
-        title: {
-          display: false,
-          text: "",
-          color: chartTextColor
+        ...(Number.isFinite(startTime) ? { min: startTime } : {}),
+        ...(Number.isFinite(endTime) ? { max: endTime } : {}),
+        bounds: "data",
+        time: {
+          unit: "day",
+          stepSize: 1,
+          displayFormats: {
+            day: "dd/MM",
+            hour: "HH:mm"
+          },
+          tooltipFormat: "dd/MM/yyyy HH:mm"
         },
         ticks: {
-          color: chartTextColor,
-          maxRotation: 0,
+          source: "auto",
           autoSkip: true,
-          maxTicksLimit: useTimeScale ? 8 : 6,
-          callback: useTimeScale
-            ? (value) => formatLabel(Number(value))
-            : undefined
+          maxTicksLimit: 7,
+          maxRotation: 0,
+          minRotation: 0,
+          padding: 8,
+          color: chartTextColor
         },
-        grid: { color: gridColor, drawBorder: false },
-        bounds: "data"
+        grid: { color: gridColor, drawBorder: false }
       },
       y: {
         ticks: { color: chartTextColor },
